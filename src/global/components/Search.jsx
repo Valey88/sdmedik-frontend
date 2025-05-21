@@ -61,7 +61,7 @@ const Search = () => {
 
   // Обработка клика по подсказке
   const handleSuggestionClick = (suggestion) => {
-    window.location.href = `/product/${suggestion.id}`;
+    window.location.href = `/product/certificate/${suggestion.id}`;
     setIsSuggestionsVisible(false);
   };
 

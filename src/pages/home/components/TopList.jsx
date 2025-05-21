@@ -137,7 +137,7 @@ export default function TopList() {
                           whiteSpace: "nowrap",
                         }}
                         onClick={() => {
-                          navigate(`/product/${item.id}`);
+                          navigate(`/product/certificate/${item.id}`);
                         }}
                       >
                         {item.name}
@@ -150,7 +150,7 @@ export default function TopList() {
                       >
                         Всего заказов {item.order_count} шт.
                       </Typography>
-                      <Box
+                      {/* <Box
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
@@ -167,7 +167,7 @@ export default function TopList() {
                         >
                           {item.price} ₽
                         </Typography>
-                      </Box>
+                      </Box> */}
                       <Button
                         variant="contained"
                         sx={{

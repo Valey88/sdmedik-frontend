@@ -8,7 +8,6 @@ import Delivery from "../pages/delivery/Delivery";
 import About from "../pages/about/About";
 import Return_policy from "../pages/return_policy/Return_policy";
 import Deteils from "../pages/deteils/Deteils";
-import ProductDynamicPage from "../pages/Product/ProductDynamicPage";
 import Auth from "../pages/account/Auth";
 import Register from "../pages/account/Register";
 import UserAccount from "../pages/account/UserAccount";
@@ -132,14 +131,6 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <CatalogsCertificateLayout />
-      </LayoutWrapper>
-    ), // Исправлено имя компонента
-  },
-  {
-    path: "/product/:id", // динамический маршрут
-    element: (
-      <LayoutWrapper>
-        <ProductDynamicPage />
       </LayoutWrapper>
     ), // Исправлено имя компонента
   },
