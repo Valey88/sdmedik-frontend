@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import useProductStore from "../../../store/productStore";
 import useBascketStore from "../../../store/bascketStore";
 import { urlPictures } from "../../../constants/constants";
@@ -19,83 +19,84 @@ import SidebarFilter from "./SidebarFilter";
 const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
   const navigate = useNavigate();
   return (
-    <Card
-      sx={{
-        maxWidth: { xs: "167px", md: "261px" },
-        height: { xs: "385px", md: "480px" },
-        background: "#F5FCFF",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-        borderRadius: "8px",
-        transition: "transform 0.2s, box-shadow 0.2s",
-        "&:hover": {
-          transform: "scale(1.05)",
-          boxShadow: " 0 8px 30px rgba(0, 0, 0, 0.2)",
-        },
-        display: "flex",
-        flexDirection: "column",
-        cursor: "pointer",
-      }}
-    >
-      <Box
+    <Link to={`/product/certificate/${e.id}`}>
+      <Card
         sx={{
+          maxWidth: { xs: "167px", md: "261px" },
+          height: { xs: "385px", md: "480px" },
+          background: "#F5FCFF",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+          borderRadius: "8px",
+          transition: "transform 0.2s, box-shadow 0.2s",
+          "&:hover": {
+            transform: "scale(1.05)",
+            boxShadow: " 0 8px 30px rgba(0, 0, 0, 0.2)",
+          },
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "300px",
-          borderBottom: "1px solid #E0E0E0",
-        }}
-        onClick={() => {
-          navigate(`/product/certificate/${e.id}`);
+          flexDirection: "column",
+          cursor: "pointer",
         }}
       >
-        <CardMedia
-          component="img"
-          image={`${urlPictures}/${e.images[0].name}`}
-          alt={e.name}
-          sx={{
-            width: "100%",
-            height: { xs: "200px", md: "300px" },
-            objectFit: "contain",
-          }}
-          loading="lazy"
-        />
-      </Box>
-      <CardContent>
-        <Typography
-          sx={{
-            fontSize: { xs: "0.9rem", md: "1.2rem" },
-            fontWeight: "bold",
-            mb: 1,
-            width: { xs: "150px", md: "235px" },
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-          onClick={() => {
-            navigate(`/product/certificate/${e.id}`);
-          }}
-        >
-          {e.name}
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 1 }}
-          onClick={() => {
-            navigate(`/product/certificate/${e.id}`);
-          }}
-        >
-          Артикул: {e.article}
-        </Typography>
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "center",
             alignItems: "center",
-            mt: 1,
+            height: "300px",
+            borderBottom: "1px solid #E0E0E0",
+          }}
+          onClick={() => {
+            navigate(`/product/certificate/${e.id}`);
           }}
         >
-          {/* <Typography
+          <CardMedia
+            component="img"
+            image={`${urlPictures}/${e.images[0].name}`}
+            alt={e.name}
+            sx={{
+              width: "100%",
+              height: { xs: "200px", md: "300px" },
+              objectFit: "contain",
+            }}
+            loading="lazy"
+          />
+        </Box>
+        <CardContent>
+          <Typography
+            sx={{
+              fontSize: { xs: "0.9rem", md: "1.2rem" },
+              fontWeight: "bold",
+              mb: 1,
+              width: { xs: "150px", md: "235px" },
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            onClick={() => {
+              navigate(`/product/certificate/${e.id}`);
+            }}
+          >
+            {e.name}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 1 }}
+            onClick={() => {
+              navigate(`/product/certificate/${e.id}`);
+            }}
+          >
+            Артикул: {e.article}
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 1,
+            }}
+          >
+            {/* <Typography
             variant="h6"
             sx={{ color: "#00B3A4", fontWeight: "bold" }}
             onClick={() => {
@@ -104,7 +105,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           >
             {e.price} ₽
           </Typography> */}
-          {/* {e.oldPrice && (
+            {/* {e.oldPrice && (
                 <Typography
                   variant="body2"
                   sx={{ color: "text.secondary", textDecoration: "line-through" }}
@@ -112,27 +113,27 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
                   {e.oldPrice} ₽
                 </Typography>
               )} */}
-        </Box>
-        <Button
-          variant="contained"
-          sx={{
-            width: "100%",
-            mt: { xs: 1, md: 5 },
-            backgroundColor: "#00B3A4",
-            color: "#FFFFFF",
-            borderRadius: "8px",
-            "&:hover": {
+          </Box>
+          <Button
+            variant="contained"
+            sx={{
+              width: "100%",
+              mt: { xs: 1, md: 5 },
               backgroundColor: "#00B3A4",
-            },
-          }}
-          onClick={() => {
-            navigate(`/product/certificate/${e.id}`);
-          }}
-        >
-          Подробнее
-        </Button>
-      </CardContent>
-      {/* <Box
+              color: "#FFFFFF",
+              borderRadius: "8px",
+              "&:hover": {
+                backgroundColor: "#00B3A4",
+              },
+            }}
+            onClick={() => {
+              navigate(`/product/certificate/${e.id}`);
+            }}
+          >
+            Подробнее
+          </Button>
+        </CardContent>
+        {/* <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
@@ -157,7 +158,8 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
               В корзину
             </Button>
           </Box> */}
-    </Card>
+      </Card>
+    </Link>
   );
 });
 
@@ -178,7 +180,7 @@ const CatalogDynamicCertificatePage = () => {
   useEffect(() => {
     const offset = (currentPage - 1) * ProductsPerPage;
     setLoading(true);
-    fetchProducts(category_id, filters, offset, ProductsPerPage, )
+    fetchProducts(category_id, filters, offset, ProductsPerPage)
       .then(() => setLoading(false))
       .catch((err) => {
         setLoading(false);
