@@ -40,7 +40,8 @@ Date.prototype.getWeek = function () {
 };
 
 const AdminOrdersTable = () => {
-  const { fetchOrders, orders, changeStatus } = useOrderStore();
+  const { fetchOrders, orders, changeStatus, chats, fetchChats } =
+    useOrderStore();
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;

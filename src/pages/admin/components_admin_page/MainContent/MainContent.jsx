@@ -4,6 +4,7 @@ import AdminCategoriesTable from "../AdminCategoriesTable/AdminCategoriesTable";
 import AdminUserTable from "../AdminUserTable/AdminUserTable";
 import AdminUsersDiagramm from "../AdminUsersDiagramm/AdminUsersDiagramm";
 import AdminOrdersTable from "../AdminOrdersTable/AdminOrdersTable";
+import AdminChat from "../chat/AdminChat";
 
 const MainContent = () => {
   return (

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import CreatePromotion from "./create_promotion/CreatePromotion";
 import AdminPromotionTable from "./components_admin_page/AdminPromotionTable/AdminPromotionTable";
 import UpdateCategory from "./update_category/UpdateCategory";
+import AdminChat from "./components_admin_page/chat/AdminChat";
 
 function ProtectedRoute({ element }) {
   const { getUserInfo, user } = useUserStore();
@@ -87,6 +88,10 @@ export default function AdminDashboard() {
           <Route
             path="/update_category/:id"
             element={<ProtectedRoute element={<UpdateCategory />} />}
+          />
+          <Route
+            path="/admin_chat"
+            element={<ProtectedRoute element={<AdminChat />} />}
           />
         </Routes>
       </Container>

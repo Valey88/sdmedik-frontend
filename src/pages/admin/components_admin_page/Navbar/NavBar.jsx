@@ -54,6 +54,12 @@ const NavBar = () => {
         >
           Админ панель
         </Link>
+        <Link
+          href="/admin/admin_chat"
+          sx={{ flexGrow: 4, color: "#fff", cursor: "pointer" }}
+        >
+          Чат с администратором
+        </Link>
         <Button
           color="inherit"
           id="basic-button"
