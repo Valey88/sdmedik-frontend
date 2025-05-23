@@ -15,7 +15,7 @@ import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PersonIcon from "@mui/icons-material/Person";
 import { useNavigate } from "react-router-dom";
-import supportChat from "../../constants/constants";
+import { supportChat } from "@/constants/constants";
 
 const faqData = [
   {

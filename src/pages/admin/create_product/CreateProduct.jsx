@@ -17,11 +17,14 @@ import React, { useEffect, useState } from "react";
 import useCategoryStore from "../../../store/categoryStore";
 import useProductStore from "../../../store/productStore";
 import { Delete as DeleteIcon } from "@mui/icons-material";
+import { urlPictures } from "../../../constants/constants";
+import { toast } from "react-toastify";
 
 export default function CreateProduct() {
   const { fetchCategory, category } = useCategoryStore();
   const { createProduct } = useProductStore();
 
+  // Состояние формы
   const [product, setProduct] = useState({
     article: "",
     category_ids: [],
@@ -38,24 +41,42 @@ export default function CreateProduct() {
   const [catalogs, setCatalogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Допустимые значения для catalogs
+  const VALID_CATALOG_IDS = [1, 2];
+
+  // Загрузка категорий
   useEffect(() => {
     fetchCategory();
-  }, []);
+  }, [fetchCategory]);
 
+  // Обработчик изменения каталогов
   const handleCatalogChange = (event) => {
     const { value, checked } = event.target;
+    const catalogId = Number(value);
 
-    let updatedCatlogs = [...catalogs]; // Копируем текущее состояние
-
-    if (checked) {
-      updatedCatlogs.push(Number(value)); // Добавляем ID каталога
-    } else {
-      updatedCatlogs = updatedCatlogs.filter((log) => log !== Number(value)); // Удаляем ID каталога
+    if (!VALID_CATALOG_IDS.includes(catalogId)) {
+      console.warn(`Недопустимое значение catalogId: ${catalogId}`);
+      toast.error(`Недопустимый каталог: ${catalogId}`);
+      return;
     }
 
-    setCatalogs(updatedCatlogs); // Обновляем состояние
+    setCatalogs((prevCatalogs) => {
+      let updatedCatalogs = [...prevCatalogs];
+      if (checked) {
+        if (!updatedCatalogs.includes(catalogId)) {
+          updatedCatalogs.push(catalogId);
+        }
+      } else {
+        updatedCatalogs = updatedCatalogs.filter((log) => log !== catalogId);
+      }
+      updatedCatalogs = updatedCatalogs.filter((id) =>
+        VALID_CATALOG_IDS.includes(id)
+      );
+      return updatedCatalogs;
+    });
   };
 
+  // Обработчик изменения категорий
   const handleCheckboxChange = (id) => {
     setSelectedCategories((prevSelected) => {
       const isSelected = prevSelected.includes(id);
@@ -89,6 +110,7 @@ export default function CreateProduct() {
     });
   };
 
+  // Обработчик изменения значений характеристик
   const handleValueChange = (id, value) => {
     setCharacteristicValues((prevValues) => ({
       ...prevValues,
@@ -96,6 +118,7 @@ export default function CreateProduct() {
     }));
   };
 
+  // Обработчик загрузки файлов
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     setProduct((prevProduct) => ({
@@ -104,6 +127,7 @@ export default function CreateProduct() {
     }));
   };
 
+  // Обработчик удаления изображений
   const handleRemoveImage = (index) => {
     setProduct((prevProduct) => ({
       ...prevProduct,
@@ -111,23 +135,44 @@ export default function CreateProduct() {
     }));
   };
 
+  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
+    // Валидация обязательных полей
+    if (!product.name || !product.price || !product.description) {
+      toast.error("Заполните все обязательные поля: название, цена, описание");
+      setLoading(false);
+      return;
+    }
+
+    // Формируем characteristic_values
+    const formattedCharacteristics = Object.entries(characteristicValues)
+      .filter(([id]) => characteristics.some((char) => char.id === Number(id)))
+      .map(([id, value]) => {
+        const char = characteristics.find((c) => c.id === Number(id));
+
+        return {
+          characteristic_id: Number(id),
+          value:
+            char?.data_type === "bool"
+              ? [String(value)]
+              : String(value)
+                  .split(",")
+                  .map((v) => v.trim())
+                  .filter((v) => v),
+        };
+      });
+
     const productData = {
+      name: product.name,
+      price: Number(product.price),
+      description: product.description,
       article: product.article,
       category_ids: product.category_ids,
-      characteristic_values: Object.entries(characteristicValues).map(
-        ([id, value]) => ({
-          characteristic_id: Number(id),
-          value: String(value),
-        })
-      ),
-      description: product.description,
-      name: product.name,
-      price: product.price,
-      catalogs: catalogs,
+      characteristic_values: formattedCharacteristics,
+      catalogs: catalogs.filter((id) => VALID_CATALOG_IDS.includes(id)),
     };
 
     const formData = new FormData();
@@ -136,8 +181,32 @@ export default function CreateProduct() {
       formData.append("files", file);
     });
 
-    await createProduct(formData);
-    setLoading(false);
+    try {
+      await createProduct(formData);
+      toast.success("Продукт успешно создан");
+      // Сброс формы после успешного создания
+      setProduct({
+        article: "",
+        category_ids: [],
+        characteristic_values: [],
+        description: "",
+        name: "",
+        images: [],
+        price: 0,
+      });
+      setSelectedCategories([]);
+      setCharacteristics([]);
+      setCharacteristicValues({});
+      setCatalogs([]);
+    } catch (error) {
+      console.error("Ошибка при создании продукта:", error);
+      toast.error(
+        "Ошибка при создании продукта: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -158,8 +227,8 @@ export default function CreateProduct() {
                     setProduct({ ...product, name: e.target.value })
                   }
                   fullWidth
-                  required
                   margin="normal"
+                  required
                 />
               </Grid>
               <Grid item xs={12}>
@@ -170,7 +239,6 @@ export default function CreateProduct() {
                     setProduct({ ...product, article: e.target.value })
                   }
                   fullWidth
-                  required
                   margin="normal"
                 />
               </Grid>
@@ -186,8 +254,9 @@ export default function CreateProduct() {
                     });
                   }}
                   fullWidth
-                  required
                   margin="normal"
+                  type="number"
+                  required
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">₽</InputAdornment>
@@ -206,6 +275,7 @@ export default function CreateProduct() {
                   margin="normal"
                   multiline
                   rows={4}
+                  required
                 />
               </Grid>
 
@@ -262,70 +332,97 @@ export default function CreateProduct() {
                 </Box>
               </Grid>
 
+              {/* Каталоги */}
               <Grid item xs={12}>
-                <label>
-                  Каталог
-                  <Checkbox
-                    value={1}
-                    onChange={(event) => handleCatalogChange(event)}
+                <Typography variant="h6">Каталоги</Typography>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        value={1}
+                        checked={catalogs.includes(1)}
+                        onChange={handleCatalogChange}
+                      />
+                    }
+                    label="Каталог"
                   />
-                </label>
-                <label>
-                  Каталог по электроному сертификату
-                  <Checkbox
-                    value={2}
-                    onChange={(event) => handleCatalogChange(event)}
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        value={2}
+                        checked={catalogs.includes(2)}
+                        onChange={handleCatalogChange}
+                      />
+                    }
+                    label="Каталог по электронному сертификату"
                   />
-                </label>
+                </Box>
               </Grid>
 
               {/* Характеристики */}
               <Grid item xs={12}>
                 <Typography variant="h6">Характеристики</Typography>
                 {Array.isArray(characteristics) &&
-                  characteristics.map((char) => (
-                    <Box key={char.id} sx={{ mb: 2 }}>
-                      <Typography>{char.name}:</Typography>
-                      {char.data_type === "bool" ? (
-                        <Box>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={characteristicValues[char.id] === true}
-                                onChange={() =>
-                                  handleValueChange(char.id, true)
-                                }
-                              />
+                  characteristics.map((char) => {
+                    const isSizeCharacteristic =
+                      char.name.toLowerCase() === "размер";
+
+                    return (
+                      <Box key={char.id} sx={{ mb: 2 }}>
+                        <Typography>{char.name}:</Typography>
+
+                        {char.data_type === "bool" ? (
+                          <Box>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={
+                                    characteristicValues[char.id] === "true" ||
+                                    characteristicValues[char.id] === true
+                                  }
+                                  onChange={() =>
+                                    handleValueChange(char.id, "true")
+                                  }
+                                />
+                              }
+                              label="Да"
+                            />
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={
+                                    characteristicValues[char.id] === "false" ||
+                                    characteristicValues[char.id] === false
+                                  }
+                                  onChange={() =>
+                                    handleValueChange(char.id, "false")
+                                  }
+                                />
+                              }
+                              label="Нет"
+                            />
+                          </Box>
+                        ) : (
+                          <TextField
+                            label={
+                              isSizeCharacteristic
+                                ? "Значения размера (через запятую)"
+                                : `Значения для ${char.name} (через запятую)`
                             }
-                            label="Да"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={
-                                  characteristicValues[char.id] === false
-                                }
-                                onChange={() =>
-                                  handleValueChange(char.id, false)
-                                }
-                              />
+                            value={characteristicValues[char.id] || ""}
+                            onChange={(e) =>
+                              handleValueChange(char.id, e.target.value)
                             }
-                            label="Нет"
+                            fullWidth
+                            margin="normal"
+                            inputProps={{
+                              inputMode: "text",
+                            }}
                           />
-                        </Box>
-                      ) : (
-                        <TextField
-                          label={`Значение для ${char.name}`}
-                          value={characteristicValues[char.id] || ""}
-                          onChange={(e) =>
-                            handleValueChange(char.id, e.target.value)
-                          }
-                          fullWidth
-                          margin="normal"
-                        />
-                      )}
-                    </Box>
-                  ))}
+                        )}
+                      </Box>
+                    );
+                  })}
               </Grid>
             </Grid>
 
@@ -336,7 +433,7 @@ export default function CreateProduct() {
               <Button
                 variant="outlined"
                 color="secondary"
-                onClick={() =>
+                onClick={() => {
                   setProduct({
                     article: "",
                     category_ids: [],
@@ -345,8 +442,12 @@ export default function CreateProduct() {
                     name: "",
                     images: [],
                     price: 0,
-                  })
-                }
+                  });
+                  setSelectedCategories([]);
+                  setCharacteristics([]);
+                  setCharacteristicValues({});
+                  setCatalogs([]);
+                }}
               >
                 Сбросить
               </Button>

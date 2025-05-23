@@ -24,7 +24,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../../../../configs/axiosConfig";
-import supportChat from "../../../../constants/constants";
+import { supportChat } from "@/constants/constants";
 
 // const WS_URL = "wss://sdmedik.ru/api/v1/chat/conn";
 // const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
