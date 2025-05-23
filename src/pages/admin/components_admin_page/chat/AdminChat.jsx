@@ -24,8 +24,9 @@ import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../../../../configs/axiosConfig";
+import chat from "../../../../constants/constants";
 
-const WS_URL = "ws://sdmedik.ru/api/v1/chat/conn";
+// const WS_URL = "wss://sdmedik.ru/api/v1/chat/conn";
 // const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
 
 const POLL_INTERVAL_MS = 5000; // 5s polling
@@ -78,7 +79,7 @@ export default function AdminChat() {
     fetchChatRooms();
     const pollInterval = setInterval(fetchChatRooms, POLL_INTERVAL_MS);
 
-    ws.current = new WebSocket(WS_URL);
+    ws.current = new WebSocket(chat);
 
     ws.current.onopen = () => {
       console.log("WebSocket подключен");

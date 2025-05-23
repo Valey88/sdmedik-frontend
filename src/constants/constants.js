@@ -1,5 +1,6 @@
 export const url = import.meta.env.VITE_URL_SERVER;
 export const urlPictures = import.meta.env.VITE_URL_PICTURES;
+export const chat = import.meta.env.VITE_URL_CHAT;
 console.log(url);
 
 // const YANDEX_API_KEY = "1fe0be30-02a2-4c9c-b6f9-31cbadd264db"; // Замените на ваш ключ
@@ -38,25 +39,25 @@ console.log(url);
 //   return null;
 // };
 
-  // useEffect(() => {
-  //   if (navigator.geolocation) {
-  //     navigator.geolocation.getCurrentPosition(
-  //       async (position) => {
-  //         const region = await getRegionFromCoordinates(
-  //           position.coords.latitude,
-  //           position.coords.longitude
-  //         );
-  //         if (region) {
-  //           setNewRegion(region); // Обновляем состояние региона
-  //           // Автоматически отправляем запрос на сервер с регионом
-  //           fetchProductById(id, region.value);
-  //         }
-  //       },
-  //       (error) => {
-  //         console.error("Ошибка при получении местоположения:", error);
-  //       }
-  //     );
-  //   } else {
-  //     console.error("Геолокация не поддерживается вашим браузером.");
-  //   }
-  // }, [id]);
+// useEffect(() => {
+//   if (navigator.geolocation) {
+//     navigator.geolocation.getCurrentPosition(
+//       async (position) => {
+//         const region = await getRegionFromCoordinates(
+//           position.coords.latitude,
+//           position.coords.longitude
+//         );
+//         if (region) {
+//           setNewRegion(region); // Обновляем состояние региона
+//           // Автоматически отправляем запрос на сервер с регионом
+//           fetchProductById(id, region.value);
+//         }
+//       },
+//       (error) => {
+//         console.error("Ошибка при получении местоположения:", error);
+//       }
+//     );
+//   } else {
+//     console.error("Геолокация не поддерживается вашим браузером.");
+//   }
+// }, [id]);

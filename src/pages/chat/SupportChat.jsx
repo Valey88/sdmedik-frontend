@@ -15,6 +15,7 @@ import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PersonIcon from "@mui/icons-material/Person";
 import { useNavigate } from "react-router-dom";
+import { chat } from "../../constants/constants";
 
 const faqData = [
   {
@@ -32,9 +33,8 @@ const faqData = [
   },
 ];
 
-const WS_URL = "ws://sdmedik.ru/api/v1/chat/conn/";
+// const WS_URL = "wss://sdmedik.ru/api/v1/chat/conn/";
 // const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
-
 
 const CHAT_ID_EXPIRY_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 
@@ -84,7 +84,7 @@ function SupportChat() {
 
     setChatId(newChatId);
 
-    ws.current = new WebSocket(WS_URL);
+    ws.current = new WebSocket(chat);
 
     ws.current.onopen = () => {
       console.log("WebSocket подключен");
