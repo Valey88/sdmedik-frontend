@@ -4,7 +4,6 @@ import PaymantsInfo from "./components/PaymantsInfo";
 import TopList from "./components/TopList";
 import PromotionalSlider from "./components/PromotionalSlider";
 import Info from "./components/Info";
-import Chat from "../../global/components/chat";
 
 export default function HomePage() {
   return (
@@ -21,7 +20,6 @@ export default function HomePage() {
           <PromotionalSlider />
         </Box>
       </Container>
-      {/* <Chat /> */}
     </Box>
   );
 }
