@@ -15,7 +15,7 @@ import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PersonIcon from "@mui/icons-material/Person";
 import { useNavigate } from "react-router-dom";
-import { chat } from "../../constants/constants";
+import supportChat from "../../constants/constants";
 
 const faqData = [
   {
@@ -84,7 +84,7 @@ function SupportChat() {
 
     setChatId(newChatId);
 
-    ws.current = new WebSocket(chat);
+    ws.current = new WebSocket(supportChat);
 
     ws.current.onopen = () => {
       console.log("WebSocket подключен");
