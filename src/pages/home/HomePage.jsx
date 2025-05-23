@@ -21,7 +21,7 @@ export default function HomePage() {
           <PromotionalSlider />
         </Box>
       </Container>
-      <Chat />
+      {/* <Chat /> */}
     </Box>
   );
 }

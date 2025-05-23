@@ -374,12 +374,15 @@ export default function ProductDynamicCertificatePage() {
                     borderColor: "#00B3A4",
                     "&:hover": { borderColor: "#009B8A" },
                   }}
-                  onClick={() => setIsOpen(true)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = "/support";
+                  }}
                   aria-label="Открыть чат поддержки"
                 >
                   Открыть чат поддержки
                 </Button>
-                {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />}
+                {/* {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />} */}
               </>
             )}
           </Box>
