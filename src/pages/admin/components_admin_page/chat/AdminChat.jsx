@@ -25,7 +25,9 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../../../../configs/axiosConfig";
 
-const WS_URL = "ws://sdmedik.ru/api/v1/api/v1/chat/conn/";
+const WS_URL = "ws://sdmedik.ru/api/v1/chat/conn";
+// const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
+
 const POLL_INTERVAL_MS = 5000; // 5s polling
 const SIDEBAR_WIDTH = 260;
 

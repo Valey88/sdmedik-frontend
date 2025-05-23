@@ -32,7 +32,10 @@ const faqData = [
   },
 ];
 
-const WS_URL = "ws://sdmedik.ru/api/v1/api/v1/chat/conn/";
+const WS_URL = "ws://sdmedik.ru/api/v1/chat/conn/";
+// const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
+
+
 const CHAT_ID_EXPIRY_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 
 function SupportChat() {
