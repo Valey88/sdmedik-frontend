@@ -7,12 +7,13 @@ import { router } from "./routers/routers";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import useUserStore from "./store/userStore";
-
+import Chat from "../src/global/components/Chat";
 function App() {
   return (
     <Box>
       <RouterProvider router={router} />
       <ToastContainer />
+      <Chat />
     </Box>
   );
 }

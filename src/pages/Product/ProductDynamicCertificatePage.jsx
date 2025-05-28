@@ -376,13 +376,13 @@ export default function ProductDynamicCertificatePage() {
                   }}
                   onClick={(e) => {
                     e.preventDefault();
-                    window.location.href = "/support";
+                    setIsOpen(true);
                   }}
                   aria-label="Открыть чат поддержки"
                 >
                   Открыть чат поддержки
                 </Button>
-                {/* {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />} */}
+                {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />}
               </>
             )}
           </Box>

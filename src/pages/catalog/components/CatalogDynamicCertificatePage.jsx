@@ -22,8 +22,8 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
     <Link to={`/product/certificate/${e.id}`}>
       <Card
         sx={{
-          maxWidth: { xs: "167px", md: "261px" },
-          height: { xs: "385px", md: "480px" },
+          width: { xs: "167px", md: "261px" },
+          height: { xs: "485px", md: "550px" },
           background: "#F5FCFF",
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
           borderRadius: "8px",
@@ -61,16 +61,19 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
             loading="lazy"
           />
         </Box>
-        <CardContent>
+
+        <CardContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            flexGrow: 1,
+          }}
+        >
           <Typography
             sx={{
-              fontSize: { xs: "0.9rem", md: "1.2rem" },
+              fontSize: { xs: "0.8rem", md: "1rem" },
               fontWeight: "bold",
               mb: 1,
-              width: { xs: "150px", md: "235px" },
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
             }}
             onClick={() => {
               navigate(`/product/certificate/${e.id}`);
@@ -78,86 +81,29 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           >
             {e.name}
           </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mb: 1 }}
-            onClick={() => {
-              navigate(`/product/certificate/${e.id}`);
-            }}
-          >
-            Артикул: {e.article}
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mt: 1,
-            }}
-          >
-            {/* <Typography
-            variant="h6"
-            sx={{ color: "#00B3A4", fontWeight: "bold" }}
-            onClick={() => {
-              window.location.href = `/product/certificate/${e.id}`;
-            }}
-          >
-            {e.price} ₽
-          </Typography> */}
-            {/* {e.oldPrice && (
-                <Typography
-                  variant="body2"
-                  sx={{ color: "text.secondary", textDecoration: "line-through" }}
-                >
-                  {e.oldPrice} ₽
-                </Typography>
-              )} */}
-          </Box>
-          <Button
-            variant="contained"
-            sx={{
-              width: "100%",
-              mt: { xs: 1, md: 5 },
-              backgroundColor: "#00B3A4",
-              color: "#FFFFFF",
-              borderRadius: "8px",
-              "&:hover": {
-                backgroundColor: "#00B3A4",
-              },
-            }}
-            onClick={() => {
-              navigate(`/product/certificate/${e.id}`);
-            }}
-          >
-            Подробнее
-          </Button>
-        </CardContent>
-        {/* <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              p: 2,
-              borderTop: "1px solid #E0E0E0",
-            }}
-          >
+
+          {/* Прочий контент */}
+
+          <Box sx={{ mt: "auto" }}>
             <Button
+              variant="contained"
               sx={{
                 width: "100%",
-                height: "40px",
-                border: `2px solid #00B3A4`,
-                borderRadius: "12px",
-                color: "#00B3A4",
+                backgroundColor: "#00B3A4",
+                color: "#FFFFFF",
+                borderRadius: "8px",
+                "&:hover": {
+                  backgroundColor: "#00B3A4",
+                },
               }}
-              variant="outlined"
               onClick={() => {
-                hendleAddProductThithBascket(e.id);
+                navigate(`/product/certificate/${e.id}`);
               }}
             >
-              В корзину
+              Подробнее
             </Button>
-          </Box> */}
+          </Box>
+        </CardContent>
       </Card>
     </Link>
   );

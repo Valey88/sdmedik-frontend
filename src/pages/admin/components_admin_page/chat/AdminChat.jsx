@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Box,
   Container,
@@ -26,10 +26,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import api from "../../../../configs/axiosConfig";
 import { supportChat } from "@/constants/constants";
 
-// const WS_URL = "wss://sdmedik.ru/api/v1/chat/conn";
-// const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
-
-const POLL_INTERVAL_MS = 5000; // 5s polling
 const SIDEBAR_WIDTH = 260;
 
 export default function AdminChat() {
@@ -44,8 +40,37 @@ export default function AdminChat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [adminSenderId, setAdminSenderId] = useState(null);
   const ws = useRef(null);
   const messagesEndRef = useRef(null);
+  const processedMessages = useRef(new Set());
+
+  // Проверка, является ли строка валидным JSON
+  const isValidJSON = (str) => {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Загрузка sender_id администратора
+  const fetchAdminSenderId = async () => {
+    try {
+      // Placeholder: Замените на реальный API-эндпоинт
+      const response = {
+        data: { sender_id: "c4ad665d-0d91-46ff-b319-7c1c8b7b395d" },
+      };
+      setAdminSenderId(response.data.sender_id);
+      console.log("Admin sender_id fetched:", response.data.sender_id);
+    } catch (err) {
+      console.error("Ошибка при загрузке sender_id администратора:", err);
+      setError(
+        "Не удалось загрузить данные администратора. Используется резервная логика."
+      );
+    }
+  };
 
   // Загрузка списка чатов
   const fetchChatRooms = async () => {
@@ -74,10 +99,10 @@ export default function AdminChat() {
     }
   };
 
-  // Инициализация WebSocket
+  // Инициализация WebSocket и загрузка sender_id
   useEffect(() => {
+    fetchAdminSenderId();
     fetchChatRooms();
-    const pollInterval = setInterval(fetchChatRooms, POLL_INTERVAL_MS);
 
     ws.current = new WebSocket(supportChat);
 
@@ -91,12 +116,38 @@ export default function AdminChat() {
     };
 
     ws.current.onmessage = (event) => {
-      console.log("Received WebSocket message:", event.data);
+      console.log("Получено сообщение WebSocket:", event.data);
+      if (!isValidJSON(event.data)) {
+        const messageKey = `${event.data}-${new Date().toISOString()}`;
+        if (processedMessages.current.has(messageKey)) {
+          console.log("Дубликат сообщения пропущен:", event.data);
+          return;
+        }
+        processedMessages.current.add(messageKey);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "user",
+            text: event.data,
+            timestamp: new Date().toISOString(),
+            sender_id: "unknown",
+            isNew: true,
+          },
+        ]);
+        setTimeout(() => {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
+          );
+        }, 1000);
+        return;
+      }
+
       try {
         const messageData = JSON.parse(event.data);
+
         if (messageData.event === "new-chat") {
           const newChat = messageData.data;
-          console.log("New chat received:", newChat);
+          console.log("Новый чат:", newChat);
           setChatRooms((prev) => {
             const updatedRooms = prev.some((room) => room.id === newChat.id)
               ? prev.map((room) =>
@@ -123,14 +174,32 @@ export default function AdminChat() {
         } else if (messageData.event === "message-event") {
           const { chat_id, message, sender_id, time_to_send } =
             messageData.data;
-          console.log("Message sender_id:", sender_id);
+          const messageKey = `${chat_id}-${message}-${time_to_send}`;
+          if (processedMessages.current.has(messageKey)) {
+            console.log("Дубликат сообщения пропущен:", message);
+            return;
+          }
+          processedMessages.current.add(messageKey);
+          console.log(
+            "Сообщение для чата:",
+            chat_id,
+            "Выбранный чат:",
+            selectedChatId
+          );
           if (chat_id === selectedChatId) {
+            const messageType =
+              adminSenderId && sender_id === adminSenderId
+                ? "manager"
+                : sender_id.includes("admin")
+                ? "manager"
+                : "user";
             setMessages((prev) => [
               ...prev,
               {
-                type: sender_id.includes("admin") ? "manager" : "user",
+                type: messageType,
                 text: message || "Пустое сообщение",
                 timestamp: time_to_send || new Date().toISOString(),
+                sender_id: sender_id,
                 isNew: true,
               },
             ]);
@@ -171,39 +240,34 @@ export default function AdminChat() {
             }
           }
         } else if (Array.isArray(messageData)) {
+          console.log("Получена история чата:", messageData);
           const formattedMessages = messageData.map((msg) => {
-            console.log("History message sender_id:", msg.sender_id);
+            const messageType =
+              adminSenderId && msg.sender_id === adminSenderId
+                ? "manager"
+                : msg.sender_id.includes("admin")
+                ? "manager"
+                : "user";
             return {
-              type: msg.sender_id.includes("admin") ? "manager" : "user",
+              type: messageType,
               text: msg.message || "Пустое сообщение",
               timestamp: msg.time_to_send || new Date().toISOString(),
+              sender_id: msg.sender_id,
             };
           });
           setMessages(formattedMessages);
           setUnreadCounts((prev) => ({ ...prev, [selectedChatId]: 0 }));
           setIsLoadingHistory(false);
         } else if (messageData.event === "error") {
+          console.error("Ошибка сервера:", messageData.data);
           setError(messageData.data || "Произошла ошибка на сервере.");
           setIsLoadingHistory(false);
         } else {
-          console.warn("Unexpected message format:", messageData);
+          console.warn("Неизвестный формат сообщения:", messageData);
         }
       } catch (err) {
-        console.error("Ошибка парсинга сообщения:", err, "Data:", event.data);
-        if (chatId) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: "user",
-              text: event.data,
-              timestamp: new Date().toISOString(),
-            },
-          ]);
-          setUnreadCounts((prev) => ({
-            ...prev,
-            [chatId]: (prev[chatId] || 0) + 1,
-          }));
-        }
+        console.error("Ошибка парсинга сообщения:", err, "Данные:", event.data);
+        setError("Ошибка обработки сообщения от сервера.");
         setIsLoadingHistory(false);
       }
     };
@@ -227,8 +291,10 @@ export default function AdminChat() {
     }
 
     return () => {
-      ws.current?.close();
-      clearInterval(pollInterval);
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
     };
   }, []);
 
@@ -239,12 +305,6 @@ export default function AdminChat() {
       sendJoinEvent(chatId);
     }
   }, [chatId, isConnected]);
-
-  // Автоматическая прокрутка
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
@@ -255,7 +315,7 @@ export default function AdminChat() {
       event: "admin-join",
       data: { chat_id: chatId },
     };
-    console.log("Sending admin-join event:", joinEvent);
+    console.log("Отправка admin-join:", joinEvent);
     ws.current.send(JSON.stringify(joinEvent));
   };
 
@@ -270,9 +330,10 @@ export default function AdminChat() {
         data: {
           message: input.trim(),
           chat_id: chatId,
+          sender_id: adminSenderId || "admin",
         },
       };
-      console.log("Sending message-event:", messageEvent);
+      console.log("Отправка сообщения:", messageEvent);
       ws.current.send(JSON.stringify(messageEvent));
       setMessages((prev) => [
         ...prev,
@@ -280,6 +341,8 @@ export default function AdminChat() {
           type: "manager",
           text: input.trim(),
           timestamp: new Date().toISOString(),
+          sender_id: adminSenderId || "admin",
+          isNew: true,
         },
       ]);
       setInput("");
@@ -287,17 +350,20 @@ export default function AdminChat() {
   };
 
   const handleChatSelect = (roomId) => {
-    console.log("Selected chat room:", roomId);
+    console.log("Выбран чат:", roomId);
     setSelectedChatId(roomId);
     setChatId(roomId);
     setMessages([]);
     setUnreadCounts((prev) => ({ ...prev, [roomId]: 0 }));
+    setIsLoadingHistory(true);
+    processedMessages.current.clear();
   };
 
   const handleCloseChat = () => {
     setSelectedChatId(null);
     setChatId("");
     setMessages([]);
+    processedMessages.current.clear();
   };
 
   const toggleSidebar = () => {
@@ -311,6 +377,87 @@ export default function AdminChat() {
       room.messages?.slice(-1)[0]?.message.toLowerCase().includes(query)
     );
   });
+
+  // Мемоизация рендеринга сообщений
+  const groupedMessages = useMemo(() => {
+    // Сортировка сообщений по timestamp
+    const sortedMessages = [...messages].sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    );
+    return sortedMessages.reduce((acc, msg, index) => {
+      const prevMsg = sortedMessages[index - 1];
+      const isSameSender = prevMsg && prevMsg.sender_id === msg.sender_id;
+      const isLastInGroup =
+        !sortedMessages[index + 1] ||
+        sortedMessages[index + 1].sender_id !== msg.sender_id;
+      const isManager = msg.type === "manager";
+
+      acc.push(
+        <Box
+          key={index}
+          sx={{
+            display: "flex",
+            justifyContent: isManager ? "flex-end" : "flex-start",
+            mb: isLastInGroup ? 1.5 : 0.5,
+            alignItems: "flex-end",
+            animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
+            "@keyframes fadeIn": {
+              from: { opacity: 0, transform: "translateY(10px)" },
+              to: { opacity: 1, transform: "translateY(0)" },
+            },
+          }}
+        >
+          {!isManager && !isSameSender && (
+            <Avatar sx={{ bgcolor: "#40C4FF", mr: 1, width: 36, height: 36 }}>
+              <PersonIcon fontSize="small" sx={{ color: "#FFF" }} />
+            </Avatar>
+          )}
+          {!isManager && isSameSender && <Box sx={{ width: 36, mr: 1 }} />}
+          <Paper
+            sx={{
+              p: 1.5,
+              bgcolor: isManager ? "#E1F5FE" : "#F4F4F5",
+              color: "#17212B",
+              borderRadius: isManager ? "12px 12px 0 12px" : "12px 12px 12px 0",
+              maxWidth: "70%",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{ fontSize: "0.95rem", lineHeight: 1.5 }}
+            >
+              {msg.text}
+            </Typography>
+            {isLastInGroup && msg.timestamp && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  mt: 0.5,
+                  color: "#708499",
+                  textAlign: isManager ? "right" : "left",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {new Date(msg.timestamp).toLocaleString(undefined, {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}
+              </Typography>
+            )}
+          </Paper>
+          {isManager && !isSameSender && (
+            <Avatar sx={{ bgcolor: "#40C4FF", ml: 1, width: 36, height: 36 }}>
+              <SupportAgentIcon fontSize="small" sx={{ color: "#FFF" }} />
+            </Avatar>
+          )}
+          {isManager && isSameSender && <Box sx={{ width: 36, ml: 1 }} />}
+        </Box>
+      );
+      return acc;
+    }, []);
+  }, [messages]);
 
   return (
     <Container
@@ -405,7 +552,7 @@ export default function AdminChat() {
                       }}
                     >
                       <Avatar
-                        sx={{ bgcolor: "#708499", width: 36, height: 36 }}
+                        sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}
                       >
                         <SupportAgentIcon
                           fontSize="small"
@@ -538,77 +685,7 @@ export default function AdminChat() {
               <CircularProgress sx={{ color: "#40C4FF" }} />
             </Box>
           ) : selectedChatId ? (
-            messages.map((msg, index) => {
-              const isManager = msg.type === "manager";
-              return (
-                <Box
-                  key={index}
-                  sx={{
-                    display: "flex",
-                    justifyContent: isManager ? "flex-end" : "flex-start",
-                    mb: 1.5,
-                    alignItems: "flex-end",
-                    animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
-                    "@keyframes fadeIn": {
-                      from: { opacity: 0, transform: "translateY(10px)" },
-                      to: { opacity: 1, transform: "translateY(0)" },
-                    },
-                  }}
-                >
-                  {!isManager && (
-                    <Avatar
-                      sx={{ bgcolor: "#708499", mr: 1, width: 36, height: 36 }}
-                    >
-                      <SupportAgentIcon
-                        fontSize="small"
-                        sx={{ color: "#FFF" }}
-                      />
-                    </Avatar>
-                  )}
-                  <Paper
-                    sx={{
-                      p: 1.5,
-                      bgcolor: isManager ? "#E1F5FE" : "#FFFFFF",
-                      color: "#17212B",
-                      borderRadius: "12px",
-                      maxWidth: "70%",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <Typography
-                      variant="body1"
-                      sx={{ fontSize: "0.95rem", lineHeight: 1.5 }}
-                    >
-                      {msg.text}
-                    </Typography>
-                    {msg.timestamp && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: "block",
-                          mt: 0.5,
-                          color: "#708499",
-                          textAlign: isManager ? "right" : "left",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {new Date(msg.timestamp).toLocaleString(undefined, {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </Typography>
-                    )}
-                  </Paper>
-                  {isManager && (
-                    <Avatar
-                      sx={{ bgcolor: "#708499", ml: 1, width: 36, height: 36 }}
-                    >
-                      <PersonIcon fontSize="small" sx={{ color: "#FFF" }} />
-                    </Avatar>
-                  )}
-                </Box>
-              );
-            })
+            groupedMessages
           ) : (
             <Box
               sx={{

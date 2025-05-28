@@ -33,7 +33,6 @@ import ProductDynamicCertificatePage from "../pages/Product/ProductDynamicCertif
 import LayoutWrapper from "../global/LayoutWrapper";
 import NotFound from "../pages/notfound/NotFound";
 import RessetPassword from "../global/components/RessetPassword";
-import SupportChat from "../pages/chat/SupportChat";
 
 // const UsersRoute = ({ children }) => {
 //   const isLoggedIn = Cookies.get("logged_in") === "true";
@@ -249,14 +248,6 @@ export const router = createBrowserRouter([
         </LayoutWrapper>
       </UsersRoute>
     ),
-  },
-  {
-    path: "/support", // динамический маршрут
-    element: (
-      <LayoutWrapper>
-        <SupportChat />
-      </LayoutWrapper>
-    ), // Исправлено имя компонента
   },
   {
     path: `/admin/*`,

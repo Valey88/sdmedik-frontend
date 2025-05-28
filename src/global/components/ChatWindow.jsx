@@ -1,16 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
-  Paper,
   Typography,
-  IconButton,
   TextField,
   Button,
-  InputAdornment,
+  Chip,
+  Paper,
+  IconButton,
+  Avatar,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import PersonIcon from "@mui/icons-material/Person";
+import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import PersonIcon from "@mui/icons-material/Person";
+import Cookies from "js-cookie";
+import useUserStore from "../../store/userStore"; // Adjust path as needed
+import { supportChat } from "@/constants/constants"; // Adjust path as needed
 
 const faqData = [
   {
@@ -27,45 +32,82 @@ const faqData = [
     answer: "Для возврата товара свяжитесь с поддержкой, указав номер заказа.",
   },
 ];
-const WS_URL = "ws://localhost:8080/api/v1/chat/conn/";
+
+const CHAT_ID_EXPIRY_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 
 function ChatWindow({ onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [chatId, setChatId] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const ws = useRef(null);
   const messagesEndRef = useRef(null);
+  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
 
-  // Инициализация WebSocket и восстановление chatId
+  // Generate UUID for registered users
+  const generateUUID = () => {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0,
+          v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
+  };
+
+  // Initialize WebSocket and manage chatId
   useEffect(() => {
-    // Проверяем localStorage для существующего chatId
-    const storedChatId = localStorage.getItem("chatId");
-    if (storedChatId && !isAdmin) {
-      setChatId(storedChatId);
-    } else if (!isAdmin) {
-      const newChatId = generateUUID();
-      setChatId(newChatId);
-      localStorage.setItem("chatId", newChatId);
+    let newChatId = null;
+
+    if (isAuthenticated) {
+      const storedChatData = localStorage.getItem("chatData");
+      if (storedChatData) {
+        try {
+          const chatData = JSON.parse(storedChatData);
+          const currentTime = Date.now();
+          if (
+            chatData.timestamp &&
+            currentTime - chatData.timestamp < CHAT_ID_EXPIRY_MS
+          ) {
+            newChatId = chatData.id;
+          } else {
+            localStorage.removeItem("chatData");
+          }
+        } catch (err) {
+          console.error("Error parsing chatData from localStorage:", err);
+          localStorage.removeItem("chatData");
+        }
+      }
+
+      if (!newChatId) {
+        newChatId = generateUUID();
+        const chatData = {
+          id: newChatId,
+          timestamp: Date.now(),
+        };
+        localStorage.setItem("chatData", JSON.stringify(chatData));
+      }
+    } else {
+      newChatId = Cookies.get("session_id") || generateUUID();
     }
 
-    ws.current = new WebSocket(WS_URL);
+    setChatId(newChatId);
+
+    ws.current = new WebSocket(supportChat);
 
     ws.current.onopen = () => {
       console.log("WebSocket подключен");
       setIsConnected(true);
-      if (!isAdmin && chatId) {
-        sendJoinEvent(chatId);
+      if (newChatId) {
+        sendJoinEvent(newChatId);
       }
     };
 
     ws.current.onmessage = (event) => {
-      console.log("Received WebSocket message:", event.data);
       try {
         const messageData = JSON.parse(event.data);
         if (Array.isArray(messageData)) {
-          // История сообщений
           const formattedMessages = messageData.map((msg) => ({
             type: msg.sender_id.includes("admin") ? "manager" : "user",
             text: msg.message || "Пустое сообщение",
@@ -79,29 +121,48 @@ function ChatWindow({ onClose }) {
                   {
                     type: "bot",
                     text: "Здравствуйте! Выберите вопрос или напишите свой.",
+                    timestamp: new Date().toISOString(),
                   },
                   { type: "faq" },
                 ]),
           ]);
-        } else if (messageData.event === "error") {
-          // Обработка ошибок от сервера
-          console.error("Server error:", messageData.data);
+        } else if (messageData.event === "message-event") {
+          const { message, sender_id, time_to_send } = messageData.data;
           setMessages((prev) => [
             ...prev,
-            { type: "bot", text: `Ошибка: ${messageData.data}` },
+            {
+              type: sender_id.includes("admin") ? "manager" : "user",
+              text: message || "Пустое сообщение",
+              timestamp: time_to_send || new Date().toISOString(),
+              isNew: true,
+            },
           ]);
-        } else {
-          console.warn("Unexpected message format:", messageData);
+          setTimeout(() => {
+            setMessages((prev) =>
+              prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
+            );
+          }, 1000);
+        } else if (messageData.event === "error") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: "bot",
+              text: `Ошибка: ${messageData.data}`,
+              timestamp: new Date().toISOString(),
+              isNew: true,
+            },
+          ]);
         }
       } catch (err) {
-        // Новое сообщение (предполагается от менеджера)
-        if (chatId) {
+        console.error("Ошибка парсинга сообщения:", err, "Data:", event.data);
+        if (newChatId) {
           setMessages((prev) => [
             ...prev,
             {
               type: "manager",
               text: event.data,
               timestamp: new Date().toISOString(),
+              isNew: true,
             },
           ]);
         }
@@ -113,7 +174,12 @@ function ChatWindow({ onClose }) {
       setIsConnected(false);
       setMessages((prev) => [
         ...prev,
-        { type: "bot", text: "Ошибка подключения к чату." },
+        {
+          type: "bot",
+          text: "Ошибка подключения к чату.",
+          timestamp: new Date().toISOString(),
+          isNew: true,
+        },
       ]);
     };
 
@@ -122,42 +188,40 @@ function ChatWindow({ onClose }) {
       setIsConnected(false);
       setMessages((prev) => [
         ...prev,
-        { type: "bot", text: "Соединение с чатом разорвано." },
+        {
+          type: "bot",
+          text: "Соединение с чатом разорвано.",
+          timestamp: new Date().toISOString(),
+          isNew: true,
+        },
       ]);
     };
 
     return () => ws.current?.close();
-  }, [chatId, isAdmin]);
+  }, [isAuthenticated]);
 
-  // Автоматическая прокрутка к последнему сообщению
+  // Auto-scroll to the latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const generateUUID = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        const r = (Math.random() * 16) | 0,
-          v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      }
-    );
-  };
 
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setMessages((prev) => [
         ...prev,
-        { type: "bot", text: "Нет соединения с сервером чата." },
+        {
+          type: "bot",
+          text: "Нет соединения с сервером чата.",
+          timestamp: new Date().toISOString(),
+          isNew: true,
+        },
       ]);
       return;
     }
     const joinEvent = {
-      event: isAdmin ? "admin-join" : "join",
+      event: "join",
       data: { chat_id: chatId },
     };
-    console.log("Sending join event:", joinEvent);
     ws.current.send(JSON.stringify(joinEvent));
   };
 
@@ -165,7 +229,12 @@ function ChatWindow({ onClose }) {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setMessages((prev) => [
         ...prev,
-        { type: "bot", text: "Нет соединения с сервером чата." },
+        {
+          type: "bot",
+          text: "Нет соединения с сервером чата.",
+          timestamp: new Date().toISOString(),
+          isNew: true,
+        },
       ]);
       return;
     }
@@ -177,7 +246,6 @@ function ChatWindow({ onClose }) {
           chat_id: chatId,
         },
       };
-      console.log("Sending message event:", messageEvent);
       ws.current.send(JSON.stringify(messageEvent));
       setMessages((prev) => [
         ...prev,
@@ -185,6 +253,7 @@ function ChatWindow({ onClose }) {
           type: "user",
           text: input.trim(),
           timestamp: new Date().toISOString(),
+          isNew: true,
         },
       ]);
       setInput("");
@@ -194,43 +263,14 @@ function ChatWindow({ onClose }) {
   const handleFAQClick = (answer) => {
     setMessages((prev) => [
       ...prev,
-      { type: "bot", text: answer, timestamp: new Date().toISOString() },
+      {
+        type: "bot",
+        text: answer,
+        timestamp: new Date().toISOString(),
+        isNew: true,
+      },
     ]);
   };
-
-  const renderAdminControls = () => (
-    <Box sx={{ p: 2, borderBottom: "1px solid #ccc" }}>
-      <TextField
-        label="Chat ID"
-        value={chatId}
-        onChange={(e) => setChatId(e.target.value)}
-        onKeyPress={(e) => e.key === "Enter" && sendJoinEvent(chatId)}
-        size="small"
-        fullWidth
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <Button
-                onClick={() => sendJoinEvent(chatId)}
-                variant="contained"
-                sx={{
-                  backgroundColor: "#00B3A4",
-                  "&:hover": { backgroundColor: "#009688" },
-                }}
-              >
-                Подключиться
-              </Button>
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            "&.Mui-focused fieldset": { borderColor: "#2CC0B3" },
-          },
-        }}
-      />
-    </Box>
-  );
 
   return (
     <Paper
@@ -239,36 +279,51 @@ function ChatWindow({ onClose }) {
         position: "fixed",
         bottom: 80,
         right: 16,
-        width: { xs: "90%", sm: 650 },
-        height: 450,
+        width: { xs: "90%", sm: 360 },
+        height: 480,
         display: "flex",
         flexDirection: "column",
-        borderRadius: 2,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        borderRadius: "12px",
+        overflow: "hidden",
+        bgcolor: "#ffffff",
+        zIndex: 1300,
       }}
     >
+      {/* Header */}
       <Box
         sx={{
+          bgcolor: "#00B3A4",
+          p: 1,
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          p: 2,
-          backgroundColor: "#f5f5f5",
-          borderBottom: "1px solid #ccc",
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
+          justifyContent: "space-between",
         }}
       >
-        <Typography variant="h6">
-          {isAdmin ? "Админ чат" : "Чат поддержки"}
+        <Typography
+          variant="h6"
+          sx={{
+            color: "#fff",
+            fontSize: "1rem",
+            fontWeight: 500,
+            ml: 1,
+          }}
+        >
+          Чат поддержки
         </Typography>
-        <IconButton onClick={onClose}>
+        <IconButton onClick={onClose} sx={{ color: "#fff" }}>
           <CloseIcon />
         </IconButton>
       </Box>
 
-      {isAdmin && renderAdminControls()}
-      <Box sx={{ flexGrow: 1, overflowY: "auto", p: 2 }}>
+      {/* Message Area */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflowY: "auto",
+          p: 2,
+          bgcolor: "#f5f5f5",
+        }}
+      >
         {messages.map((msg, index) => {
           if (msg.type === "faq") {
             return (
@@ -277,28 +332,27 @@ function ChatWindow({ onClose }) {
                 sx={{
                   display: "flex",
                   flexWrap: "wrap",
-                  justifyContent: "flex-start",
-                  mb: 2,
+                  justifyContent: "center",
+                  mb: 1,
                 }}
               >
                 {faqData.map((faq, idx) => (
-                  <Button
+                  <Chip
                     key={idx}
-                    variant="outlined"
+                    label={faq.question}
+                    onClick={() => handleFAQClick(faq.answer)}
                     sx={{
-                      m: 1,
-                      borderColor: "#00B3A4",
-                      color: "#00B3A4",
-                      borderRadius: 20,
+                      m: 0.5,
+                      bgcolor: "#e0f7fa",
+                      color: "#007bff",
+                      fontSize: "0.75rem",
+                      borderRadius: "8px",
                       "&:hover": {
-                        backgroundColor: "#00B3A4",
-                        color: "white",
+                        bgcolor: "#00B3A4",
+                        color: "#fff",
                       },
                     }}
-                    onClick={() => handleFAQClick(faq.answer)}
-                  >
-                    {faq.question}
-                  </Button>
+                  />
                 ))}
               </Box>
             );
@@ -315,51 +369,79 @@ function ChatWindow({ onClose }) {
                     : isBot
                     ? "center"
                     : "flex-start",
-                  mb: 2,
+                  mb: 1,
+                  alignItems: "flex-end",
+                  animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
+                  "@keyframes fadeIn": {
+                    from: { opacity: 0, transform: "translateY(10px)" },
+                    to: { opacity: 1, transform: "translateY(0)" },
+                  },
                 }}
               >
                 {!isUser && !isBot && (
-                  <SupportAgentIcon sx={{ mr: 1, color: "#00B3A4" }} />
+                  <Avatar
+                    sx={{ bgcolor: "#00B3A4", mr: 1, width: 32, height: 32 }}
+                  >
+                    <img src="/free-icon-nurse-5719642.png" alt="" />
+                  </Avatar>
                 )}
                 <Paper
                   sx={{
                     p: 1,
-                    backgroundColor: isUser
-                      ? "#2CC0B3"
-                      : isBot
-                      ? "#e0e0e0"
-                      : "#f0f0f0",
-                    color: isUser ? "white" : "black",
-                    borderRadius: isUser
-                      ? "10px 10px 0 10px"
-                      : isBot
-                      ? "10px"
-                      : "10px 10px 10px 0",
+                    bgcolor: isUser ? "#00B3A4" : isBot ? "#e0f7fa" : "#ffffff",
+                    color: isUser ? "#fff" : "#000",
+                    borderRadius: "10px",
                     maxWidth: isBot ? "80%" : "70%",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
                   }}
                 >
-                  <Typography variant="body2">{msg.text}</Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontSize: "0.85rem", lineHeight: 1.4 }}
+                  >
+                    {msg.text}
+                  </Typography>
                   {msg.timestamp && (
                     <Typography
                       variant="caption"
                       sx={{
                         display: "block",
-                        mt: 0.5,
+                        mt: 0.3,
                         color: isUser ? "#e0e0e0" : "#666",
+                        textAlign: isUser ? "right" : "left",
+                        fontSize: "0.65rem",
                       }}
                     >
-                      {new Date(msg.timestamp).toLocaleTimeString()}
+                      {new Date(msg.timestamp).toLocaleString(undefined, {
+                        timeStyle: "short",
+                      })}
                     </Typography>
                   )}
                 </Paper>
-                {isUser && <PersonIcon sx={{ ml: 1, color: "#00B3A4" }} />}
+                {isUser && (
+                  <Avatar
+                    sx={{ bgcolor: "#00B3A4", ml: 1, width: 28, height: 28 }}
+                  >
+                    <PersonIcon fontSize="small" />
+                  </Avatar>
+                )}
               </Box>
             );
           }
         })}
         <div ref={messagesEndRef} />
       </Box>
-      <Box sx={{ p: 2, borderTop: "1px solid #ccc", display: "flex" }}>
+
+      {/* Input Area */}
+      <Box
+        sx={{
+          bgcolor: "#ffffff",
+          p: 1,
+          borderTop: "1px solid #e0e0e0",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
         <TextField
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -367,10 +449,19 @@ function ChatWindow({ onClose }) {
           variant="outlined"
           size="small"
           fullWidth
-          placeholder="Напишите сообщение..."
+          placeholder="Сообщение..."
           sx={{
             "& .MuiOutlinedInput-root": {
-              "&.Mui-focused fieldset": { borderColor: "#2CC0B3" },
+              borderRadius: "8px",
+              backgroundColor: "#f5f5f5",
+              "&.Mui-focused fieldset": {
+                borderColor: "#00B3A4",
+              },
+            },
+            "& .MuiInputBase-input": {
+              padding: "8px 10px",
+              color: "#000",
+              fontSize: "0.85rem",
             },
           }}
           disabled={!chatId || !isConnected}
@@ -380,12 +471,15 @@ function ChatWindow({ onClose }) {
           variant="contained"
           sx={{
             ml: 1,
-            backgroundColor: "#00B3A4",
-            "&:hover": { backgroundColor: "#009688" },
+            borderRadius: "8px",
+            bgcolor: "#00B3A4",
+            "&:hover": { bgcolor: "#009688" },
+            minWidth: "36px",
+            p: 0.8,
           }}
           disabled={!chatId || !isConnected}
         >
-          Отправить
+          <SendIcon sx={{ color: "#fff", fontSize: "20px" }} />
         </Button>
       </Box>
     </Paper>
