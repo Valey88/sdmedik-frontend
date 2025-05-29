@@ -14,8 +14,8 @@ import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PersonIcon from "@mui/icons-material/Person";
 import Cookies from "js-cookie";
-import useUserStore from "../../store/userStore"; // Adjust path as needed
-import { supportChat } from "@/constants/constants"; // Adjust path as needed
+import useUserStore from "../../store/userStore"; // Убедитесь, что путь правильный
+import { supportChat } from "@/constants/constants"; // Убедитесь, что путь правильный
 
 const faqData = [
   {
@@ -33,7 +33,8 @@ const faqData = [
   },
 ];
 
-const CHAT_ID_EXPIRY_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+const CHAT_ID_EXPIRY_MS = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
+const MESSAGE_GAP = 5 * 60 * 1000; // 5 минут в миллисекундах для группировки
 
 function ChatWindow({ onClose }) {
   const [messages, setMessages] = useState([]);
@@ -42,9 +43,9 @@ function ChatWindow({ onClose }) {
   const [isConnected, setIsConnected] = useState(false);
   const ws = useRef(null);
   const messagesEndRef = useRef(null);
-  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
+  const { isAuthenticated, user } = useUserStore();
 
-  // Generate UUID for registered users
+  // Генерация UUID для сессий
   const generateUUID = () => {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
       /[xy]/g,
@@ -56,40 +57,25 @@ function ChatWindow({ onClose }) {
     );
   };
 
-  // Initialize WebSocket and manage chatId
+  // Инициализация WebSocket и установка chatId
   useEffect(() => {
     let newChatId = null;
 
     if (isAuthenticated) {
-      const storedChatData = localStorage.getItem("chatData");
-      if (storedChatData) {
-        try {
-          const chatData = JSON.parse(storedChatData);
-          const currentTime = Date.now();
-          if (
-            chatData.timestamp &&
-            currentTime - chatData.timestamp < CHAT_ID_EXPIRY_MS
-          ) {
-            newChatId = chatData.id;
-          } else {
-            localStorage.removeItem("chatData");
-          }
-        } catch (err) {
-          console.error("Error parsing chatData from localStorage:", err);
-          localStorage.removeItem("chatData");
-        }
-      }
-
-      if (!newChatId) {
-        newChatId = generateUUID();
-        const chatData = {
-          id: newChatId,
-          timestamp: Date.now(),
-        };
-        localStorage.setItem("chatData", JSON.stringify(chatData));
+      if (user && user.id) {
+        newChatId = user.id;
+      } else {
+        useUserStore.getState().getUserInfo();
+        const currentUser = useUserStore.getState().user;
+        newChatId = currentUser?.id || generateUUID();
       }
     } else {
-      newChatId = Cookies.get("session_id") || generateUUID();
+      let sessionId = Cookies.get("session_id");
+      if (!sessionId) {
+        sessionId = generateUUID();
+        Cookies.set("session_id", sessionId, { expires: 1 });
+      }
+      newChatId = sessionId;
     }
 
     setChatId(newChatId);
@@ -112,6 +98,7 @@ function ChatWindow({ onClose }) {
             type: msg.sender_id.includes("admin") ? "manager" : "user",
             text: msg.message || "Пустое сообщение",
             timestamp: msg.time_to_send || new Date().toISOString(),
+            senderId: msg.sender_id,
           }));
           setMessages([
             ...formattedMessages,
@@ -122,6 +109,7 @@ function ChatWindow({ onClose }) {
                     type: "bot",
                     text: "Здравствуйте! Выберите вопрос или напишите свой.",
                     timestamp: new Date().toISOString(),
+                    senderId: "bot",
                   },
                   { type: "faq" },
                 ]),
@@ -134,6 +122,7 @@ function ChatWindow({ onClose }) {
               type: sender_id.includes("admin") ? "manager" : "user",
               text: message || "Пустое сообщение",
               timestamp: time_to_send || new Date().toISOString(),
+              senderId: sender_id,
               isNew: true,
             },
           ]);
@@ -149,23 +138,23 @@ function ChatWindow({ onClose }) {
               type: "bot",
               text: `Ошибка: ${messageData.data}`,
               timestamp: new Date().toISOString(),
+              senderId: "bot",
               isNew: true,
             },
           ]);
         }
       } catch (err) {
         console.error("Ошибка парсинга сообщения:", err, "Data:", event.data);
-        if (newChatId) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: "manager",
-              text: event.data,
-              timestamp: new Date().toISOString(),
-              isNew: true,
-            },
-          ]);
-        }
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "manager",
+            text: String(event.data),
+            timestamp: new Date().toISOString(),
+            senderId: `manager-${Date.now()}`,
+            isNew: true,
+          },
+        ]);
       }
     };
 
@@ -178,6 +167,7 @@ function ChatWindow({ onClose }) {
           type: "bot",
           text: "Ошибка подключения к чату.",
           timestamp: new Date().toISOString(),
+          senderId: "bot",
           isNew: true,
         },
       ]);
@@ -192,18 +182,19 @@ function ChatWindow({ onClose }) {
           type: "bot",
           text: "Соединение с чатом разорвано.",
           timestamp: new Date().toISOString(),
+          senderId: "bot",
           isNew: true,
         },
       ]);
     };
 
     return () => ws.current?.close();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
-  // Auto-scroll to the latest message
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // Автоматическая прокрутка к последнему сообщению
+  // useEffect(() => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [messages]);
 
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
@@ -213,15 +204,13 @@ function ChatWindow({ onClose }) {
           type: "bot",
           text: "Нет соединения с сервером чата.",
           timestamp: new Date().toISOString(),
+          senderId: "bot",
           isNew: true,
         },
       ]);
       return;
     }
-    const joinEvent = {
-      event: "join",
-      data: { chat_id: chatId },
-    };
+    const joinEvent = { event: "join", data: { chat_id: chatId } };
     ws.current.send(JSON.stringify(joinEvent));
   };
 
@@ -233,6 +222,7 @@ function ChatWindow({ onClose }) {
           type: "bot",
           text: "Нет соединения с сервером чата.",
           timestamp: new Date().toISOString(),
+          senderId: "bot",
           isNew: true,
         },
       ]);
@@ -241,10 +231,7 @@ function ChatWindow({ onClose }) {
     if (input.trim() && chatId) {
       const messageEvent = {
         event: "message-event",
-        data: {
-          message: input.trim(),
-          chat_id: chatId,
-        },
+        data: { message: input.trim(), chat_id: chatId },
       };
       ws.current.send(JSON.stringify(messageEvent));
       setMessages((prev) => [
@@ -253,6 +240,7 @@ function ChatWindow({ onClose }) {
           type: "user",
           text: input.trim(),
           timestamp: new Date().toISOString(),
+          senderId: chatId,
           isNew: true,
         },
       ]);
@@ -267,9 +255,215 @@ function ChatWindow({ onClose }) {
         type: "bot",
         text: answer,
         timestamp: new Date().toISOString(),
+        senderId: "bot",
         isNew: true,
       },
     ]);
+  };
+
+  // Функция рендеринга сообщений с группировкой
+  const renderMessages = () => {
+    const today = new Date().toDateString();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = yesterdayDate.toDateString();
+
+    const elements = [];
+
+    // Рендерим сообщения бота и FAQ
+    messages.forEach((msg, index) => {
+      if (msg.type === "bot") {
+        elements.push(
+          <Box
+            key={`bot-${index}`}
+            sx={{
+              textAlign: "center",
+              mb: 2,
+              bgcolor: "#e0f7fa",
+              p: 1,
+              borderRadius: "10px",
+              maxWidth: "80%",
+              mx: "auto",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
+              "@keyframes fadeIn": {
+                from: { opacity: 0, transform: "translateY(10px)" },
+                to: { opacity: 1, transform: "translateY(0)" },
+              },
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ fontSize: "0.85rem", color: "#000" }}
+            >
+              {msg.text}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                mt: 0.3,
+                color: "#666",
+                fontSize: "0.65rem",
+              }}
+            >
+              {new Date(msg.timestamp).toLocaleString(undefined, {
+                timeStyle: "short",
+              })}
+            </Typography>
+          </Box>
+        );
+      } else if (msg.type === "faq") {
+        elements.push(
+          <Box
+            key={`faq-${index}`}
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              mb: 2,
+            }}
+          >
+            {faqData.map((faq, idx) => (
+              <Chip
+                key={idx}
+                label={faq.question}
+                onClick={() => handleFAQClick(faq.answer)}
+                sx={{
+                  m: 0.5,
+                  bgcolor: "#e0f7fa",
+                  color: "#007bff",
+                  fontSize: "0.75rem",
+                  borderRadius: "8px",
+                  "&:hover": { bgcolor: "#00B3A4", color: "#fff" },
+                }}
+              />
+            ))}
+          </Box>
+        );
+      }
+    });
+
+    // Фильтруем сообщения пользователя и менеджера
+    const chatMessages = messages.filter(
+      (msg) => msg.type === "user" || msg.type === "manager"
+    );
+
+    for (let i = 0; i < chatMessages.length; i++) {
+      const msg = chatMessages[i];
+      const msgDateStr = new Date(msg.timestamp).toDateString();
+      const prevMsg = chatMessages[i - 1];
+      const nextMsg = chatMessages[i + 1];
+
+      // Разделитель по дате
+      if (
+        i === 0 ||
+        (prevMsg && new Date(prevMsg.timestamp).toDateString() !== msgDateStr)
+      ) {
+        let dateLabel;
+        if (msgDateStr === today) {
+          dateLabel = "Сегодня";
+        } else if (msgDateStr === yesterday) {
+          dateLabel = "Вчера";
+        } else {
+          dateLabel = new Date(msg.timestamp).toLocaleDateString("ru-RU", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+        }
+        elements.push(
+          <Typography
+            key={`date-${msg.timestamp}`}
+            variant="caption"
+            align="center"
+            sx={{ my: 2, color: "#666", fontSize: "0.75rem" }}
+          >
+            {dateLabel}
+          </Typography>
+        );
+      }
+
+      // Определяем границы группы сообщений
+      const timeDiff = prevMsg
+        ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
+        : 0;
+      const isFirst =
+        !prevMsg || prevMsg.senderId !== msg.senderId || timeDiff > MESSAGE_GAP;
+      const isLast =
+        !nextMsg ||
+        nextMsg.senderId !== msg.senderId ||
+        new Date(nextMsg.timestamp) - new Date(msg.timestamp) > MESSAGE_GAP;
+
+      const isUser = msg.senderId === chatId;
+      const alignment = isUser ? "flex-end" : "flex-start";
+
+      // Рендерим строку сообщения
+      elements.push(
+        <Box
+          key={`msg-row-${msg.timestamp}`}
+          sx={{
+            display: "flex",
+            justifyContent: alignment,
+            alignItems: "flex-end",
+            mb: isLast ? 1 : 0.5,
+            animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
+            "@keyframes fadeIn": {
+              from: { opacity: 0, transform: "translateY(10px)" },
+              to: { opacity: 1, transform: "translateY(0)" },
+            },
+          }}
+        >
+          {!isUser && isFirst && (
+            <Avatar sx={{ bgcolor: "#00B3A4", mr: 1, width: 32, height: 32 }}>
+              <SupportAgentIcon fontSize="small" />
+            </Avatar>
+          )}
+          {!isUser && !isFirst && <Box sx={{ width: 40 }} />}
+          <Box
+            sx={{
+              bgcolor: isUser ? "#00B3A4" : "#ffffff",
+              color: isUser ? "#fff" : "#000",
+              borderTopLeftRadius: isFirst ? 16 : 6,
+              borderTopRightRadius: isFirst ? 16 : 6,
+              borderBottomLeftRadius: isLast ? 16 : 6,
+              borderBottomRightRadius: isLast ? 16 : 6,
+              p: 1,
+              maxWidth: "75%",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ fontSize: "0.85rem", lineHeight: 1.4 }}
+            >
+              {msg.text}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                mt: 0.3,
+                color: isUser ? "#e0e0e0" : "#666",
+                textAlign: isUser ? "right" : "left",
+                fontSize: "0.65rem",
+              }}
+            >
+              {new Date(msg.timestamp).toLocaleString(undefined, {
+                timeStyle: "short",
+              })}
+            </Typography>
+          </Box>
+          {isUser && isLast && (
+            <Avatar sx={{ bgcolor: "#00B3A4", ml: 1, width: 32, height: 32 }}>
+              <PersonIcon fontSize="small" />
+            </Avatar>
+          )}
+        </Box>
+      );
+    }
+
+    return elements;
   };
 
   return (
@@ -289,7 +483,7 @@ function ChatWindow({ onClose }) {
         zIndex: 1300,
       }}
     >
-      {/* Header */}
+      {/* Заголовок */}
       <Box
         sx={{
           bgcolor: "#00B3A4",
@@ -301,12 +495,7 @@ function ChatWindow({ onClose }) {
       >
         <Typography
           variant="h6"
-          sx={{
-            color: "#fff",
-            fontSize: "1rem",
-            fontWeight: 500,
-            ml: 1,
-          }}
+          sx={{ color: "#fff", fontSize: "1rem", fontWeight: 500, ml: 1 }}
         >
           Чат поддержки
         </Typography>
@@ -315,124 +504,13 @@ function ChatWindow({ onClose }) {
         </IconButton>
       </Box>
 
-      {/* Message Area */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          overflowY: "auto",
-          p: 2,
-          bgcolor: "#f5f5f5",
-        }}
-      >
-        {messages.map((msg, index) => {
-          if (msg.type === "faq") {
-            return (
-              <Box
-                key={index}
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  mb: 1,
-                }}
-              >
-                {faqData.map((faq, idx) => (
-                  <Chip
-                    key={idx}
-                    label={faq.question}
-                    onClick={() => handleFAQClick(faq.answer)}
-                    sx={{
-                      m: 0.5,
-                      bgcolor: "#e0f7fa",
-                      color: "#007bff",
-                      fontSize: "0.75rem",
-                      borderRadius: "8px",
-                      "&:hover": {
-                        bgcolor: "#00B3A4",
-                        color: "#fff",
-                      },
-                    }}
-                  />
-                ))}
-              </Box>
-            );
-          } else {
-            const isUser = msg.type === "user";
-            const isBot = msg.type === "bot";
-            return (
-              <Box
-                key={index}
-                sx={{
-                  display: "flex",
-                  justifyContent: isUser
-                    ? "flex-end"
-                    : isBot
-                    ? "center"
-                    : "flex-start",
-                  mb: 1,
-                  alignItems: "flex-end",
-                  animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
-                  "@keyframes fadeIn": {
-                    from: { opacity: 0, transform: "translateY(10px)" },
-                    to: { opacity: 1, transform: "translateY(0)" },
-                  },
-                }}
-              >
-                {!isUser && !isBot && (
-                  <Avatar
-                    sx={{ bgcolor: "#00B3A4", mr: 1, width: 32, height: 32 }}
-                  >
-                    <img src="/free-icon-nurse-5719642.png" alt="" />
-                  </Avatar>
-                )}
-                <Paper
-                  sx={{
-                    p: 1,
-                    bgcolor: isUser ? "#00B3A4" : isBot ? "#e0f7fa" : "#ffffff",
-                    color: isUser ? "#fff" : "#000",
-                    borderRadius: "10px",
-                    maxWidth: isBot ? "80%" : "70%",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ fontSize: "0.85rem", lineHeight: 1.4 }}
-                  >
-                    {msg.text}
-                  </Typography>
-                  {msg.timestamp && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: "block",
-                        mt: 0.3,
-                        color: isUser ? "#e0e0e0" : "#666",
-                        textAlign: isUser ? "right" : "left",
-                        fontSize: "0.65rem",
-                      }}
-                    >
-                      {new Date(msg.timestamp).toLocaleString(undefined, {
-                        timeStyle: "short",
-                      })}
-                    </Typography>
-                  )}
-                </Paper>
-                {isUser && (
-                  <Avatar
-                    sx={{ bgcolor: "#00B3A4", ml: 1, width: 28, height: 28 }}
-                  >
-                    <PersonIcon fontSize="small" />
-                  </Avatar>
-                )}
-              </Box>
-            );
-          }
-        })}
+      {/* Область сообщений */}
+      <Box sx={{ flexGrow: 1, overflowY: "auto", p: 2, bgcolor: "#f5f5f5" }}>
+        {renderMessages()}
         <div ref={messagesEndRef} />
       </Box>
 
-      {/* Input Area */}
+      {/* Область ввода */}
       <Box
         sx={{
           bgcolor: "#ffffff",
@@ -454,9 +532,7 @@ function ChatWindow({ onClose }) {
             "& .MuiOutlinedInput-root": {
               borderRadius: "8px",
               backgroundColor: "#f5f5f5",
-              "&.Mui-focused fieldset": {
-                borderColor: "#00B3A4",
-              },
+              "&.Mui-focused fieldset": { borderColor: "#00B3A4" },
             },
             "& .MuiInputBase-input": {
               padding: "8px 10px",
