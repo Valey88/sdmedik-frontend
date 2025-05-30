@@ -121,7 +121,7 @@ const CatalogDynamicCertificatePage = () => {
   const [error, setError] = useState(null);
 
   const category_id = id;
-  // const catalogs = 2;
+  // const catalogs = (1, 2);
 
   useEffect(() => {
     const offset = (currentPage - 1) * ProductsPerPage;

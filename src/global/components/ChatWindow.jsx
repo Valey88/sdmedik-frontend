@@ -1,3 +1,4 @@
+// src/components/ChatWindow.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
@@ -14,8 +15,8 @@ import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PersonIcon from "@mui/icons-material/Person";
 import Cookies from "js-cookie";
-import useUserStore from "../../store/userStore"; // Убедитесь, что путь правильный
-import { supportChat } from "@/constants/constants"; // Убедитесь, что путь правильный
+import { supportChat } from "@/constants/constants"; // Путь к константам
+import useUserStore from "../../store/userStore";
 
 const faqData = [
   {
@@ -91,6 +92,28 @@ function ChatWindow({ onClose }) {
     };
 
     ws.current.onmessage = (event) => {
+      console.log("Полученные данные от сервера:", event.data); // Логирование для диагностики
+      // if (typeof event.data === "string") {
+      //   console.log("Обработка строки как сообщения:", event.data);
+      //   setMessages((prev) => {
+      //     const newMessage = {
+      //       type: "manager",
+      //       text: event.data,
+      //       timestamp: new Date().toISOString(),
+      //       senderId: `manager-${Date.now()}`,
+      //       isNew: true,
+      //     };
+      //     const updatedMessages = [...prev, newMessage];
+      //     console.log("Обновленное состояние messages:", updatedMessages);
+      //     return updatedMessages;
+      //   });
+      //   setTimeout(() => {
+      //     setMessages((prev) =>
+      //       prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
+      //     );
+      //   }, 1000);
+      //   return;
+      // }
       try {
         const messageData = JSON.parse(event.data);
         if (Array.isArray(messageData)) {
@@ -190,12 +213,6 @@ function ChatWindow({ onClose }) {
 
     return () => ws.current?.close();
   }, [isAuthenticated, user]);
-
-  // Автоматическая прокрутка к последнему сообщению
-  // useEffect(() => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  // }, [messages]);
-
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setMessages((prev) => [
@@ -228,23 +245,31 @@ function ChatWindow({ onClose }) {
       ]);
       return;
     }
-    if (input.trim() && chatId) {
+    const trimmedInput = input.trim();
+    if (trimmedInput && chatId) {
+      console.log("Отправляемое сообщение:", trimmedInput); // Логирование для диагностики
       const messageEvent = {
         event: "message-event",
-        data: { message: input.trim(), chat_id: chatId },
+        data: { message: trimmedInput, chat_id: chatId },
       };
       ws.current.send(JSON.stringify(messageEvent));
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "user",
-          text: input.trim(),
-          timestamp: new Date().toISOString(),
-          senderId: chatId,
-          isNew: true,
-        },
-      ]);
+      setMessages((prev) => {
+        const newMessages = [
+          ...prev,
+          {
+            type: "user",
+            text: trimmedInput,
+            timestamp: new Date().toISOString(),
+            senderId: chatId,
+            isNew: true,
+          },
+        ];
+        console.log("Новое состояние messages:", newMessages); // Логирование
+        return newMessages;
+      });
       setInput("");
+    } else {
+      console.log("Сообщение пустое или отсутствует chatId");
     }
   };
 
@@ -263,6 +288,8 @@ function ChatWindow({ onClose }) {
 
   // Функция рендеринга сообщений с группировкой
   const renderMessages = () => {
+    console.log("Все сообщения для рендеринга:", messages);
+
     const today = new Date().toDateString();
     const yesterdayDate = new Date();
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -270,8 +297,13 @@ function ChatWindow({ onClose }) {
 
     const elements = [];
 
-    // Рендерим сообщения бота и FAQ
     messages.forEach((msg, index) => {
+      // Пропускаем сообщения с некорректной структурой
+      if (!msg.text || !msg.timestamp || !msg.senderId) {
+        console.warn("Некорректное сообщение:", msg);
+        return;
+      }
+
       if (msg.type === "bot") {
         elements.push(
           <Box
@@ -344,7 +376,6 @@ function ChatWindow({ onClose }) {
       }
     });
 
-    // Фильтруем сообщения пользователя и менеджера
     const chatMessages = messages.filter(
       (msg) => msg.type === "user" || msg.type === "manager"
     );
@@ -355,7 +386,6 @@ function ChatWindow({ onClose }) {
       const prevMsg = chatMessages[i - 1];
       const nextMsg = chatMessages[i + 1];
 
-      // Разделитель по дате
       if (
         i === 0 ||
         (prevMsg && new Date(prevMsg.timestamp).toDateString() !== msgDateStr)
@@ -384,7 +414,6 @@ function ChatWindow({ onClose }) {
         );
       }
 
-      // Определяем границы группы сообщений
       const timeDiff = prevMsg
         ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
         : 0;
@@ -398,7 +427,6 @@ function ChatWindow({ onClose }) {
       const isUser = msg.senderId === chatId;
       const alignment = isUser ? "flex-end" : "flex-start";
 
-      // Рендерим строку сообщения
       elements.push(
         <Box
           key={`msg-row-${msg.timestamp}`}

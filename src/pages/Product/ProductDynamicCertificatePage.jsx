@@ -298,7 +298,7 @@ export default function ProductDynamicCertificatePage() {
                       key={index}
                       onClick={() => setSelectedSize(individualSize)}
                       sx={{
-                        width: 40,
+                        width: "max-content",
                         height: 40,
                         border:
                           selectedSize === individualSize
@@ -324,6 +324,8 @@ export default function ProductDynamicCertificatePage() {
                               ? "#009B8A"
                               : "#F5F5F5",
                         },
+                        pl: 1,
+                        pr: 1,
                       }}
                       role="radio"
                       aria-checked={selectedSize === individualSize}
@@ -451,7 +453,14 @@ export default function ProductDynamicCertificatePage() {
             />
           </Tabs>
           <TabPanel value={tabValue} index={0}>
-            <Typography sx={{ mt: 2 }}>
+            <Typography
+              sx={{
+                wordBreak: "break-all",
+                overflowWrap: "break-word",
+                whiteSpace: "normal",
+                mt: 2,
+              }}
+            >
               {products.data?.description || "Описание отсутствует"}
             </Typography>
           </TabPanel>

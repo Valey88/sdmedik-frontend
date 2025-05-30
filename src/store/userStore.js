@@ -19,7 +19,6 @@ const useUserStore = create((set, get) => ({
   showConfirmation: false,
   code: "",
   isAuthenticated: !!Cookies.get("logged_in"),
-
   setEmail: (email) => set({ email }),
   setFio: (fio) => set({ fio }),
   setPhone_number: (phone_number) => set({ phone_number }),
@@ -75,7 +74,8 @@ const useUserStore = create((set, get) => ({
   chengePasswordReset: async (queryToken, confirmPassword) => {
     try {
       const response = await api.post(
-        `/auth/reset-password`, {},
+        `/auth/reset-password`,
+        {},
         {
           params: {
             token: queryToken,
@@ -88,7 +88,6 @@ const useUserStore = create((set, get) => ({
       );
       if (response.data.status === "success") {
         toast.info("Пороль успешно изменен");
-        
       }
     } catch (error) {
       toast.error(
@@ -160,14 +159,16 @@ const useUserStore = create((set, get) => ({
     }
   },
 
-  getUserInfo: () => {
-    get().checkAuthAndExecute(async () => {
+  getUserInfo: async () => {
+    await get().checkAuthAndExecute(async () => {
       try {
         const response = await api.get(`/user/me`);
-        set({ user: response.data, isLoggedOut: false });
+        set({ user: response.data, isLoggedOut: false, isLoadingUser: false });
         localStorage.setItem("user", JSON.stringify(response.data));
       } catch (error) {
         console.error("Ошибка при получении данных:", error);
+        set({ isLoadingUser: false });
+        throw error;
       }
     });
   },

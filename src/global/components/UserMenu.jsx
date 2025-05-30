@@ -1,16 +1,23 @@
 import { IconButton, Menu, MenuItem } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useUserStore from "../../store/userStore";
 
 const UserMenu = () => {
   const [menuLk, setMenuLk] = useState(null);
   const { isAuthenticated, user, logout } = useUserStore();
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const openLk = Boolean(menuLk);
 
   const handleClickLk = (event) => setMenuLk(event.currentTarget);
   const handleCloseLk = () => setMenuLk(null);
+
+  useEffect(() => {
+    if (user?.data) {
+      setIsAdmin(user.data.role_id === 1);
+    }
+  }, [user]);
 
   // Определяем, является ли пользователь администратором
   // Используем метод из хранилища
@@ -19,7 +26,6 @@ const UserMenu = () => {
   //   ? "Администратор"
   //   : user?.data?.fio || "Профиль";
   // const profilePath = isAdmin() ? "/admin" : "/profile"; // Используем единую проверку
-  const isAdmin = user && user.data?.role_id === 1;
   const profileText = isAdmin ? "Администратор" : user?.data?.fio || "Профиль";
   const profilePath = isAdmin ? "/admin" : "/profile";
 

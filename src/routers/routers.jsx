@@ -70,11 +70,8 @@ export const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const fetchUserInfo = async () => {
-      await getUserInfo();
-      setLoading(false);
-    };
-    fetchUserInfo();
+    getUserInfo();
+    setLoading(false);
   }, [getUserInfo]);
 
   useEffect(() => {
