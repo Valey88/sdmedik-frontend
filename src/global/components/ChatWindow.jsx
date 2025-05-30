@@ -92,8 +92,11 @@ function ChatWindow({ onClose }) {
     };
 
     ws.current.onmessage = (event) => {
-      console.log("Полученные данные от сервера:", event.data); // Логирование для диагностики
-      // if (typeof event.data === "string") {
+      // console.log("Полученные данные от сервера:", event.data); // Логирование для диагностики
+      //   if (
+      //   typeof event.data === "string" &&
+      //   !event.data.trim().startsWith("{")
+      // ) {
       //   console.log("Обработка строки как сообщения:", event.data);
       //   setMessages((prev) => {
       //     const newMessage = {
@@ -213,6 +216,12 @@ function ChatWindow({ onClose }) {
 
     return () => ws.current?.close();
   }, [isAuthenticated, user]);
+
+  // Автоматическая прокрутка к последнему сообщению
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setMessages((prev) => [
@@ -288,8 +297,7 @@ function ChatWindow({ onClose }) {
 
   // Функция рендеринга сообщений с группировкой
   const renderMessages = () => {
-    console.log("Все сообщения для рендеринга:", messages);
-
+    console.log("Все сообщения для рендеринга:", messages); // Логирование для диагностики
     const today = new Date().toDateString();
     const yesterdayDate = new Date();
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -297,13 +305,8 @@ function ChatWindow({ onClose }) {
 
     const elements = [];
 
+    // Рендерим сообщения бота и FAQ
     messages.forEach((msg, index) => {
-      // Пропускаем сообщения с некорректной структурой
-      if (!msg.text || !msg.timestamp || !msg.senderId) {
-        console.warn("Некорректное сообщение:", msg);
-        return;
-      }
-
       if (msg.type === "bot") {
         elements.push(
           <Box
@@ -376,6 +379,7 @@ function ChatWindow({ onClose }) {
       }
     });
 
+    // Фильтруем сообщения пользователя и менеджера
     const chatMessages = messages.filter(
       (msg) => msg.type === "user" || msg.type === "manager"
     );
@@ -386,6 +390,7 @@ function ChatWindow({ onClose }) {
       const prevMsg = chatMessages[i - 1];
       const nextMsg = chatMessages[i + 1];
 
+      // Разделитель по дате
       if (
         i === 0 ||
         (prevMsg && new Date(prevMsg.timestamp).toDateString() !== msgDateStr)
@@ -414,6 +419,7 @@ function ChatWindow({ onClose }) {
         );
       }
 
+      // Определяем границы группы сообщений
       const timeDiff = prevMsg
         ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
         : 0;
@@ -427,6 +433,7 @@ function ChatWindow({ onClose }) {
       const isUser = msg.senderId === chatId;
       const alignment = isUser ? "flex-end" : "flex-start";
 
+      // Рендерим строку сообщения
       elements.push(
         <Box
           key={`msg-row-${msg.timestamp}`}
