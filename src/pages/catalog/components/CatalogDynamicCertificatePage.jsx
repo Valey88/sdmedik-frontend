@@ -23,7 +23,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
       <Card
         sx={{
           width: { xs: "167px", md: "261px" },
-          height: { xs: "485px", md: "550px" },
+          height: { xs: "600px", md: "620px" },
           background: "#F5FCFF",
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
           borderRadius: "8px",

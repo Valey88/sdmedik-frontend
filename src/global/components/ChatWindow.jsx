@@ -32,6 +32,17 @@ const faqData = [
     question: "Как вернуть товар?",
     answer: "Для возврата товара свяжитесь с поддержкой, указав номер заказа.",
   },
+  {
+    question: "Узнать стоимость доставки?",
+    answer: ` Стоимость заказа включает в себя стоимость заказанных товаров
+                  и стоимость почтовой/курьерской доставки до региона получателя
+                  – ПРИ ОФОРМЛЕНИИ ПОЛНОГО СЕРТИФИКАТА на выдачу ТСР. ПРИ заказе
+                  отдельных ТСР – стоимость доставки УТОЧНЯЙТЕ у специалиста в
+                  чате! Способы доставки: ПЭК, СДЭК, Курьеры, Почта РФ,
+                  собственная логистика и транспорт, другое. Стоимость доставки
+                  зависит от региона получателя (при доставке компанией СДЭК на
+                  стоимость доставки влияет также общий вес заказа).`,
+  },
 ];
 
 const CHAT_ID_EXPIRY_MS = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
@@ -58,17 +69,22 @@ function ChatWindow({ onClose }) {
     );
   };
 
-  // Инициализация WebSocket и установка chatId
   useEffect(() => {
     let newChatId = null;
 
     if (isAuthenticated) {
-      if (user && user.id) {
-        newChatId = user.id;
+      // Try to get user data from localStorage
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          newChatId = parsedUser?.data?.id || generateUUID();
+        } catch (error) {
+          console.error("Error parsing user data from localStorage:", error);
+          newChatId = generateUUID();
+        }
       } else {
-        useUserStore.getState().getUserInfo();
-        const currentUser = useUserStore.getState().user;
-        newChatId = currentUser?.id || generateUUID();
+        newChatId = generateUUID();
       }
     } else {
       let sessionId = Cookies.get("session_id");
@@ -92,31 +108,6 @@ function ChatWindow({ onClose }) {
     };
 
     ws.current.onmessage = (event) => {
-      // console.log("Полученные данные от сервера:", event.data); // Логирование для диагностики
-      //   if (
-      //   typeof event.data === "string" &&
-      //   !event.data.trim().startsWith("{")
-      // ) {
-      //   console.log("Обработка строки как сообщения:", event.data);
-      //   setMessages((prev) => {
-      //     const newMessage = {
-      //       type: "manager",
-      //       text: event.data,
-      //       timestamp: new Date().toISOString(),
-      //       senderId: `manager-${Date.now()}`,
-      //       isNew: true,
-      //     };
-      //     const updatedMessages = [...prev, newMessage];
-      //     console.log("Обновленное состояние messages:", updatedMessages);
-      //     return updatedMessages;
-      //   });
-      //   setTimeout(() => {
-      //     setMessages((prev) =>
-      //       prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
-      //     );
-      //   }, 1000);
-      //   return;
-      // }
       try {
         const messageData = JSON.parse(event.data);
         if (Array.isArray(messageData)) {
@@ -215,7 +206,7 @@ function ChatWindow({ onClose }) {
     };
 
     return () => ws.current?.close();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated]);
 
   // Автоматическая прокрутка к последнему сообщению
   useEffect(() => {

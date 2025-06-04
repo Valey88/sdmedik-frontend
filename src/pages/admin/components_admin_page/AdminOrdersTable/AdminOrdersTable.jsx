@@ -28,6 +28,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import * as XLSX from "xlsx";
 import useOrderStore from "../../../../store/orderStore";
 
 // Add the getWeek function to the Date prototype
@@ -47,8 +48,9 @@ const AdminOrdersTable = () => {
   const itemsPerPage = 20;
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [timeFrame, setTimeFrame] = useState("month"); // Новое состояние для промежутка времени
+  const [timeFrame, setTimeFrame] = useState("month");
   const [newStatuses, setNewStatuses] = useState({});
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -91,12 +93,29 @@ const AdminOrdersTable = () => {
   };
 
   const handleStatusChange = async (order_id) => {
-    const status = newStatuses[order_id]; // Получаем статус для конкретного заказа
+    const status = newStatuses[order_id];
     if (status) {
-      await changeStatus(order_id, status); // Передаем id и новый статус
-      setNewStatuses((prev) => ({ ...prev, [order_id]: "" })); // Сбрасываем состояние для этого заказа
+      await changeStatus(order_id, status);
+      setNewStatuses((prev) => ({ ...prev, [order_id]: "" }));
     }
     fetchOrders();
+  };
+
+  // Function to export table to Excel
+  const exportToExcel = () => {
+    const data = filteredOrders.map((order) => ({
+      ФИО: order.fio,
+      Email: order.email,
+      Телефон: order.phone,
+      Статус: order.status,
+      "Общая стоимость": `${order.total_price} ₽`,
+      Дата: new Date(order.created_at).toLocaleDateString(),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+    XLSX.writeFile(workbook, "orders.xlsx");
   };
 
   // Подсчет количества заказов и прибыли по месяцам
@@ -124,7 +143,7 @@ const AdminOrdersTable = () => {
   // Подсчет количества заказов и прибыли по неделям
   const orderStatsByWeek = filteredOrders.reduce((acc, order) => {
     const date = new Date(order.created_at);
-    const week = `${date.getFullYear()}-W${date.getWeek()}`; // Формат: YYYY-WW
+    const week = `${date.getFullYear()}-W${date.getWeek()}`;
 
     if (!acc[week]) {
       acc[week] = { count: 0, total: 0 };
@@ -142,7 +161,7 @@ const AdminOrdersTable = () => {
 
   // Подсчет количества заказов и прибыли по дням
   const orderStatsByDay = filteredOrders.reduce((acc, order) => {
-    const date = new Date(order.created_at).toLocaleDateString(); // Формат: YYYY-MM-DD
+    const date = new Date(order.created_at).toLocaleDateString();
 
     if (!acc[date]) {
       acc[date] = { count: 0, total: 0 };
@@ -158,7 +177,7 @@ const AdminOrdersTable = () => {
     total: orderStatsByDay[key].total,
   }));
 
-  // Выбор данных для отображения в зависимости от выбранного промежутка времени
+  // Выбор данных для отобржения
   let orderData;
   if (timeFrame === "month") {
     orderData = orderDataByMonth;
@@ -168,7 +187,7 @@ const AdminOrdersTable = () => {
     orderData = orderDataByDay;
   }
 
-  // Подсчет общего количества заказов и общей прибыли
+  // Подсчет общей информации
   const totalOrders = filteredOrders.length;
   const totalProfit = filteredOrders.reduce(
     (acc, order) => acc + order.total_price,
@@ -182,7 +201,6 @@ const AdminOrdersTable = () => {
       </Typography>
 
       {selectedOrder ? (
-        // Отображение информации о выбранном заказе
         <Box
           sx={{
             padding: 2,
@@ -209,7 +227,6 @@ const AdminOrdersTable = () => {
             </Button>
           </Box>
 
-          {/* Таблица с товарами */}
           <Typography variant="h6" sx={{ mt: 2 }}>
             Товары в заказе
           </Typography>
@@ -237,8 +254,12 @@ const AdminOrdersTable = () => {
           </TableContainer>
         </Box>
       ) : (
-        // Отображение списка заказов
         <Paper sx={{ width: "100%" }}>
+          <Box sx={{ mb: 2 }}>
+            <Button variant="contained" onClick={exportToExcel}>
+              Экспорт в Excel
+            </Button>
+          </Box>
           <TableContainer sx={{ overflowX: "auto", height: "600px" }}>
             <Table>
               <TableHead>
@@ -280,11 +301,11 @@ const AdminOrdersTable = () => {
                       }}
                     >
                       <Select
-                        value={newStatuses[order.id] || order.status} // Используем статус из newStatuses или текущий статус
+                        value={newStatuses[order.id] || order.status}
                         onChange={(e) =>
                           setNewStatuses((prev) => ({
                             ...prev,
-                            [order.id]: e.target.value, // Обновляем статус для конкретного заказа
+                            [order.id]: e.target.value,
                           }))
                         }
                         label="Статус"
@@ -297,7 +318,7 @@ const AdminOrdersTable = () => {
                       </Select>
                       <Button
                         variant="contained"
-                        onClick={() => handleStatusChange(order.id)} // Передаем id заказа
+                        onClick={() => handleStatusChange(order.id)}
                       >
                         Сохранить
                       </Button>
@@ -308,7 +329,6 @@ const AdminOrdersTable = () => {
             </Table>
           </TableContainer>
 
-          {/* Пагинация */}
           <Box
             sx={{
               display: "flex",
@@ -345,7 +365,6 @@ const AdminOrdersTable = () => {
         </Select>
       </FormControl>
 
-      {/* Выбор промежутка времени */}
       <FormControl variant="outlined" sx={{ mb: 2, minWidth: 120 }}>
         <InputLabel>Промежуток времени</InputLabel>
         <Select
@@ -359,7 +378,6 @@ const AdminOrdersTable = () => {
         </Select>
       </FormControl>
 
-      {/* Диаграмма количества заказов по статусам и росту */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6">
           Количество заказов по статусам и росту ({timeFrame})
@@ -385,7 +403,7 @@ const AdminOrdersTable = () => {
             <Bar
               type="monotone"
               dataKey="count"
-              fill="#4CAF50" // Зелёный цвет для количества заказов
+              fill="#4CAF50"
               strokeWidth={2}
               barSize={20}
               activeDot={{ r: 8 }}
@@ -394,7 +412,6 @@ const AdminOrdersTable = () => {
         </ResponsiveContainer>
       </Box>
 
-      {/* Диаграмма прибыли по статусам и росту */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6">
           Прибыль по статусам и росту ({timeFrame})
@@ -420,7 +437,7 @@ const AdminOrdersTable = () => {
             <Bar
               type="monotone"
               dataKey="total"
-              fill="#82ca9d" // Светло-зелёный цвет
+              fill="#82ca9d"
               strokeWidth={2}
               barSize={20}
               activeDot={{ r: 8 }}
@@ -429,7 +446,6 @@ const AdminOrdersTable = () => {
         </ResponsiveContainer>
       </Box>
 
-      {/* Вывод общей информации */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6">Общая информация</Typography>
         <Typography>Всего заказов: {totalOrders}</Typography>

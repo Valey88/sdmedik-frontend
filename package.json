@@ -32,6 +32,7 @@
     "react-router-dom": "^6.27.0",
     "react-slick": "^0.30.2",
     "react-toastify": "^11.0.2",
+    "react-xls": "^0.1.1",
     "react-yandex-maps": "^4.6.0",
     "recharts": "^2.15.0",
     "slick-carousel": "^1.8.1",

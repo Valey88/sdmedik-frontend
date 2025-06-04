@@ -536,7 +536,7 @@ export default function AdminChat() {
                   }}
                 >
                   <ListItemAvatar>
-                    <Badge
+                    {/* <Badge
                       badgeContent={unreadCounts[room.id] || 0}
                       sx={{
                         "& .MuiBadge-badge": {
@@ -547,16 +547,14 @@ export default function AdminChat() {
                           height: "18px",
                         },
                       }}
-                    >
-                      <Avatar
-                        sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}
-                      >
-                        <SupportAgentIcon
-                          fontSize="small"
-                          sx={{ color: "#FFF" }}
-                        />
-                      </Avatar>
-                    </Badge>
+                    > */}
+                    <Avatar sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}>
+                      <SupportAgentIcon
+                        fontSize="small"
+                        sx={{ color: "#FFF" }}
+                      />
+                    </Avatar>
+                    {/* </Badge> */}
                   </ListItemAvatar>
                   <ListItemText
                     primary={
