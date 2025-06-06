@@ -107,7 +107,6 @@ export default function Contacts() {
               </Box>
               <Box>
                 <Typography>+7 (903) 086 3091</Typography>
-                <Typography>+7 (909) 617 8196</Typography>
                 <Typography>+7 (353) 293 5241</Typography>
               </Box>
             </Box>

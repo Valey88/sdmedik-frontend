@@ -16,10 +16,13 @@ export default function RightBar() {
   const { basket } = useBascketStore();
   const basketData = basket.data || {};
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [openDelivery, setOpenDelivery] = useState(false);
+  const [openCertificate, setOpenCertificate] = useState(false);
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleOpenDelivery = () => setOpenDelivery(true);
+  const handleCloseDelivery = () => setOpenDelivery(false);
+  const handleOpenCertificate = () => setOpenCertificate(true);
+  const handleCloseCertificate = () => setOpenCertificate(false);
 
   return (
     <Box sx={{ mt: { xs: 3, md: "75px" }, width: { xs: "100%", md: "25%" } }}>
@@ -35,9 +38,24 @@ export default function RightBar() {
           <Typography variant="h5" sx={{ fontWeight: "bold", flexGrow: 1 }}>
             Оформление заказа
           </Typography>
-          <IconButton onClick={handleOpen} sx={{ color: "#00B3A4" }}>
-            <InfoIcon />
-          </IconButton>
+        </Box>
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+            <Typography variant="body1">По сертификату</Typography>
+            <IconButton
+              onClick={handleOpenCertificate}
+              sx={{ color: "#00B3A4" }}
+            >
+              <InfoIcon />
+            </IconButton>
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+            <Typography variant="body1">Доставка</Typography>
+            <IconButton onClick={handleOpenDelivery} sx={{ color: "#00B3A4" }}>
+              <InfoIcon />
+            </IconButton>
+          </Box>
         </Box>
         <Box sx={{ mb: 2 }}>
           <Typography variant="body1">
@@ -78,11 +96,11 @@ export default function RightBar() {
         </Button>
       </Paper>
 
-      {/* Modal with iOS 19-style floating sheet */}
+      {/* Delivery Modal */}
       <Modal
-        open={open}
-        onClose={handleClose}
-        aria-labelledby="modal-title"
+        open={openDelivery}
+        onClose={handleCloseDelivery}
+        aria-labelledby="delivery-modal-title"
         sx={{
           display: "flex",
           alignItems: "center",
@@ -93,8 +111,8 @@ export default function RightBar() {
           sx={{
             width: { xs: "90%", sm: "70%", md: "50%" },
             maxWidth: 600,
-            height: 350,
-            backgroundColor: "rgba(245, 246, 245, 0.95)", // White with slight transparency
+            height: 200,
+            backgroundColor: "rgba(245, 246, 245, 0.95)",
             borderRadius: "16px",
             p: 3,
             boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
@@ -111,31 +129,16 @@ export default function RightBar() {
           }}
         >
           <Typography
-            id="modal-title"
+            id="delivery-modal-title"
             variant="h6"
             sx={{ fontWeight: "bold", color: "#00B3A4", mb: 2 }}
           >
-            Информация о стоимости заказа
+            Условия доставки
           </Typography>
           <Typography variant="body1" sx={{ color: "#333", lineHeight: 1.6 }}>
-            Стоимость заказа включает в себя стоимость заказанных товаров и
-            стоимость почтовой/курьерской доставки до региона получателя – ПРИ
-            ОФОРМЛЕНИИ ПОЛНОГО СЕРТИФИКАТА на выдачу ТСР. ПРИ заказе отдельных
-            ТСР – стоимость доставки УТОЧНЯЙТЕ у специалиста в чате!
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{ color: "#333", lineHeight: 1.6, mt: 2 }}
-          >
-            Способы доставки: ПЭК, СДЭК, Курьеры, Почта РФ, собственная
-            логистика и транспорт, другое.
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{ color: "#333", lineHeight: 1.6, mt: 2 }}
-          >
-            Стоимость доставки зависит от региона получателя (при доставке
-            компанией СДЭК на стоимость доставки влияет также общий вес заказа).
+            Для уточнения стоимости доставки или возможности бесплатной
+            доставки, задайте вопрос в чате специалисту. Также, информация
+            указана в разделе «Доставка».
           </Typography>
           <Button
             variant="contained"
@@ -148,7 +151,68 @@ export default function RightBar() {
               mt: 3,
               borderRadius: 2,
             }}
-            onClick={handleClose}
+            onClick={handleCloseDelivery}
+          >
+            Закрыть
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Certificate Modal */}
+      <Modal
+        open={openCertificate}
+        onClose={handleCloseCertificate}
+        aria-labelledby="certificate-modal-title"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "right",
+        }}
+      >
+        <Box
+          sx={{
+            width: { xs: "90%", sm: "70%", md: "50%" },
+            maxWidth: 600,
+            height: 160,
+            backgroundColor: "rgba(245, 246, 245, 0.95)",
+            borderRadius: "16px",
+            p: 3,
+            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+            borderTop: "2px solid #00B3A4",
+            maxHeight: "80vh",
+            overflowY: "auto",
+            "&::-webkit-scrollbar": {
+              width: "8px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "#00B3A4",
+              borderRadius: "4px",
+            },
+          }}
+        >
+          <Typography
+            id="certificate-modal-title"
+            variant="h6"
+            sx={{ fontWeight: "bold", color: "#00B3A4", mb: 2 }}
+          >
+            По сертификату
+          </Typography>
+          <Typography variant="body1" sx={{ color: "#333", lineHeight: 1.6 }}>
+            Пошаговая инструкция приобретения по сертификату есть в чате
+            поддержки, по всем вопросам Вам также ответят наши специалисты.
+          </Typography>
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{
+              background: "#00B3A4",
+              "&:hover": {
+                background: "#009B8A",
+              },
+              mt: 3,
+              borderRadius: 2,
+            }}
+            onClick={handleCloseCertificate}
           >
             Закрыть
           </Button>

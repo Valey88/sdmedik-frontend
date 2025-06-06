@@ -28,7 +28,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx";
 import useOrderStore from "../../../../store/orderStore";
 
 // Add the getWeek function to the Date prototype
