@@ -64,10 +64,13 @@ const useCategoryStore = create((set, get) => ({
     }
   },
 
-  updateCategory: async (id, formData) => {
+  updateCategory: async (id, categoryData) => {
     try {
-      const response = await axios.put(`${url}/category/${id}`, formData, {
+      const response = await axios.put(`${url}/category/${id}`, categoryData, {
         withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
       if (response.data.status === "success") {
         alert("Категория успешно обновлена!");

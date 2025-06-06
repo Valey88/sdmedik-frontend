@@ -12,6 +12,7 @@ import {
   Grid,
   Card,
   CardContent,
+  CircularProgress,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -19,6 +20,7 @@ import {
   Save as SaveIcon,
 } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import useCategoryStore from "../../../store/categoryStore";
 
 export default function UpdateCategory() {
@@ -27,25 +29,36 @@ export default function UpdateCategory() {
   const [category, setCategory] = useState({
     name: "",
     characteristics: [],
-    images: [],
   });
+  const [isFetching, setIsFetching] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Загрузка данных категории
   useEffect(() => {
     if (id) {
-      fetchCategoryId(id).then(() => {
-        if (categoryId && categoryId.data) {
-          const categoryData = categoryId.data;
-          setCategory({
-            name: categoryData.name || "",
-            characteristics: categoryData.characteristic || [], // Используем characteristic
-            images: [],
-          });
-          console.log(response.data);
-        }
-      });
+      setIsFetching(true);
+      fetchCategoryId(id)
+        .then(() => {
+          setIsFetching(false);
+        })
+        .catch((error) => {
+          console.error("Ошибка загрузки категории:", error);
+          toast.error("Не удалось загрузить данные категории");
+          setIsFetching(false);
+        });
     }
   }, [id, fetchCategoryId]);
+
+  // Инициализация формы данными из categoryId
+  useEffect(() => {
+    if (categoryId?.data && !isFetching) {
+      const categoryData = categoryId.data;
+      setCategory({
+        name: categoryData.name || "",
+        characteristics: categoryData.characteristic || [], // Или characteristics, если сервер возвращает так
+      });
+    }
+  }, [categoryId, isFetching]);
 
   // Обработчик изменения имени
   const handleNameChange = (e) => {
@@ -83,8 +96,16 @@ export default function UpdateCategory() {
   };
 
   // Обработчик отправки формы
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
+    // Валидация обязательных полей
+    if (!category.name) {
+      toast.error("Заполните название категории");
+      setLoading(false);
+      return;
+    }
 
     const categoryData = {
       name: category.name,
@@ -96,15 +117,28 @@ export default function UpdateCategory() {
       })),
     };
 
-    const jsonData = JSON.stringify(categoryData);
-    const formData = new FormData();
-    formData.append("json", jsonData);
-    category.images.forEach((file) => {
-      formData.append("file", file);
-    });
-
-    updateCategory(id, formData);
+    try {
+      await updateCategory(id, categoryData);
+      toast.success("Категория успешно обновлена");
+    } catch (error) {
+      console.error("Ошибка при отправке данных:", error);
+      toast.error(
+        "Ошибка при обновлении категории: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Отображение индикатора загрузки
+  if (isFetching) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Card sx={{ maxWidth: 600, margin: "auto", mt: 4, mb: 4 }}>
@@ -120,10 +154,9 @@ export default function UpdateCategory() {
             value={category.name}
             onChange={handleNameChange}
             sx={{ mb: 2 }}
+            required
           />
 
-
-          
           {category.characteristics.length > 0 ? (
             category.characteristics.map((characteristic, index) => (
               <Grid
@@ -188,8 +221,9 @@ export default function UpdateCategory() {
             variant="contained"
             startIcon={<SaveIcon />}
             sx={{ backgroundColor: "#3f51b5", color: "#fff" }}
+            disabled={loading}
           >
-            Обновить категорию
+            {loading ? <CircularProgress size={24} /> : "Обновить категорию"}
           </Button>
         </Box>
       </CardContent>

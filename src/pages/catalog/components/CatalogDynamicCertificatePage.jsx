@@ -121,12 +121,12 @@ const CatalogDynamicCertificatePage = () => {
   const [error, setError] = useState(null);
 
   const category_id = id;
-  // const catalogs = (1, 2);
+  let catalogs = "1,2"
 
   useEffect(() => {
     const offset = (currentPage - 1) * ProductsPerPage;
     setLoading(true);
-    fetchProducts(category_id, filters, offset, ProductsPerPage)
+    fetchProducts(category_id, filters, offset, ProductsPerPage, catalogs)
       .then(() => setLoading(false))
       .catch((err) => {
         setLoading(false);
