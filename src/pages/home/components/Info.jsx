@@ -8,7 +8,7 @@ export default function Info() {
 
   return (
     <Box>
-      <Helmet>
+      {/* <Helmet>
         <title>График работы в праздничные дни - Samedik.ru</title>
         <meta
           name="description"
@@ -19,7 +19,7 @@ export default function Info() {
           content="Samedik, график работы, праздничные дни, интернет-магазин, медицинские товары"
         />
         <meta name="robots" content="index, follow" />
-      </Helmet>
+      </Helmet> */}
       <Box
         component={motion.section}
         initial={{ opacity: 0, scale: 0.95 }}
@@ -144,6 +144,46 @@ export default function Info() {
               (обработка заказов осуществляется только в рабочие дни)
             </Typography>
           </Box> */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: "16px",
+              padding: { xs: "20px", lg: "24px" },
+              width: { xs: "100%", lg: "85%" },
+              boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+            }}
+            component={motion.div}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+          >
+            <Typography
+              variant="body1"
+              sx={{
+                fontSize: { xs: "16px", lg: "30px" },
+                fontWeight: "bold",
+                lineHeight: 1.6,
+                color: "#fff",
+              }}
+            >
+              Уважаемые клиенты Обращаем Ваше внимание на график работы в
+              праздничные дни:
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                fontSize: { xs: "16px", lg: "20px" },
+                lineHeight: 1.6,
+              }}
+            >
+              11.06.2025 - сокращенный рабочий день до 18:30 12.06.2025 -
+              выходной день Остальные дни в соответствии с графиком работы
+              магазина.
+            </Typography>
+          </Box>
           <Box
             sx={{
               display: "flex",

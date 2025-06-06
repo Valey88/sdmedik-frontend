@@ -16,9 +16,9 @@ export default function HomePage() {
           <Info />
         </Box>
         <Box sx={{ mt: "40px" }}>{/* <TopList /> */}</Box>
-        <Box sx={{ mt: "40px" }}>
+        {/* <Box sx={{ mt: "40px" }}>
           <PromotionalSlider />
-        </Box>
+        </Box> */}
       </Container>
     </Box>
   );
