@@ -144,7 +144,7 @@ export default function Info() {
               (обработка заказов осуществляется только в рабочие дни)
             </Typography>
           </Box> */}
-          <Box
+          {/* <Box
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -183,7 +183,7 @@ export default function Info() {
               выходной день Остальные дни в соответствии с графиком работы
               магазина.
             </Typography>
-          </Box>
+          </Box> */}
           <Box
             sx={{
               display: "flex",

@@ -124,7 +124,7 @@ function ChatWindow({ onClose }) {
               : [
                   {
                     type: "bot",
-                    text: "Здравствуйте!\nЯ помогу ответить на ваши вопросы.\nВыберите одну из популярных тем ниже или напишите свой вопрос.",
+                    text: "Рабочий режим специалистов поддержки с 9 до 18.00,ПН по ПТ. Вы может оставить свои контактные данные (имя ,телефон ), задать вопрос и наш специалист свяжется с Вами в рабочее время.",
                     timestamp: new Date().toISOString(),
                     senderId: "bot",
                   },
@@ -303,7 +303,7 @@ function ChatWindow({ onClose }) {
           <Box
             key={`bot-${index}`}
             sx={{
-              textAlign: "center",
+              textAlign: "left",
               mb: 2,
               bgcolor: "#e0f7fa",
               p: 1,
@@ -321,9 +321,10 @@ function ChatWindow({ onClose }) {
             <Typography
               variant="body2"
               sx={{
-                fontSize: "0.85rem",
+                fontSize: "0.9rem",
                 color: "#000",
                 whiteSpace: "pre-line",
+                // fontWeight: "bold",
               }}
             >
               {msg.text}
@@ -504,7 +505,7 @@ function ChatWindow({ onClose }) {
         bottom: 80,
         right: 16,
         width: { xs: "90%", sm: 360 },
-        height: 480,
+        height: { xs: 480, sm: 600 },
         display: "flex",
         flexDirection: "column",
         borderRadius: "12px",

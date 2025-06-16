@@ -57,6 +57,11 @@ export default function ProductDynamicCertificatePage() {
     "Специальная одежда",
     "Бандажи, корсеты, ортопедия",
     "Катетеры, функция выделения",
+    "Калоприемники, уроприемники",
+    "Подгузники",
+    "Трости, костыли",
+    "Кресла стулья санитарные",
+    "Протезы, ортезы, туторты",
   ];
 
   // Проверка принадлежности к категориям с размерами
@@ -73,7 +78,7 @@ export default function ProductDynamicCertificatePage() {
       await fetchProductById(id);
       if (products.data?.characteristic) {
         const sizes = products.data.characteristic
-          .filter((c) => c.name.toLowerCase() === "размер")
+          .filter((c) => c.name.toLowerCase() === "размер" && "объем/размер")
           .map((c) => c.value);
         setSelectedSize(sizes[0] || "");
       }
@@ -398,7 +403,7 @@ export default function ProductDynamicCertificatePage() {
                   "&:hover": { backgroundColor: "#009B8A" },
                 }}
                 onClick={() => handleAddProductToBasket(products.data.id)}
-                disabled={isSizeRequired && !selectedSize}
+                // disabled={isSizeRequired && !selectedSize}
                 aria-label="Добавить в корзину"
               >
                 В корзину
