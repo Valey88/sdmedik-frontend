@@ -78,7 +78,11 @@ export default function ProductDynamicCertificatePage() {
       await fetchProductById(id);
       if (products.data?.characteristic) {
         const sizes = products.data.characteristic
-          .filter((c) => c.name.toLowerCase() === "размер" && "объем/размер")
+          .filter(
+            (c) =>
+              c.name.toLowerCase() === "размер" ||
+              c.name.toLowerCase() === "объем/размер"
+          )
           .map((c) => c.value);
         setSelectedSize(sizes[0] || "");
       }
@@ -106,23 +110,22 @@ export default function ProductDynamicCertificatePage() {
   };
 
   const handleAddProductToBasket = async (productId) => {
-    if (isSizeRequired && !selectedSize) {
-      alert("Пожалуйста, выберите размер");
-      return;
+    const iso = isCatalog1 ? null : newRegion?.value;
+    let dynamicOptions = null;
+
+    // Добавляем dynamicOptions только если размер выбран и требуется
+    if (isSizeRequired && selectedSize) {
+      const sizeCharacteristic = products.data?.characteristic?.find(
+        (c) => c.name.toLowerCase() === "размер"
+      );
+      dynamicOptions = [
+        {
+          id: sizeCharacteristic?.id || 0,
+          value: selectedSize,
+        },
+      ];
     }
 
-    const iso = isCatalog1 ? null : newRegion?.value;
-    const sizeCharacteristic = products.data?.characteristic?.find(
-      (c) => c.name.toLowerCase() === "размер"
-    );
-    const dynamicOptions = isSizeRequired
-      ? [
-          {
-            id: sizeCharacteristic?.id || 0,
-            value: selectedSize,
-          },
-        ]
-      : [];
     await addProductThisBascket(productId, quantity, iso, dynamicOptions);
   };
 
@@ -403,7 +406,6 @@ export default function ProductDynamicCertificatePage() {
                   "&:hover": { backgroundColor: "#009B8A" },
                 }}
                 onClick={() => handleAddProductToBasket(products.data.id)}
-                // disabled={isSizeRequired && !selectedSize}
                 aria-label="Добавить в корзину"
               >
                 В корзину

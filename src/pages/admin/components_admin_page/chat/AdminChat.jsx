@@ -48,7 +48,6 @@ export default function AdminChat() {
   const processedMessages = useRef(new Set());
   const { getUserInfo, user } = useUserStore();
 
-  // Проверка валидности JSON
   const isValidJSON = (str) => {
     try {
       JSON.parse(str);
@@ -58,7 +57,6 @@ export default function AdminChat() {
     }
   };
 
-  // Загрузка sender_id администратора
   const fetchAdminSenderId = async () => {
     try {
       await getUserInfo();
@@ -73,7 +71,6 @@ export default function AdminChat() {
     }
   };
 
-  // Загрузка списка чатов
   const fetchChatRooms = async () => {
     try {
       const response = await api.get("/chat");
@@ -88,7 +85,7 @@ export default function AdminChat() {
         rooms.reduce(
           (acc, room) => ({
             ...acc,
-            [room.id]: room.messages?.length || 0,
+            [room.id]: room.unreadCount || room.messages?.length || 0,
           }),
           {}
         )
@@ -99,7 +96,6 @@ export default function AdminChat() {
     }
   };
 
-  // Отправка события присоединения к чату
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
@@ -111,7 +107,23 @@ export default function AdminChat() {
     );
   };
 
-  // Обработка входящих сообщений WebSocket
+  const markAsRead = (messageId, userId) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      setError("Нет соединения с сервером чата.");
+      console.error("WebSocket не открыт, состояние:", ws.current?.readyState);
+      return;
+    }
+    const eventData = {
+      event: "mark-as-read",
+      data: {
+        message_id: messageId,
+        user_id: userId,
+      },
+    };
+    ws.current.send(JSON.stringify(eventData));
+    console.log("Отправлено событие mark-as-read:", eventData);
+  };
+
   const handleWebSocketMessage = (event) => {
     if (!isValidJSON(event.data)) {
       const messageKey = `${event.data}-${new Date().toISOString()}`;
@@ -132,6 +144,7 @@ export default function AdminChat() {
 
     try {
       const messageData = JSON.parse(event.data);
+      console.log("Получено сообщение:", messageData);
       if (messageData.event === "new-chat") {
         const newChat = messageData.data;
         setChatRooms((prev) => {
@@ -150,7 +163,7 @@ export default function AdminChat() {
         });
         setUnreadCounts((prev) => ({
           ...prev,
-          [newChat.id]: newChat.messages?.length || 1,
+          [newChat.id]: newChat.unreadCount || newChat.messages?.length || 1,
         }));
         if (Notification.permission === "granted") {
           new Notification("Новый чат", {
@@ -158,7 +171,8 @@ export default function AdminChat() {
           });
         }
       } else if (messageData.event === "message-event") {
-        const { chat_id, message, sender_id, time_to_send } = messageData.data;
+        const { chat_id, message, sender_id, time_to_send, id, read_status } =
+          messageData.data;
         const messageKey = `${chat_id}-${message}-${time_to_send}`;
         if (processedMessages.current.has(messageKey)) return;
         processedMessages.current.add(messageKey);
@@ -177,6 +191,13 @@ export default function AdminChat() {
               isNew: true,
             },
           ]);
+          if (sender_id !== adminSenderId && !read_status && id) {
+            markAsRead(id, adminSenderId);
+            console.log(
+              "Новое сообщение пользователя отмечено как прочитанное:",
+              id
+            );
+          }
         } else {
           setUnreadCounts((prev) => ({
             ...prev,
@@ -209,6 +230,14 @@ export default function AdminChat() {
             });
           }
         }
+      } else if (messageData.event === "mark-as-read") {
+        const { chat_id } = messageData.data;
+        setUnreadCounts((prev) => ({ ...prev, [chat_id]: 0 }));
+        setChatRooms((prev) =>
+          prev.map((room) =>
+            room.id === chat_id ? { ...room, unreadCount: 0 } : room
+          )
+        );
       } else if (Array.isArray(messageData)) {
         const formattedMessages = messageData.map((msg) => ({
           type:
@@ -220,10 +249,28 @@ export default function AdminChat() {
           sender_id: msg.sender_id,
         }));
         setMessages(formattedMessages);
-        setUnreadCounts((prev) => ({ ...prev, [selectedChatId]: 0 }));
-        setIsLoadingHistory(false);
-      } else if (messageData.event === "error") {
-        setError(messageData.data || "Произошла ошибка на сервере.");
+        if (selectedChatId && adminSenderId) {
+          const userMessages = messageData.filter(
+            (msg) =>
+              msg.id && msg.sender_id !== adminSenderId && !msg.read_status
+          );
+          console.log("Непрочитанные сообщения пользователя:", userMessages);
+          if (userMessages.length > 0) {
+            userMessages.forEach((msg) => {
+              markAsRead(msg.id, adminSenderId);
+              console.log(
+                "Отправлен ID сообщения пользователя для markAsRead:",
+                msg.id
+              );
+            });
+          } else {
+            console.log(
+              "Нет непрочитанных сообщений пользователя для отметки как прочитанные"
+            );
+          }
+        } else {
+          console.warn("selectedChatId или adminSenderId не определены");
+        }
         setIsLoadingHistory(false);
       }
     } catch (err) {
@@ -233,7 +280,6 @@ export default function AdminChat() {
     }
   };
 
-  // Инициализация WebSocket
   useEffect(() => {
     fetchAdminSenderId();
     fetchChatRooms();
@@ -267,7 +313,6 @@ export default function AdminChat() {
     };
   }, [chatId]);
 
-  // Обработка отправки сообщения
   const handleSend = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
@@ -297,7 +342,6 @@ export default function AdminChat() {
     }
   };
 
-  // Выбор чата
   const handleChatSelect = (roomId) => {
     setSelectedChatId(roomId);
     setChatId(roomId);
@@ -307,7 +351,6 @@ export default function AdminChat() {
     processedMessages.current.clear();
   };
 
-  // Закрытие чата
   const handleCloseChat = () => {
     setSelectedChatId(null);
     setChatId("");
@@ -315,7 +358,6 @@ export default function AdminChat() {
     processedMessages.current.clear();
   };
 
-  // Мемоизация рендеринга сообщений
   const groupedMessages = useMemo(() => {
     const today = new Date().toDateString();
     const yesterdayDate = new Date();
@@ -333,7 +375,6 @@ export default function AdminChat() {
       const prevMsg = sortedMessages[i - 1];
       const nextMsg = sortedMessages[i + 1];
 
-      // Разделитель по дате
       if (
         !prevMsg ||
         new Date(prevMsg.timestamp).toDateString() !== msgDateStr
@@ -536,8 +577,8 @@ export default function AdminChat() {
                   }}
                 >
                   <ListItemAvatar>
-                    {/* <Badge
-                      badgeContent={unreadCounts[room.id] || 0}
+                    <Badge
+                      badgeContent={room.unread_count || 0}
                       sx={{
                         "& .MuiBadge-badge": {
                           bgcolor: "#40C4FF",
@@ -547,14 +588,16 @@ export default function AdminChat() {
                           height: "18px",
                         },
                       }}
-                    > */}
-                    <Avatar sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}>
-                      <SupportAgentIcon
-                        fontSize="small"
-                        sx={{ color: "#FFF" }}
-                      />
-                    </Avatar>
-                    {/* </Badge> */}
+                    >
+                      <Avatar
+                        sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}
+                      >
+                        <SupportAgentIcon
+                          fontSize="small"
+                          sx={{ color: "#FFF" }}
+                        />
+                      </Avatar>
+                    </Badge>
                   </ListItemAvatar>
                   <ListItemText
                     primary={
