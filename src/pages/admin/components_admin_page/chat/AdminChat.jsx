@@ -73,7 +73,11 @@ export default function AdminChat() {
 
   const fetchChatRooms = async () => {
     try {
-      const response = await api.get("/chat");
+      const response = await api.get("/chat", {
+        params: {
+          user_id: adminSenderId,
+        },
+      });
       const rooms = response.data.data || [];
       rooms.sort((a, b) => {
         const aTime = a.messages?.slice(-1)[0]?.time_to_send || 0;

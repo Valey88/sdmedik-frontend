@@ -33,6 +33,7 @@ export default function CreateProduct() {
     name: "",
     images: [],
     price: 0,
+    tru: "",
   });
 
   const [characteristics, setCharacteristics] = useState([]);
@@ -170,6 +171,7 @@ export default function CreateProduct() {
       price: Number(product.price),
       description: product.description,
       article: product.article,
+      tru: product.tru,
       category_ids: product.category_ids,
       characteristic_values: formattedCharacteristics,
       catalogs: catalogs.filter((id) => VALID_CATALOG_IDS.includes(id)),
@@ -193,6 +195,7 @@ export default function CreateProduct() {
         name: "",
         images: [],
         price: 0,
+        tru: "",
       });
       setSelectedCategories([]);
       setCharacteristics([]);
@@ -237,6 +240,17 @@ export default function CreateProduct() {
                   value={product.article}
                   onChange={(e) =>
                     setProduct({ ...product, article: e.target.value })
+                  }
+                  fullWidth
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="ТРУ код"
+                  value={product.tru}
+                  onChange={(e) =>
+                    setProduct({ ...product, tru: e.target.value })
                   }
                   fullWidth
                   margin="normal"
