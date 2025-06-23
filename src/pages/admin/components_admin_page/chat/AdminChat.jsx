@@ -73,9 +73,13 @@ export default function AdminChat() {
 
   const fetchChatRooms = async () => {
     try {
+      const userData = localStorage.getItem("user");
+
+      const parsedUser = JSON.parse(userData);
+      const admin_id = parsedUser?.data?.id;
       const response = await api.get("/chat", {
         params: {
-          user_id: adminSenderId,
+          user_id: admin_id,
         },
       });
       const rooms = response.data.data || [];
