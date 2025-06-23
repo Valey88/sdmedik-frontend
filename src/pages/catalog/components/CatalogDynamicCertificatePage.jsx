@@ -17,6 +17,7 @@ import { urlPictures } from "../../../constants/constants";
 import SidebarFilter from "./SidebarFilter";
 
 const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
+  const isCatalog1 = e?.catalogs === 1;
   const navigate = useNavigate();
   return (
     <Link to={`/product/certificate/${e.id}`}>
@@ -85,6 +86,16 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           {/* Прочий контент */}
 
           <Box sx={{ mt: "auto" }}>
+            {isCatalog1 && (
+              <Box sx={{ mb: 1, display: "flex", justifyContent: "left" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ color: "#00B3A4", fontWeight: "bold" }}
+                >
+                  {e.price} ₽
+                </Typography>
+              </Box>
+            )}
             <Button
               variant="contained"
               sx={{
@@ -119,9 +130,10 @@ const CatalogDynamicCertificatePage = () => {
   const [ProductsPerPage] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isCatalog1 = products.data?.catalogs === 1;
 
   const category_id = id;
-  let catalogs = "1,2"
+  let catalogs = "1,2";
 
   useEffect(() => {
     const offset = (currentPage - 1) * ProductsPerPage;

@@ -1,12 +1,16 @@
-import { Drawer, Box, List, ListItem, IconButton } from "@mui/material";
-import React from "react";
+import { Drawer, Box, List, ListItem, IconButton, Badge } from "@mui/material";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useUserStore from "../../store/userStore";
+import useBascketStore from "../../store/bascketStore";
 
 const BurgerMenu = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useUserStore();
-
+  const { fetchUserBasket, basket } = useBascketStore();
+  useEffect(() => {
+    fetchUserBasket();
+  }, []);
   return (
     <Box sx={{ width: 300 }} role="presentation">
       <List>
@@ -104,7 +108,23 @@ const BurgerMenu = () => {
                 navigate("/basket");
               }}
             >
-              <img style={{ width: "50px" }} src="/basket_header.png" alt="" />
+              <Badge
+                badgeContent={basket?.data?.quantity}
+                color="primary"
+                overlap="circular"
+                sx={{
+                  "& .MuiBadge-badge": {
+                    backgroundColor: "#26BDB8",
+                    color: "white",
+                  },
+                }}
+              >
+                <img
+                  style={{ width: 45, height: 45 }}
+                  src="/basket_header.png"
+                  alt="basket"
+                />
+              </Badge>
             </IconButton>
           </Box>
         </Box>

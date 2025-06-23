@@ -42,6 +42,21 @@ export default function CreateProduct() {
   const [catalogs, setCatalogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const formatTRUForSubmit = (input) => {
+    if (!input) return "";
+
+    // Оставляем только цифры
+    const digitsOnly = input.replace(/\D/g, "");
+
+    // Дополняем нулями до 28 символов
+    const padded = digitsOnly.padEnd(28, "0");
+
+    // Форматируем по шаблону NNNNNNNNN.NNNNNNNNNYYYYMMMZZZ
+    return `${padded.slice(0, 9)}.${padded.slice(9, 18)}${padded.slice(
+      18,
+      22
+    )}${padded.slice(22, 25)}${padded.slice(25, 28)}`;
+  };
   // Допустимые значения для catalogs
   const VALID_CATALOG_IDS = [1, 2];
 
@@ -166,12 +181,13 @@ export default function CreateProduct() {
         };
       });
 
+    const formattedTRU = formatTRUForSubmit(product.tru);
     const productData = {
       name: product.name,
       price: Number(product.price),
       description: product.description,
       article: product.article,
-      tru: product.tru,
+      tru: formattedTRU,
       category_ids: product.category_ids,
       characteristic_values: formattedCharacteristics,
       catalogs: catalogs.filter((id) => VALID_CATALOG_IDS.includes(id)),
@@ -254,7 +270,14 @@ export default function CreateProduct() {
                   }
                   fullWidth
                   margin="normal"
+                  placeholder="Введите 28 цифр"
+                  inputProps={{
+                    maxLength: 28,
+                  }}
                 />
+                {/* <Typography variant="caption" color="textSecondary">
+                  Формат: NNNNNNNNN.NNNNNNNNNYYYYMMMZZZ
+                </Typography> */}
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -269,7 +292,7 @@ export default function CreateProduct() {
                   }}
                   fullWidth
                   margin="normal"
-                  type="number"
+                  // type="number"
                   required
                   InputProps={{
                     startAdornment: (

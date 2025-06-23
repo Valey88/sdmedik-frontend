@@ -314,7 +314,7 @@ const AdminOrdersTable = () => {
                         <MenuItem value="pending">В ожидании</MenuItem>
                         <MenuItem value="processing">Рассмотрен</MenuItem>
                         <MenuItem value="completed">Завершен</MenuItem>
-                        <MenuItem value="canceled">Отменен</MenuItem>
+                        <MenuItem value="cancelled">Отменен</MenuItem>
                       </Select>
                       <Button
                         variant="contained"
@@ -361,7 +361,7 @@ const AdminOrdersTable = () => {
           <MenuItem value="pending">В ожидании</MenuItem>
           <MenuItem value="processing">Рассмотрен</MenuItem>
           <MenuItem value="completed">Завершен</MenuItem>
-          <MenuItem value="canceled">Отменен</MenuItem>
+          <MenuItem value="cancelled">Отменен</MenuItem>
         </Select>
       </FormControl>
 

@@ -43,7 +43,7 @@ export default function ProductDynamicCertificatePage() {
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [images, setImages] = useState([]);
   const { fetchProductById, products } = useProductStore();
-  const { addProductThisBascket } = useBascketStore();
+  const { addProductThisBascket, fetchUserBasket } = useBascketStore();
   const [quantity, setQuantity] = useState(1);
   const [newRegion, setNewRegion] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
@@ -127,6 +127,7 @@ export default function ProductDynamicCertificatePage() {
     }
 
     await addProductThisBascket(productId, quantity, iso, dynamicOptions);
+    fetchUserBasket();
   };
 
   const handleChangeRegion = (event) => {

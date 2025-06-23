@@ -1,7 +1,8 @@
-import { IconButton, Menu, MenuItem } from "@mui/material";
+import { IconButton, Menu, MenuItem, Badge } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useUserStore from "../../store/userStore";
+import useBascketStore from "../../store/bascketStore";
 
 const UserMenu = () => {
   const [menuLk, setMenuLk] = useState(null);
@@ -9,11 +10,13 @@ const UserMenu = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const openLk = Boolean(menuLk);
+  const { fetchUserBasket, basket } = useBascketStore();
 
   const handleClickLk = (event) => setMenuLk(event.currentTarget);
   const handleCloseLk = () => setMenuLk(null);
 
   useEffect(() => {
+    fetchUserBasket();
     if (user?.data) {
       setIsAdmin(user.data.role_id === 1);
     }
@@ -85,7 +88,19 @@ const UserMenu = () => {
           navigate("/basket");
         }}
       >
-        <img src="/basket_header.png" alt="basket" />
+        <Badge
+          badgeContent={basket?.data?.quantity}
+          color="primary"
+          overlap="circular"
+          sx={{
+            "& .MuiBadge-badge": {
+              backgroundColor: "#26BDB8",
+              color: "white",
+            },
+          }}
+        >
+          <img src="/basket_header.png" alt="basket" />
+        </Badge>
       </IconButton>
     </>
   );
