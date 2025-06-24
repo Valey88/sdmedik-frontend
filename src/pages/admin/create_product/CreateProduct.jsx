@@ -46,16 +46,33 @@ export default function CreateProduct() {
     if (!input) return "";
 
     // Оставляем только цифры
-    const digitsOnly = input.replace(/\D/g, "");
+    let digitsOnly = input.replace(/\D/g, "");
 
-    // Дополняем нулями до 28 символов
-    const padded = digitsOnly.padEnd(28, "0");
+    // Разбиваем на части согласно шаблону
+    const part1 = digitsOnly.slice(0, 9); // Первые 9 цифр (NNNNNNNNN)
+    const part2 = digitsOnly.slice(9, 18); // Следующие 9 цифр (NNNNNNNNN)
+    const part3 = digitsOnly.slice(18, 22); // Год (YYYY)
+    const part4 = digitsOnly.slice(22, 25); // Месяц (MMM)
+    const part5 = digitsOnly.slice(25, 28); // ZZZ
 
-    // Форматируем по шаблону NNNNNNNNN.NNNNNNNNNYYYYMMMZZZ
-    return `${padded.slice(0, 9)}.${padded.slice(9, 18)}${padded.slice(
-      18,
-      22
-    )}${padded.slice(22, 25)}${padded.slice(25, 28)}`;
+    // Формируем части с дополнением нулями
+    const formatted = [
+      part1.padEnd(9, "0"),
+      part2.padEnd(9, "0"),
+      part3.padEnd(4, "0"),
+      part4.padEnd(3, "0"),
+      part5.padEnd(3, "0"),
+    ];
+
+    // Собираем итоговую строку (29 символов: 28 цифр + 1 точка)
+    let result = `${formatted[0]}.${formatted[1]}${formatted[2]}${formatted[3]}${formatted[4]}`;
+
+    // Если нужно именно 30 символов, добавляем ещё нули
+    while (result.length < 30) {
+      result += "0";
+    }
+
+    return result.slice(0, 30); // Гарантируем ровно 30 символов
   };
   // Допустимые значения для catalogs
   const VALID_CATALOG_IDS = [1, 2];
@@ -270,9 +287,9 @@ export default function CreateProduct() {
                   }
                   fullWidth
                   margin="normal"
-                  placeholder="Введите 28 цифр"
+                  placeholder="Введите 30 цифр"
                   inputProps={{
-                    maxLength: 28,
+                    maxLength: 30,
                   }}
                 />
                 {/* <Typography variant="caption" color="textSecondary">
