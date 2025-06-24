@@ -121,7 +121,7 @@ const SidebarFilter = ({ setFilters }) => {
           }}
           onClick={toggleDrawer}
         >
-          Фильтрация
+          Фильтр
           <FilterListIcon />
         </Button>
       </Box>
