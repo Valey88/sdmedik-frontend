@@ -47,38 +47,38 @@ export default function UpdateProduct() {
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
-  const formatTRUForSubmit = (input) => {
-    if (!input) return "";
+  // const formatTRUForSubmit = (input) => {
+  //   if (!input) return "";
 
-    // Оставляем только цифры
-    let digitsOnly = input.replace(/\D/g, "");
+  //   // Оставляем только цифры
+  //   let digitsOnly = input.replace(/\D/g, "");
 
-    // Разбиваем на части согласно шаблону
-    const part1 = digitsOnly.slice(0, 9); // Первые 9 цифр (NNNNNNNNN)
-    const part2 = digitsOnly.slice(9, 18); // Следующие 9 цифр (NNNNNNNNN)
-    const part3 = digitsOnly.slice(18, 22); // Год (YYYY)
-    const part4 = digitsOnly.slice(22, 25); // Месяц (MMM)
-    const part5 = digitsOnly.slice(25, 28); // ZZZ
+  //   // Разбиваем на части согласно шаблону
+  //   const part1 = digitsOnly.slice(0, 9); // Первые 9 цифр (NNNNNNNNN)
+  //   const part2 = digitsOnly.slice(9, 18); // Следующие 9 цифр (NNNNNNNNN)
+  //   const part3 = digitsOnly.slice(18, 22); // Год (YYYY)
+  //   const part4 = digitsOnly.slice(22, 25); // Месяц (MMM)
+  //   const part5 = digitsOnly.slice(25, 28); // ZZZ
 
-    // Формируем части с дополнением нулями
-    const formatted = [
-      part1.padEnd(9, "0"),
-      part2.padEnd(9, "0"),
-      part3.padEnd(4, "0"),
-      part4.padEnd(3, "0"),
-      part5.padEnd(3, "0"),
-    ];
+  //   // Формируем части с дополнением нулями
+  //   const formatted = [
+  //     part1.padEnd(9, "0"),
+  //     part2.padEnd(9, "0"),
+  //     part3.padEnd(4, "0"),
+  //     part4.padEnd(3, "0"),
+  //     part5.padEnd(3, "0"),
+  //   ];
 
-    // Собираем итоговую строку (29 символов: 28 цифр + 1 точка)
-    let result = `${formatted[0]}.${formatted[1]}${formatted[2]}${formatted[3]}${formatted[4]}`;
+  //   // Собираем итоговую строку (29 символов: 28 цифр + 1 точка)
+  //   let result = `${formatted[0]}.${formatted[1]}${formatted[2]}${formatted[3]}${formatted[4]}`;
 
-    // Если нужно именно 30 символов, добавляем ещё нули
-    while (result.length < 30) {
-      result += "0";
-    }
+  //   // Если нужно именно 30 символов, добавляем ещё нули
+  //   while (result.length < 30) {
+  //     result += "0";
+  //   }
 
-    return result.slice(0, 30); // Гарантируем ровно 30 символов
-  };
+  //   return result.slice(0, 30); // Гарантируем ровно 30 символов
+  // };
 
   // Допустимые значения для catalogs
   const VALID_CATALOG_IDS = [1, 2];
@@ -283,7 +283,7 @@ export default function UpdateProduct() {
         };
       });
 
-    const formattedTRU = formatTRUForSubmit(product.tru);
+    // const formattedTRU = formatTRUForSubmit(product.tru);
     const productData = {
       name: product.name,
       price: Number(product.price),
@@ -292,7 +292,7 @@ export default function UpdateProduct() {
       characteristic_values: formattedCharacteristics,
       catalogs: catalogs.filter((id) => VALID_CATALOG_IDS.includes(id)),
       del_images: product.del_images,
-      tru: formattedTRU,
+      tru: product.tru,
     };
 
     const formData = new FormData();
