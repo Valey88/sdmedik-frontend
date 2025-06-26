@@ -57,6 +57,7 @@ export default function Payments() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm();
 
@@ -64,41 +65,59 @@ export default function Payments() {
   const [isAnotherRecipient, setIsAnotherRecipient] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
     if (isAuthenticated) {
-      const fetchUserInfo = async () => {
+      const loadUserData = async () => {
         try {
-          const userInfo = await getUserInfo();
-          if (userInfo && userInfo.data) {
-            setEmail(userInfo.data.email);
-            setFio(userInfo.data.fio);
-            setPhone_number(userInfo.data.phone_number);
-          }
+          await getUserInfo();
         } catch (error) {
-          console.error("Failed to fetch user info:", error);
+          console.error("Ошибка загрузки данных пользователя:", error);
         }
       };
-
-      fetchUserInfo();
+      loadUserData();
     }
-  }, [isAuthenticated, getUserInfo, setEmail, setFio, setPhone_number]);
+  }, [isAuthenticated, getUserInfo]);
+
+  // Загружаем данные пользователя при монтировании компонента
+  useEffect(() => {
+    if (isAuthenticated && user?.data && !isAnotherRecipient) {
+      setEmail(user.data.email || "");
+      setFio(user.data.fio || "");
+      setPhone_number(user.data.phone_number || "");
+
+      // Устанавливаем значения для react-hook-form
+      setValue("email", user.data.email || "");
+      setValue("fio", user.data.fio || "");
+      setValue("phone_number", user.data.phone_number || "");
+    }
+  }, [
+    user,
+    isAuthenticated,
+    isAnotherRecipient,
+    setEmail,
+    setFio,
+    setPhone_number,
+    setValue,
+  ]);
 
   const handlePay = async (data) => {
     setLoading(true);
     try {
-      if (isAuthenticated && !isAnotherRecipient) {
-        // If user is authenticated and not specifying another recipient
-        await payOrder({
-          email: user?.data?.email || email,
-          fio: user?.data?.fio || fio,
-          phone_number: user?.data?.phone_number || phone_number,
-          delivery_address: data.delivery_address,
-        });
-      } else {
-        // If user is not authenticated or specifying another recipient
-        await payOrder(data);
-      }
+      await payOrder({
+        email:
+          isAuthenticated && !isAnotherRecipient
+            ? user?.data?.email || email
+            : data.email,
+        fio:
+          isAuthenticated && !isAnotherRecipient
+            ? user?.data?.fio || fio
+            : data.fio,
+        phone_number:
+          isAuthenticated && !isAnotherRecipient
+            ? user?.data?.phone_number || phone_number
+            : data.phone_number,
+        delivery_address: data.delivery_address,
+      });
     } catch (error) {
       setError(error.message);
       console.error("Payment error:", error);
