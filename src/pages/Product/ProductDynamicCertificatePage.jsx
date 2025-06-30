@@ -214,6 +214,12 @@ export default function ProductDynamicCertificatePage() {
       products.data?.certificate_price !== undefined &&
       products.data?.certificate_price !== null;
 
+  const category = products.data?.categories?.[0];
+  const categoryLink = category
+    ? `/products/certificate/${category.id}`
+    : "/catalog/certificate";
+  const categoryName = category ? category.name : "Каталог";
+
   return (
     <Container sx={{ mt: 5, mb: 5 }}>
       <Helmet>
@@ -241,6 +247,13 @@ export default function ProductDynamicCertificatePage() {
           to="/catalog/certificate"
         >
           Каталог
+        </Link>
+        <Link
+          component={RouterLink}
+          to={categoryLink}
+          sx={{ color: "#00B3A4" }}
+        >
+          {categoryName}
         </Link>
         <Typography color="text.primary">
           {products.data?.name || "Товар"}
