@@ -12,13 +12,22 @@ import {
   MenuItem,
   Tabs,
   Tab,
+  Breadcrumbs,
+  Link,
+  TextField,
 } from "@mui/material";
-import { ArrowBack, ArrowForward } from "@mui/icons-material";
+import {
+  ArrowBack,
+  ArrowForward,
+  Home,
+  Add,
+  Remove,
+} from "@mui/icons-material";
 import React, { useEffect, useState, memo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/swiper-bundle.css";
 import useProductStore from "../../store/productStore";
-import { useParams } from "react-router-dom";
+import { useParams, Link as RouterLink } from "react-router-dom";
 import useBascketStore from "../../store/bascketStore";
 import Regions from "../../constants/regionsData/regions";
 import { urlPictures } from "../../constants/constants";
@@ -74,6 +83,9 @@ export default function ProductDynamicCertificatePage() {
   const [tabValue, setTabValue] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const { id } = useParams();
+
+  // Maximum quantity allowed in cart
+  const MAX_QUANTITY = 999; // Updated to 999 as requested
 
   // Категории, требующие выбора размера
   const SIZE_CATEGORIES = [
@@ -131,6 +143,25 @@ export default function ProductDynamicCertificatePage() {
     setMainImageIndex(
       (prevIndex) => (prevIndex - 1 + images.length) % images.length
     );
+  };
+
+  const handleQuantityChange = (event) => {
+    const value = parseInt(event.target.value);
+    if (!isNaN(value) && value >= 1 && value <= MAX_QUANTITY) {
+      setQuantity(value);
+    }
+  };
+
+  const handleIncrement = () => {
+    if (quantity < MAX_QUANTITY) {
+      setQuantity((prev) => prev + 1);
+    }
+  };
+
+  const handleDecrement = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+    }
   };
 
   const handleAddProductToBasket = async (productId) => {
@@ -195,12 +226,35 @@ export default function ProductDynamicCertificatePage() {
         />
       </Helmet>
 
+      {/* Breadcrumbs */}
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+        <Link
+          component={RouterLink}
+          to="/"
+          sx={{ display: "flex", alignItems: "center", color: "#00B3A4" }}
+        >
+          Главная
+        </Link>
+        <Link
+          sx={{ color: "#00B3A4" }}
+          component={RouterLink}
+          to="/catalog/certificate"
+        >
+          Каталог
+        </Link>
+        <Typography color="text.primary">
+          {products.data?.name || "Товар"}
+        </Typography>
+      </Breadcrumbs>
+
       <Paper
         sx={{
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
           p: 3,
           gap: 3,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          borderRadius: 2,
         }}
       >
         {/* Блок с изображениями */}
@@ -221,18 +275,33 @@ export default function ProductDynamicCertificatePage() {
                 height: { xs: "300px", md: "400px" },
                 borderRadius: 2,
                 objectFit: "contain",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
               }}
             />
             <IconButton
               onClick={handlePrevImage}
-              sx={{ position: "absolute", left: 0, top: "50%" }}
+              sx={{
+                position: "absolute",
+                left: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                backgroundColor: "rgba(255,255,255,0.9)",
+                "&:hover": { backgroundColor: "#FFFFFF" },
+              }}
               aria-label="Предыдущее изображение"
             >
               <ArrowBack />
             </IconButton>
             <IconButton
               onClick={handleNextImage}
-              sx={{ position: "absolute", right: 0, top: "50%" }}
+              sx={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                backgroundColor: "rgba(255,255,255,0.9)",
+                "&:hover": { backgroundColor: "#FFFFFF" },
+              }}
               aria-label="Следующее изображение"
             >
               <ArrowForward />
@@ -263,6 +332,11 @@ export default function ProductDynamicCertificatePage() {
                   cursor: "pointer",
                   width: "60px",
                   height: "60px",
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    borderColor: "#00B3A4",
+                    transform: "scale(1.05)",
+                  },
                 }}
               >
                 <CardMedia
@@ -278,23 +352,54 @@ export default function ProductDynamicCertificatePage() {
 
         {/* Блок с информацией */}
         <Box sx={{ width: { xs: "100%", md: "50%" } }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: "bold",
+              mb: 1,
+              fontSize: "30px",
+              color: "#212121",
+            }}
+          >
             {products.data?.name}
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ mb: 2, fontSize: "0.9rem" }}
+          >
             Артикул: {products.data?.article}
           </Typography>
           {/* Выбор региона (отображается только для catalogs:2) */}
           {isCatalog2 && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                Выunsubscribe: Выберите регион:
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", mb: 1, color: "#212121" }}
+              >
+                Выберите регион:
               </Typography>
               <Select
                 value={newRegion?.value || ""}
                 onChange={handleChangeRegion}
                 displayEmpty
-                sx={{ minWidth: 200 }}
+                sx={{
+                  minWidth: 200,
+                  borderRadius: 1,
+                  border: "1px solid #E0E0E0",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#E0E0E0",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#00B3A4",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#00B3A4",
+                    borderWidth: 2,
+                  },
+                  backgroundColor: "#FFFFFF",
+                  "&:hover": { backgroundColor: "#F5F5F5" },
+                }}
                 aria-label="Выбор региона"
               >
                 <MenuItem value="">
@@ -311,7 +416,10 @@ export default function ProductDynamicCertificatePage() {
           {/* Выбор размера */}
           {isSizeRequired && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold", mb: 1, color: "#212121" }}
+              >
                 Выберите размер:
               </Typography>
               <Box
@@ -359,6 +467,7 @@ export default function ProductDynamicCertificatePage() {
                         },
                         pl: 1,
                         pr: 1,
+                        transition: "all 0.2s ease",
                       }}
                       role="radio"
                       aria-checked={selectedSize === individualSize}
@@ -407,7 +516,12 @@ export default function ProductDynamicCertificatePage() {
                   sx={{
                     color: "#00B3A4",
                     borderColor: "#00B3A4",
-                    "&:hover": { borderColor: "#009B8A" },
+                    borderRadius: 1,
+                    padding: "8px 16px",
+                    "&:hover": {
+                      borderColor: "#009B8A",
+                      backgroundColor: "#E0F7FA",
+                    },
                   }}
                   onClick={(e) => {
                     e.preventDefault();
@@ -423,18 +537,90 @@ export default function ProductDynamicCertificatePage() {
           </Box>
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             {showAddToCartButton && (
-              <Button
-                variant="contained"
-                sx={{
-                  backgroundColor: "#00B3A4",
-                  color: "#FFFFFF",
-                  "&:hover": { backgroundColor: "#009B8A" },
-                }}
-                onClick={() => handleAddProductToBasket(products.data.id)}
-                aria-label="Добавить в корзину"
-              >
-                В корзину
-              </Button>
+              <>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <IconButton
+                    onClick={handleDecrement}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1,
+                      "&:hover": {
+                        backgroundColor: "#009B8A",
+                        color: "#FFFFFF",
+                      },
+                    }}
+                    disabled={quantity <= 1}
+                    aria-label="Уменьшить количество"
+                  >
+                    <Remove fontSize="small" />
+                  </IconButton>
+                  <TextField
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    inputProps={{
+                      min: 1,
+                      max: MAX_QUANTITY,
+                      step: 1,
+                      style: { textAlign: "center" },
+                    }}
+                    sx={{
+                      width: 50,
+                      "& .MuiInputBase-root": {
+                        borderRadius: 1,
+                        backgroundColor: "#F5F5F5",
+                      },
+                      "& input": {
+                        fontWeight: "medium",
+                        padding: "8px 0",
+                      },
+                    }}
+                    size="small"
+                    aria-label="Количество товара"
+                  />
+                  <IconButton
+                    onClick={handleIncrement}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1,
+                      "&:hover": {
+                        backgroundColor: "#009B8A",
+                        color: "#FFFFFF",
+                      },
+                    }}
+                    disabled={quantity >= MAX_QUANTITY}
+                    aria-label="Увеличить количество"
+                  >
+                    <Add fontSize="small" />
+                  </IconButton>
+                  {/* <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ ml: 1 }}
+                >
+                  (Макс: {MAX_QUANTITY})
+                </Typography> */}
+                </Box>
+                <Button
+                  variant="contained"
+                  sx={{
+                    backgroundColor: "#00B3A4",
+                    color: "#FFFFFF",
+                    borderRadius: 1,
+                    padding: "10px 24px",
+                    fontWeight: "medium",
+                    "&:hover": {
+                      backgroundColor: "#009B8A",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                    },
+                  }}
+                  onClick={() => handleAddProductToBasket(products.data.id)}
+                  aria-label="Добавить в корзину"
+                >
+                  Добавить в корзину
+                </Button>
+              </>
             )}
           </Box>
           {/* Вкладки */}
@@ -462,6 +648,7 @@ export default function ProductDynamicCertificatePage() {
                 },
                 textTransform: "none",
                 fontSize: "1rem",
+                padding: "12px 24px",
               }}
               id="tab-0"
               aria-controls="tabpanel-0"
@@ -479,6 +666,7 @@ export default function ProductDynamicCertificatePage() {
                 },
                 textTransform: "none",
                 fontSize: "1rem",
+                padding: "12px 24px",
               }}
               id="tab-1"
               aria-controls="tabpanel-1"
@@ -498,6 +686,7 @@ export default function ProductDynamicCertificatePage() {
                       whiteSpace: "normal",
                       lineHeight: 1.5,
                       fontSize: { xs: "0.9rem", md: "1rem" },
+                      color: "#424242",
                     }}
                   >
                     {paragraph}
@@ -507,18 +696,69 @@ export default function ProductDynamicCertificatePage() {
             </Box>
           </TabPanel>
           <TabPanel value={tabValue} index={1}>
-            <List>
-              {products.data?.characteristic
-                ?.filter((c) => c.name.toLowerCase() !== "размер")
-                .map((feature, index) => (
-                  <ListItem key={index} sx={{ py: 0.5 }}>
-                    <Typography>
-                      <strong>{feature.name}:</strong>{" "}
-                      {renderFeatureValue(feature.value)}
-                    </Typography>
-                  </ListItem>
-                ))}
-            </List>
+            <Box
+              sx={{
+                backgroundColor: "#F5F5F5",
+                borderRadius: 2,
+                p: 2,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              }}
+            >
+              <List sx={{ p: 0 }}>
+                {products.data?.characteristic
+                  ?.filter((c) => c.name.toLowerCase() !== "размер")
+                  .map((feature, index) => (
+                    <ListItem
+                      key={index}
+                      sx={{
+                        py: 1,
+                        px: 2,
+                        borderBottom:
+                          index <
+                          (products.data?.characteristic?.filter(
+                            (c) => c.name.toLowerCase() !== "размер"
+                          )?.length || 0) -
+                            1
+                            ? "1px solid #E0E0E0"
+                            : "none",
+                        "&:hover": {
+                          backgroundColor: "#ECEFF1",
+                          borderRadius: 1,
+                        },
+                        transition: "background-color 0.2s ease",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          width: "100%",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: "medium",
+                            color: "#212121",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          {feature.name}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            color: "#424242",
+                            fontSize: "0.95rem",
+                            fontWeight: "normal",
+                          }}
+                        >
+                          {renderFeatureValue(feature.value)}
+                        </Typography>
+                      </Box>
+                    </ListItem>
+                  ))}
+              </List>
+            </Box>
           </TabPanel>
         </Box>
       </Paper>
