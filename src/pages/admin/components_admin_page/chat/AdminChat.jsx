@@ -23,11 +23,12 @@ import PersonIcon from "@mui/icons-material/Person";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
+import { FixedSizeList } from "react-window";
 import api from "../../../../configs/axiosConfig";
 import { supportChat } from "@/constants/constants";
 import useUserStore from "../../../../store/userStore";
 
-const SIDEBAR_WIDTH = 260;
+const SIDEBAR_WIDTH = { xs: "100%", sm: 260 }; // Адаптивная ширина боковой панели
 const MESSAGE_GAP = 5 * 60 * 1000; // 5 минут в мс
 
 export default function AdminChat() {
@@ -39,7 +40,7 @@ export default function AdminChat() {
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // По умолчанию открыта на ПК
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [adminSenderId, setAdminSenderId] = useState(null);
@@ -74,13 +75,22 @@ export default function AdminChat() {
   const fetchChatRooms = async () => {
     try {
       const userData = localStorage.getItem("user");
-
-      const parsedUser = JSON.parse(userData);
-      const admin_id = parsedUser?.data?.id;
+      let admin_id;
+      if (userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          admin_id = parsedUser?.data?.id;
+        } catch (parseError) {
+          console.error("Ошибка парсинга userData:", parseError);
+          setError("Ошибка обработки данных пользователя.");
+          return;
+        }
+      } else {
+        setError("Данные пользователя не найдены.");
+        return;
+      }
       const response = await api.get("/chat", {
-        params: {
-          user_id: admin_id,
-        },
+        params: { user_id: admin_id },
       });
       const rooms = response.data.data || [];
       rooms.sort((a, b) => {
@@ -100,7 +110,7 @@ export default function AdminChat() {
       );
     } catch (err) {
       console.error("Ошибка при загрузке чатов:", err);
-      setError("Не удалось загрузить список чатов.");
+      setError(`Не удалось загрузить список чатов: ${err.message}`);
     }
   };
 
@@ -118,39 +128,35 @@ export default function AdminChat() {
   const markAsRead = (messageId, userId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
-      console.error("WebSocket не открыт, состояние:", ws.current?.readyState);
       return;
     }
     const eventData = {
       event: "mark-as-read",
-      data: {
-        message_id: messageId,
-        user_id: userId,
-      },
+      data: { message_id: messageId, user_id: userId },
     };
     ws.current.send(JSON.stringify(eventData));
     console.log("Отправлено событие mark-as-read:", eventData);
   };
 
   const handleWebSocketMessage = (event) => {
-    if (!isValidJSON(event.data)) {
-      const messageKey = `${event.data}-${new Date().toISOString()}`;
-      if (processedMessages.current.has(messageKey)) return;
-      processedMessages.current.add(messageKey);
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "user",
-          text: event.data,
-          timestamp: new Date().toISOString(),
-          sender_id: "unknown",
-          isNew: true,
-        },
-      ]);
-      return;
-    }
-
     try {
+      if (!isValidJSON(event.data)) {
+        const messageKey = `${event.data}-${new Date().toISOString()}`;
+        if (processedMessages.current.has(messageKey)) return;
+        processedMessages.current.add(messageKey);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "user",
+            text: event.data,
+            timestamp: new Date().toISOString(),
+            sender_id: "unknown",
+            isNew: true,
+          },
+        ]);
+        return;
+      }
+
       const messageData = JSON.parse(event.data);
       console.log("Получено сообщение:", messageData);
       if (messageData.event === "new-chat") {
@@ -189,22 +195,25 @@ export default function AdminChat() {
           adminSenderId && sender_id === adminSenderId ? "manager" : "user";
 
         if (chat_id === selectedChatId) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: messageType,
-              text: message || "Пустое сообщение",
-              timestamp: time_to_send || new Date().toISOString(),
-              sender_id,
-              isNew: true,
-            },
-          ]);
+          setMessages((prev) => {
+            const newMessages = [
+              ...prev,
+              {
+                type: messageType,
+                text: message || "Пустое сообщение",
+                timestamp: time_to_send || new Date().toISOString(),
+                sender_id,
+                isNew: true,
+              },
+            ];
+            // Автоскролл только для нового сообщения
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 0);
+            return newMessages;
+          });
           if (sender_id !== adminSenderId && !read_status && id) {
             markAsRead(id, adminSenderId);
-            console.log(
-              "Новое сообщение пользователя отмечено как прочитанное:",
-              id
-            );
           }
         } else {
           setUnreadCounts((prev) => ({
@@ -262,24 +271,13 @@ export default function AdminChat() {
             (msg) =>
               msg.id && msg.sender_id !== adminSenderId && !msg.read_status
           );
-          console.log("Непрочитанные сообщения пользователя:", userMessages);
-          if (userMessages.length > 0) {
-            userMessages.forEach((msg) => {
-              markAsRead(msg.id, adminSenderId);
-              console.log(
-                "Отправлен ID сообщения пользователя для markAsRead:",
-                msg.id
-              );
-            });
-          } else {
-            console.log(
-              "Нет непрочитанных сообщений пользователя для отметки как прочитанные"
-            );
-          }
-        } else {
-          console.warn("selectedChatId или adminSenderId не определены");
+          userMessages.forEach((msg) => markAsRead(msg.id, adminSenderId));
         }
         setIsLoadingHistory(false);
+        // Автоскролл при загрузке истории чата
+        // setTimeout(() => {
+        //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // }, 0);
       }
     } catch (err) {
       console.error("Ошибка парсинга сообщения:", err, "Данные:", event.data);
@@ -288,36 +286,63 @@ export default function AdminChat() {
     }
   };
 
-  useEffect(() => {
-    fetchAdminSenderId();
-    fetchChatRooms();
-
+  const connectWebSocket = () => {
     ws.current = new WebSocket(supportChat);
-
     ws.current.onopen = () => {
+      console.log("WebSocket подключен, URL:", supportChat);
       setIsConnected(true);
       setError("");
       if (chatId) sendJoinEvent(chatId);
     };
-
-    ws.current.onmessage = handleWebSocketMessage;
-
-    ws.current.onerror = () => {
-      setError("Не удалось подключиться к чату. Проверьте соединение.");
+    ws.current.onerror = (event) => {
+      console.error("WebSocket ошибка:", event);
       setIsConnected(false);
+      setError("Ошибка подключения к чату. Пытаемся переподключиться...");
       setIsLoadingHistory(false);
+      setTimeout(connectWebSocket, 5000);
     };
-
     ws.current.onclose = () => {
+      console.log("WebSocket закрыт");
       setIsConnected(false);
-      setError("Соединение с чатом разорвано.");
+      setError("Соединение с чатом разорвано. Пытаемся переподключиться...");
       setIsLoadingHistory(false);
+      setTimeout(connectWebSocket, 5000);
     };
+    ws.current.onmessage = handleWebSocketMessage;
+  };
 
-    if (Notification.permission !== "granted") Notification.requestPermission();
+  useEffect(() => {
+    fetchAdminSenderId();
+    fetchChatRooms();
+    connectWebSocket();
+
+    if ("Notification" in window && window.Notification !== undefined) {
+      Notification.requestPermission().catch((err) => {
+        console.error("Ошибка запроса уведомлений:", err);
+      });
+    } else {
+      console.warn("Уведомления не поддерживаются");
+      setError("Уведомления не поддерживаются на вашем устройстве.");
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !isConnected) {
+        connectWebSocket();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const iOSVersion = isIOS
+      ? parseFloat(navigator.userAgent.match(/OS (\d+)_/)?.[1] || 0)
+      : null;
+    if (isIOS && iOSVersion < 15) {
+      setError("Ваша версия iOS устарела. Обновите iOS до версии 15 или выше.");
+    }
 
     return () => {
       if (ws.current) ws.current.close();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [chatId]);
 
@@ -336,16 +361,23 @@ export default function AdminChat() {
         },
       };
       ws.current.send(JSON.stringify(messageEvent));
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "manager",
-          text: input.trim(),
-          timestamp: new Date().toISOString(),
-          sender_id: adminSenderId || "admin",
-          isNew: true,
-        },
-      ]);
+      setMessages((prev) => {
+        const newMessages = [
+          ...prev,
+          {
+            type: "manager",
+            text: input.trim(),
+            timestamp: new Date().toISOString(),
+            sender_id: adminSenderId || "admin",
+            isNew: true,
+          },
+        ];
+        // Автоскролл при отправке сообщения
+        // setTimeout(() => {
+        //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // }, 0);
+        return newMessages;
+      });
       setInput("");
     }
   };
@@ -357,6 +389,7 @@ export default function AdminChat() {
     setUnreadCounts((prev) => ({ ...prev, [roomId]: 0 }));
     setIsLoadingHistory(true);
     processedMessages.current.clear();
+    setIsSidebarOpen(false); // Закрываем боковую панель только на мобильных
   };
 
   const handleCloseChat = () => {
@@ -364,6 +397,98 @@ export default function AdminChat() {
     setChatId("");
     setMessages([]);
     processedMessages.current.clear();
+    setIsSidebarOpen(true); // Открываем боковую панель
+  };
+
+  const ChatRoomRow = ({ index, style }) => {
+    const room = chatRooms.filter(
+      (r) =>
+        r.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.messages
+          ?.slice(-1)[0]
+          ?.message.toLowerCase()
+          .includes(searchQuery.toLowerCase())
+    )[index];
+    const lastMessage = room?.messages?.slice(-1)[0];
+    return (
+      <ListItem
+        key={room.id}
+        button
+        onClick={() => handleChatSelect(room.id)}
+        style={style}
+        sx={{
+          bgcolor: selectedChatId === room.id ? "#E1F5FE" : "transparent",
+          "&:hover": { bgcolor: "#E8ECEF" },
+          py: 1,
+          px: 2,
+          borderBottom: "1px solid #E8ECEF",
+        }}
+      >
+        <ListItemAvatar>
+          <Badge
+            badgeContent={unreadCounts[room.id] || 0}
+            sx={{
+              "& .MuiBadge-badge": {
+                bgcolor: "#40C4FF",
+                color: "#FFF",
+                fontSize: "0.7rem",
+                minWidth: "18px",
+                height: "18px",
+              },
+            }}
+          >
+            <Avatar sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}>
+              <SupportAgentIcon fontSize="small" sx={{ color: "#FFF" }} />
+            </Avatar>
+          </Badge>
+        </ListItemAvatar>
+        <ListItemText
+          primary={
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: unreadCounts[room.id] ? 600 : 400,
+                color: "#17212B",
+                fontSize: "0.95rem",
+              }}
+            >
+              {room.id.split("-")[0]}
+            </Typography>
+          }
+          secondary={
+            <Box>
+              {lastMessage ? (
+                <Typography
+                  variant="caption"
+                  color="#708499"
+                  noWrap
+                  sx={{ maxWidth: { xs: 120, sm: 160 }, fontSize: "0.85rem" }}
+                >
+                  {lastMessage.message.slice(0, 20) +
+                    (lastMessage.message.length > 20 ? "..." : "")}
+                </Typography>
+              ) : (
+                <Typography variant="caption" color="#708499">
+                  Нет сообщений
+                </Typography>
+              )}
+              {lastMessage?.time_to_send && (
+                <Typography
+                  variant="caption"
+                  color="#708499"
+                  sx={{ display: "block", fontSize: "0.8rem" }}
+                >
+                  {new Date(lastMessage.time_to_send).toLocaleString(
+                    undefined,
+                    { timeStyle: "short" }
+                  )}
+                </Typography>
+              )}
+            </Box>
+          }
+        />
+      </ListItem>
+    );
   };
 
   const groupedMessages = useMemo(() => {
@@ -372,21 +497,11 @@ export default function AdminChat() {
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterday = yesterdayDate.toDateString();
 
-    const sortedMessages = [...messages].sort(
-      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-    );
-
     const elements = [];
-    for (let i = 0; i < sortedMessages.length; i++) {
-      const msg = sortedMessages[i];
+    let lastDate = null;
+    for (const msg of messages) {
       const msgDateStr = new Date(msg.timestamp).toDateString();
-      const prevMsg = sortedMessages[i - 1];
-      const nextMsg = sortedMessages[i + 1];
-
-      if (
-        !prevMsg ||
-        new Date(prevMsg.timestamp).toDateString() !== msgDateStr
-      ) {
+      if (msgDateStr !== lastDate) {
         const dateLabel =
           msgDateStr === today
             ? "Сегодня"
@@ -399,7 +514,7 @@ export default function AdminChat() {
               });
         elements.push(
           <Typography
-            key={`date-${msg.timestamp}-${i}`}
+            key={`date-${msg.timestamp}`}
             variant="caption"
             align="center"
             sx={{ my: 2, color: "#708499" }}
@@ -407,8 +522,12 @@ export default function AdminChat() {
             {dateLabel}
           </Typography>
         );
+        lastDate = msgDateStr;
       }
 
+      const i = messages.indexOf(msg);
+      const prevMsg = messages[i - 1];
+      const nextMsg = messages[i + 1];
       const timeDiff = prevMsg
         ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
         : 0;
@@ -430,7 +549,10 @@ export default function AdminChat() {
             justifyContent: isManager ? "flex-end" : "flex-start",
             mb: isLast ? 1.5 : 0.5,
             alignItems: "flex-end",
-            animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
+            animation:
+              !/iPhone|iPad|iPod/.test(navigator.userAgent) && msg.isNew
+                ? "fadeIn 0.5s ease-in"
+                : "none",
             "@keyframes fadeIn": {
               from: { opacity: 0, transform: "translateY(10px)" },
               to: { opacity: 1, transform: "translateY(0)" },
@@ -438,11 +560,20 @@ export default function AdminChat() {
           }}
         >
           {!isManager && isFirst && (
-            <Avatar sx={{ bgcolor: "#40C4FF", mr: 1, width: 36, height: 36 }}>
+            <Avatar
+              sx={{
+                bgcolor: "#40C4FF",
+                mr: 1,
+                width: { xs: 32, sm: 36 },
+                height: { xs: 32, sm: 36 },
+              }}
+            >
               <PersonIcon fontSize="small" sx={{ color: "#FFF" }} />
             </Avatar>
           )}
-          {!isManager && !isFirst && <Box sx={{ width: 36, mr: 1 }} />}
+          {!isManager && !isFirst && (
+            <Box sx={{ width: { xs: 32, sm: 36 }, mr: 1 }} />
+          )}
 
           <Paper
             sx={{
@@ -453,13 +584,16 @@ export default function AdminChat() {
               borderBottomLeftRadius: isLast ? 16 : 6,
               borderBottomRightRadius: isLast ? 16 : 6,
               p: 1.5,
-              maxWidth: "70%",
+              maxWidth: { xs: "85%", sm: "70%" },
               boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
             }}
           >
             <Typography
               variant="body1"
-              sx={{ fontSize: "0.95rem", lineHeight: 1.5 }}
+              sx={{
+                fontSize: { xs: "0.9rem", sm: "0.95rem" },
+                lineHeight: 1.5,
+              }}
             >
               {msg.text}
             </Typography>
@@ -471,7 +605,7 @@ export default function AdminChat() {
                   mt: 0.5,
                   color: "#708499",
                   textAlign: isManager ? "right" : "left",
-                  fontSize: "0.75rem",
+                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
                 }}
               >
                 {new Date(msg.timestamp).toLocaleString(undefined, {
@@ -483,16 +617,29 @@ export default function AdminChat() {
           </Paper>
 
           {isManager && isFirst && (
-            <Avatar sx={{ bgcolor: "#40C4FF", ml: 1, width: 36, height: 36 }}>
+            <Avatar
+              sx={{
+                bgcolor: "#40C4FF",
+                ml: 1,
+                width: { xs: 32, sm: 36 },
+                height: { xs: 32, sm: 36 },
+              }}
+            >
               <SupportAgentIcon fontSize="small" sx={{ color: "#FFF" }} />
             </Avatar>
           )}
-          {isManager && !isFirst && <Box sx={{ width: 36, ml: 1 }} />}
+          {isManager && !isFirst && (
+            <Box sx={{ width: { xs: 32, sm: 36 }, ml: 1 }} />
+          )}
         </Box>
       );
     }
 
-    return <Box sx={{ p: 2 }}>{elements}</Box>;
+    return (
+      <Box sx={{ p: { xs: 1, sm: 2 }, WebkitOverflowScrolling: "touch" }}>
+        {elements}
+      </Box>
+    );
   }, [messages]);
 
   return (
@@ -502,28 +649,38 @@ export default function AdminChat() {
         minHeight: "100vh",
         bgcolor: "#FFFFFF",
         display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
         p: 0,
-        overflow: "hidden",
         fontFamily: "Roboto, sans-serif",
+        position: "relative",
       }}
     >
       <Drawer
-        variant="persistent"
+        variant={{ xs: "temporary", sm: "persistent" }}
         open={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         sx={{
-          width: isSidebarOpen ? SIDEBAR_WIDTH : 0,
+          width: isSidebarOpen ? SIDEBAR_WIDTH : { xs: 0, sm: 56 },
           flexShrink: 0,
-          transition: "width 0.3s",
+          zIndex: 1300,
           "& .MuiDrawer-paper": {
-            width: SIDEBAR_WIDTH,
+            width: isSidebarOpen ? SIDEBAR_WIDTH : { xs: 0, sm: 56 },
             bgcolor: "#F4F4F5",
             borderRight: "none",
             transition: "width 0.3s",
             overflowX: "hidden",
+            WebkitOverflowScrolling: "touch",
           },
         }}
       >
-        <Box sx={{ p: 2 }}>
+        <Box
+          sx={{
+            p: { xs: 1, sm: 2 },
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <IconButton
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -531,131 +688,68 @@ export default function AdminChat() {
             >
               <MenuIcon sx={{ color: "#40C4FF" }} />
             </IconButton>
-            <Typography variant="h6" sx={{ fontWeight: 500, color: "#17212B" }}>
-              Поддержка
-            </Typography>
+            {isSidebarOpen && (
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 500,
+                  color: "#17212B",
+                  fontSize: { xs: "1rem", sm: "1.25rem" },
+                }}
+              >
+                Поддержка
+              </Typography>
+            )}
           </Box>
-          <TextField
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск чатов..."
-            variant="outlined"
-            size="small"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#708499" }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "8px",
-                backgroundColor: "#FFFFFF",
-                "&.Mui-focused fieldset": { borderColor: "#40C4FF" },
-              },
-            }}
-          />
+          {isSidebarOpen && (
+            <>
+              <TextField
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск чатов..."
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "#708499" }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "8px",
+                    backgroundColor: "#FFFFFF",
+                    "&.Mui-focused fieldset": { borderColor: "#40C4FF" },
+                  },
+                  "& .MuiInputBase-input": {
+                    fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                  },
+                }}
+              />
+              <FixedSizeList
+                height={window.innerHeight - 120}
+                width="100%"
+                itemCount={
+                  chatRooms.filter(
+                    (room) =>
+                      room.id
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                      room.messages
+                        ?.slice(-1)[0]
+                        ?.message.toLowerCase()
+                        .includes(searchQuery.toLowerCase())
+                  ).length
+                }
+                itemSize={70}
+              >
+                {ChatRoomRow}
+              </FixedSizeList>
+            </>
+          )}
         </Box>
-        <List sx={{ flexGrow: 1, overflowY: "auto", p: 0 }}>
-          {chatRooms
-            .filter(
-              (room) =>
-                room.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                room.messages
-                  ?.slice(-1)[0]
-                  ?.message.toLowerCase()
-                  .includes(searchQuery.toLowerCase())
-            )
-            .map((room) => {
-              const lastMessage = room.messages?.slice(-1)[0];
-              return (
-                <ListItem
-                  key={room.id}
-                  button
-                  onClick={() => handleChatSelect(room.id)}
-                  sx={{
-                    bgcolor:
-                      selectedChatId === room.id ? "#E1F5FE" : "transparent",
-                    "&:hover": { bgcolor: "#E8ECEF" },
-                    py: 1,
-                    px: 2,
-                    borderBottom: "1px solid #E8ECEF",
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Badge
-                      badgeContent={room.unread_count || 0}
-                      sx={{
-                        "& .MuiBadge-badge": {
-                          bgcolor: "#40C4FF",
-                          color: "#FFF",
-                          fontSize: "0.7rem",
-                          minWidth: "18px",
-                          height: "18px",
-                        },
-                      }}
-                    >
-                      <Avatar
-                        sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}
-                      >
-                        <SupportAgentIcon
-                          fontSize="small"
-                          sx={{ color: "#FFF" }}
-                        />
-                      </Avatar>
-                    </Badge>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: unreadCounts[room.id] ? 600 : 400,
-                          color: "#17212B",
-                          fontSize: "0.95rem",
-                        }}
-                      >
-                        {room.id.split("-")[0]}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box>
-                        {lastMessage ? (
-                          <Typography
-                            variant="caption"
-                            color="#708499"
-                            noWrap
-                            sx={{ maxWidth: 160, fontSize: "0.85rem" }}
-                          >
-                            {lastMessage.message.slice(0, 20) +
-                              (lastMessage.message.length > 20 ? "..." : "")}
-                          </Typography>
-                        ) : (
-                          <Typography variant="caption" color="#708499">
-                            Нет сообщений
-                          </Typography>
-                        )}
-                        {lastMessage?.time_to_send && (
-                          <Typography
-                            variant="caption"
-                            color="#708499"
-                            sx={{ display: "block", fontSize: "0.8rem" }}
-                          >
-                            {new Date(lastMessage.time_to_send).toLocaleString(
-                              undefined,
-                              { timeStyle: "short" }
-                            )}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              );
-            })}
-        </List>
       </Drawer>
 
       <Box
@@ -663,27 +757,35 @@ export default function AdminChat() {
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
-          ml: isSidebarOpen ? 0 : `-${SIDEBAR_WIDTH}px`,
-          transition: "margin-left 0.3s",
+          width: {
+            xs: "100%",
+            sm: `calc(100% - ${isSidebarOpen ? SIDEBAR_WIDTH.sm : 56}px)`,
+          },
+          transition: "width 0.3s",
           bgcolor: "#FFFFFF",
+          ml: { sm: isSidebarOpen ? 0 : "56px" },
         }}
       >
         <Box
           sx={{
             bgcolor: "#FFFFFF",
-            p: 1.5,
+            p: { xs: 1, sm: 1.5 },
             borderBottom: "1px solid #E8ECEF",
             display: "flex",
             alignItems: "center",
+            zIndex: 1200,
           }}
         >
+          <IconButton onClick={() => setIsSidebarOpen(true)} sx={{ mr: 1 }}>
+            <MenuIcon sx={{ color: "#40C4FF" }} />
+          </IconButton>
           <Typography
             variant="h6"
             sx={{
               flexGrow: 1,
               fontWeight: 500,
               color: "#17212B",
-              fontSize: "1.1rem",
+              fontSize: { xs: "1rem", sm: "1.1rem" },
             }}
           >
             {selectedChatId
@@ -695,7 +797,7 @@ export default function AdminChat() {
               <Typography
                 variant="body2"
                 color="#708499"
-                sx={{ mr: 2, fontSize: "0.9rem" }}
+                sx={{ mr: 2, fontSize: { xs: "0.8rem", sm: "0.9rem" } }}
               >
                 {messages.length} сообщений
               </Typography>
@@ -708,13 +810,25 @@ export default function AdminChat() {
 
         {error && (
           <Box sx={{ p: 2, bgcolor: "#FFEBEE" }}>
-            <Typography variant="body2" color="#F44336">
+            <Typography
+              variant="body2"
+              color="#F44336"
+              sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" } }}
+            >
               {error}
             </Typography>
           </Box>
         )}
 
-        <Box sx={{ flexGrow: 1, overflowY: "auto", p: 2 }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflowY: "auto",
+            maxHeight: "calc(100vh - 120px)",
+            WebkitOverflowScrolling: "touch",
+            p: { xs: 1, sm: 2 },
+          }}
+        >
           {isLoadingHistory ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <CircularProgress sx={{ color: "#40C4FF" }} />
@@ -730,7 +844,11 @@ export default function AdminChat() {
                 height: "100%",
               }}
             >
-              <Typography variant="h6" color="#708499">
+              <Typography
+                variant="h6"
+                color="#708499"
+                sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+              >
                 Выберите чат для общения
               </Typography>
             </Box>
@@ -742,7 +860,7 @@ export default function AdminChat() {
           <Box
             sx={{
               bgcolor: "#FFFFFF",
-              p: 1.5,
+              p: { xs: 1, sm: 1.5 },
               borderTop: "1px solid #E8ECEF",
               display: "flex",
               alignItems: "center",
@@ -763,9 +881,8 @@ export default function AdminChat() {
                   "&.Mui-focused fieldset": { borderColor: "#40C4FF" },
                 },
                 "& .MuiInputBase-input": {
-                  padding: "10px 12px",
-                  color: "#17212B",
-                  fontSize: "0.95rem",
+                  padding: { xs: "8px 10px", sm: "10px 12px" },
+                  fontSize: { xs: "0.9rem", sm: "0.95rem" },
                 },
               }}
               disabled={!chatId || !isConnected}
@@ -778,13 +895,15 @@ export default function AdminChat() {
                 borderRadius: "8px",
                 bgcolor: "#40C4FF",
                 "&:hover": { bgcolor: "#33B7F0" },
-                px: 2,
+                px: { xs: 1.5, sm: 2 },
                 py: 1,
-                minWidth: "40px",
+                minWidth: { xs: "36px", sm: "40px" },
               }}
               disabled={!chatId || !isConnected}
             >
-              <SendIcon sx={{ color: "#FFF" }} />
+              <SendIcon
+                sx={{ color: "#FFF", fontSize: { xs: "20px", sm: "24px" } }}
+              />
             </Button>
           </Box>
         )}

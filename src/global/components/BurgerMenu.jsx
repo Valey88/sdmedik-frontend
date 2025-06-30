@@ -30,6 +30,11 @@ const BurgerMenu = () => {
           </Link>
         </ListItem>
         <ListItem>
+          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/certificate">
+            Электронный сертификат
+          </Link>
+        </ListItem>
+        <ListItem>
           <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/about">
             О нас
           </Link>

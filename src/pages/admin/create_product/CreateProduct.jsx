@@ -219,21 +219,6 @@ export default function CreateProduct() {
     try {
       await createProduct(formData);
       toast.success("Продукт успешно создан");
-      // Сброс формы после успешного создания
-      setProduct({
-        article: "",
-        category_ids: [],
-        characteristic_values: [],
-        description: "",
-        name: "",
-        images: [],
-        price: 0,
-        tru: "",
-      });
-      setSelectedCategories([]);
-      setCharacteristics([]);
-      setCharacteristicValues({});
-      setCatalogs([]);
     } catch (error) {
       console.error("Ошибка при создании продукта:", error);
       toast.error(

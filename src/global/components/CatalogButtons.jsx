@@ -72,6 +72,24 @@ const CatalogButtons = () => {
         Каталог
         {/* </Button> */}
       </Link>
+      {/* <Link
+        style={{
+          background: `linear-gradient(90.61deg, #A5DED1 4.71%, #00B3A4 97.25%)`,
+          padding: "12px 10px",
+          fontSize: "16px",
+          fontWeight: "300",
+          borderRadius: "5px",
+          marginLeft: "0px",
+          marginRight: "0px",
+          color: "#fff",
+          width: "200px",
+          display: "flex",
+          justifyContent: "center",
+        }}
+        to="/certificate"
+      >
+        Электронный сертификат
+      </Link> */}
     </Box>
   );
 };

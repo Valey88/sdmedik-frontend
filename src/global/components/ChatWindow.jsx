@@ -704,13 +704,13 @@ function ChatWindow({ onClose }) {
         bottom: 80,
         right: 16,
         width: { xs: "90%", sm: 360 },
-        height: { xs: 480, sm: 600 },
+        height: { xs: "450px ", sm: 500 },
         display: "flex",
         flexDirection: "column",
         borderRadius: "12px",
         overflow: "hidden",
         bgcolor: "#ffffff",
-        zIndex: 1300,
+        zIndex: 1400,
       }}
     >
       <Box

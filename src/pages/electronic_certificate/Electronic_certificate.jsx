@@ -28,10 +28,6 @@ export default function ElectronicCertificate() {
           name="keywords"
           content="электронные сертификаты, государственная поддержка, технические средства реабилитации, инвалидность"
         />
-        <link
-          rel="canonical"
-          href="https://example.com/electronic-certificate"
-        />
       </Helmet>
       <Container maxWidth="md">
         <header>
