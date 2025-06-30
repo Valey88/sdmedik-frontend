@@ -84,23 +84,6 @@ function ChatWindow({ onClose }) {
     return date.toISOString();
   };
 
-  const markAsRead = (messageId, userId) => {
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      console.error("WebSocket не открыт, состояние:", ws.current?.readyState);
-      setError("Нет соединения с сервером чата.");
-      return;
-    }
-    const eventData = {
-      event: "mark-as-read",
-      data: {
-        message_id: messageId,
-        user_id: userId,
-      },
-    };
-    ws.current.send(JSON.stringify(eventData));
-    console.log("Отправлено событие mark-as-read:", eventData);
-  };
-
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
@@ -185,7 +168,6 @@ function ChatWindow({ onClose }) {
             text: msg.message || "Пустое сообщение",
             timestamp: normalizeTimestamp(msg.time_to_send || new Date()),
             senderId: msg.sender_id,
-            read_status: msg.read_status,
             id: msg.id,
           }));
           setMessages((prev) => {
@@ -207,26 +189,8 @@ function ChatWindow({ onClose }) {
               (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
             );
           });
-          const managerMessages = messageData.filter(
-            (msg) => msg.id && msg.sender_id !== chatId && !msg.read_status
-          );
-          console.log("Непрочитанные сообщения менеджера:", managerMessages);
-          if (managerMessages.length > 0) {
-            managerMessages.forEach((msg) => {
-              markAsRead(msg.id, chatId);
-              console.log(
-                "Отправлен ID сообщения менеджера для markAsRead:",
-                msg.id
-              );
-            });
-          } else {
-            console.log(
-              "Нет непрочитанных сообщений менеджера для отметки как прочитанные"
-            );
-          }
         } else if (messageData.event === "message-event") {
-          const { message, sender_id, time_to_send, id, read_status } =
-            messageData.data;
+          const { message, sender_id, time_to_send, id } = messageData.data;
           const messageKey = `${chatId}-${message}-${
             time_to_send || new Date().toISOString()
           }`;
@@ -240,7 +204,6 @@ function ChatWindow({ onClose }) {
               timestamp: normalizeTimestamp(time_to_send || new Date()),
               senderId: sender_id,
               isNew: true,
-              read_status,
               id,
             };
             const newMessages = [...prev, newMessage].sort(
@@ -249,12 +212,7 @@ function ChatWindow({ onClose }) {
             return newMessages;
           });
 
-          if (sender_id !== chatId && !read_status && id) {
-            markAsRead(id, chatId);
-            console.log(
-              "Новое сообщение менеджера отмечено как прочитанное:",
-              id
-            );
+          if (sender_id !== chatId && "Notification" in window) {
             Notification.requestPermission().then((permission) => {
               if (permission === "granted") {
                 new Notification("Новое сообщение от поддержки", {
@@ -262,11 +220,6 @@ function ChatWindow({ onClose }) {
                     message.slice(0, 50) + (message.length > 50 ? "..." : ""),
                 });
                 console.log("Уведомление отправлено");
-              } else {
-                console.log(
-                  "Уведомления не разрешены, разрешение:",
-                  permission
-                );
               }
             });
           }
@@ -278,25 +231,18 @@ function ChatWindow({ onClose }) {
           }, 1000);
         } else if (messageData.event === "new-chat") {
           console.log("Получено событие new-chat:", messageData.data);
-          Notification.requestPermission().then((permission) => {
-            if (permission === "granted") {
-              new Notification("Новый чат", {
-                body: `Создан новый чат: ${messageData.data.id.split("-")[0]}`,
-              });
-              console.log("Уведомление о новом чате отправлено");
-            }
-          });
-        } else if (messageData.event === "mark-as-read") {
-          console.log("Получено событие mark-as-read:", messageData.data);
-          setMessages((prev) =>
-            prev
-              .map((msg) =>
-                msg.id === messageData.data.message_id
-                  ? { ...msg, read_status: true }
-                  : msg
-              )
-              .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          );
+          if ("Notification" in window) {
+            Notification.requestPermission().then((permission) => {
+              if (permission === "granted") {
+                new Notification("Новый чат", {
+                  body: `Создан новый чат: ${
+                    messageData.data.id.split("-")[0]
+                  }`,
+                });
+                console.log("Уведомление о новом чате отправлено");
+              }
+            });
+          }
         } else if (messageData.event === "error") {
           console.error("Ошибка от сервера:", messageData.data);
           setError(`Ошибка: ${messageData.data}`);
@@ -318,18 +264,6 @@ function ChatWindow({ onClose }) {
       } catch (err) {
         console.error("Ошибка парсинга сообщения:", err, "Данные:", event.data);
         setError("Ошибка обработки сообщения от сервера.");
-        setMessages((prev) =>
-          [
-            ...prev,
-            {
-              type: "bot",
-              text: "Ошибка обработки сообщения.",
-              timestamp: new Date().toISOString(),
-              senderId: "bot",
-              isNew: true,
-            },
-          ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        );
       }
     };
 
@@ -337,41 +271,19 @@ function ChatWindow({ onClose }) {
       console.error("WebSocket ошибка:", event);
       setIsConnected(false);
       setError("Ошибка подключения к чату.");
-      setMessages((prev) =>
-        [
-          ...prev,
-          {
-            type: "bot",
-            text: "Ошибка подключения к чату.",
-            timestamp: new Date().toISOString(),
-            senderId: "bot",
-            isNew: true,
-          },
-        ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-      );
     };
 
     ws.current.onclose = () => {
       console.log("WebSocket закрыт");
       setIsConnected(false);
       setError("Соединение с чатом разорвано.");
-      setMessages((prev) =>
-        [
-          ...prev,
-          {
-            type: "bot",
-            text: "Соединение с чатом разорвано.",
-            timestamp: new Date().toISOString(),
-            senderId: "bot",
-            isNew: true,
-          },
-        ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-      );
     };
 
-    Notification.requestPermission().then((permission) => {
-      console.log("Разрешение на уведомления:", permission);
-    });
+    if ("Notification" in window) {
+      Notification.requestPermission().then((permission) => {
+        console.log("Разрешение на уведомления:", permission);
+      });
+    }
 
     return () => ws.current?.close();
   }, [isAuthenticated]);
@@ -399,7 +311,6 @@ function ChatWindow({ onClose }) {
     }
     const trimmedInput = input.trim();
     if (trimmedInput && chatId) {
-      console.log("Отправляемое сообщение:", trimmedInput);
       const messageEvent = {
         event: "message-event",
         data: { message: trimmedInput, chat_id: chatId },
@@ -419,8 +330,6 @@ function ChatWindow({ onClose }) {
         return newMessages;
       });
       setInput("");
-    } else {
-      console.log("Сообщение пустое или отсутствует chatId");
     }
   };
 
@@ -440,7 +349,6 @@ function ChatWindow({ onClose }) {
   };
 
   const renderMessages = () => {
-    console.log("Все сообщения для рендеринга:", messages);
     const today = new Date().toDateString();
     const yesterdayDate = new Date();
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -448,7 +356,6 @@ function ChatWindow({ onClose }) {
 
     const elements = [];
 
-    // Рендерим сообщения бота и FAQ
     messages.forEach((msg, index) => {
       if (msg.type === "bot") {
         elements.push(
@@ -463,11 +370,6 @@ function ChatWindow({ onClose }) {
               maxWidth: "80%",
               mx: "auto",
               boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
-              "@keyframes fadeIn": {
-                from: { opacity: 0, transform: "translateY(10px)" },
-                to: { opacity: 1, transform: "translateY(0)" },
-              },
             }}
           >
             <Typography
@@ -528,7 +430,6 @@ function ChatWindow({ onClose }) {
       }
     });
 
-    // Фильтруем и сортируем сообщения пользователя и менеджера
     const chatMessages = messages
       .filter((msg) => msg.type === "user" || msg.type === "manager")
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -538,31 +439,24 @@ function ChatWindow({ onClose }) {
       const msgDateStr = new Date(msg.timestamp).toDateString();
       const prevMsg = chatMessages[i - 1];
 
-      // Разделитель по дате
       if (
         i === 0 ||
         (prevMsg && new Date(prevMsg.timestamp).toDateString() !== msgDateStr)
       ) {
-        let dateLabel;
-        if (msgDateStr === today) {
-          dateLabel = "Сегодня";
-        } else if (msgDateStr === yesterday) {
-          dateLabel = "Вчера";
-        } else {
-          dateLabel = new Date(msg.timestamp).toLocaleDateString("ru-RU", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          });
-        }
+        let dateLabel =
+          msgDateStr === today
+            ? "Сегодня"
+            : msgDateStr === yesterday
+            ? "Вчера"
+            : new Date(msg.timestamp).toLocaleDateString("ru-RU", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              });
         elements.push(
           <Box
             key={`date-${msg.timestamp}-${i}`}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              my: 2,
-            }}
+            sx={{ display: "flex", justifyContent: "center", my: 2 }}
           >
             <Typography
               variant="caption"
@@ -581,7 +475,6 @@ function ChatWindow({ onClose }) {
         );
       }
 
-      // Определяем границы группы сообщений
       const timeDiff = prevMsg
         ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
         : Infinity;
@@ -596,7 +489,6 @@ function ChatWindow({ onClose }) {
       const isUser = msg.senderId === chatId;
       const alignment = isUser ? "flex-end" : "flex-start";
 
-      // Рендерим строку сообщения
       elements.push(
         <Box
           key={`msg-row-${msg.timestamp}-${i}`}
@@ -606,14 +498,8 @@ function ChatWindow({ onClose }) {
             alignItems: "flex-end",
             mb: isLast ? 2 : 0.5,
             px: 1,
-            animation: msg.isNew ? "fadeIn 0.5s ease-in" : "none",
-            "@keyframes fadeIn": {
-              from: { opacity: 0, transform: "translateY(10px)" },
-              to: { opacity: 1, transform: "translateY(0)" },
-            },
           }}
         >
-          {/* Аватарка менеджера для первого сообщения в группе */}
           {!isUser && isFirst && (
             <Avatar
               sx={{
@@ -628,8 +514,6 @@ function ChatWindow({ onClose }) {
             </Avatar>
           )}
           {!isUser && !isFirst && <Box sx={{ width: 40, flexShrink: 0 }} />}
-
-          {/* Контейнер сообщения */}
           <Box
             sx={{
               bgcolor: isUser ? "#00B3A4" : "#ffffff",
@@ -668,14 +552,9 @@ function ChatWindow({ onClose }) {
                 {new Date(msg.timestamp).toLocaleString(undefined, {
                   timeStyle: "short",
                 })}
-                {isUser && msg.read_status && (
-                  <span style={{ marginLeft: "4px" }}>✓</span>
-                )}
               </Typography>
             )}
           </Box>
-
-          {/* Аватарка пользователя для последнего сообщения в группе */}
           {isUser && isLast && (
             <Avatar
               sx={{
@@ -704,7 +583,7 @@ function ChatWindow({ onClose }) {
         bottom: 80,
         right: 16,
         width: { xs: "90%", sm: 360 },
-        height: { xs: "450px ", sm: 500 },
+        height: { xs: "70vh", sm: 500 },
         display: "flex",
         flexDirection: "column",
         borderRadius: "12px",

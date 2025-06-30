@@ -23,12 +23,12 @@ import PersonIcon from "@mui/icons-material/Person";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
-import { FixedSizeList } from "react-window";
 import api from "../../../../configs/axiosConfig";
 import { supportChat } from "@/constants/constants";
 import useUserStore from "../../../../store/userStore";
+import { FixedSizeList } from "react-window";
 
-const SIDEBAR_WIDTH = { xs: "100%", sm: 260 }; // Адаптивная ширина боковой панели
+const SIDEBAR_WIDTH = 260;
 const MESSAGE_GAP = 5 * 60 * 1000; // 5 минут в мс
 
 export default function AdminChat() {
@@ -40,7 +40,7 @@ export default function AdminChat() {
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // По умолчанию открыта на ПК
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [adminSenderId, setAdminSenderId] = useState(null);
@@ -75,22 +75,13 @@ export default function AdminChat() {
   const fetchChatRooms = async () => {
     try {
       const userData = localStorage.getItem("user");
-      let admin_id;
-      if (userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          admin_id = parsedUser?.data?.id;
-        } catch (parseError) {
-          console.error("Ошибка парсинга userData:", parseError);
-          setError("Ошибка обработки данных пользователя.");
-          return;
-        }
-      } else {
-        setError("Данные пользователя не найдены.");
-        return;
-      }
+
+      const parsedUser = JSON.parse(userData);
+      const admin_id = parsedUser?.data?.id;
       const response = await api.get("/chat", {
-        params: { user_id: admin_id },
+        params: {
+          user_id: admin_id,
+        },
       });
       const rooms = response.data.data || [];
       rooms.sort((a, b) => {
@@ -110,7 +101,7 @@ export default function AdminChat() {
       );
     } catch (err) {
       console.error("Ошибка при загрузке чатов:", err);
-      setError(`Не удалось загрузить список чатов: ${err.message}`);
+      setError("Не удалось загрузить список чатов.");
     }
   };
 
@@ -128,35 +119,39 @@ export default function AdminChat() {
   const markAsRead = (messageId, userId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
+      console.error("WebSocket не открыт, состояние:", ws.current?.readyState);
       return;
     }
     const eventData = {
       event: "mark-as-read",
-      data: { message_id: messageId, user_id: userId },
+      data: {
+        message_id: messageId,
+        user_id: userId,
+      },
     };
     ws.current.send(JSON.stringify(eventData));
     console.log("Отправлено событие mark-as-read:", eventData);
   };
 
   const handleWebSocketMessage = (event) => {
-    try {
-      if (!isValidJSON(event.data)) {
-        const messageKey = `${event.data}-${new Date().toISOString()}`;
-        if (processedMessages.current.has(messageKey)) return;
-        processedMessages.current.add(messageKey);
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "user",
-            text: event.data,
-            timestamp: new Date().toISOString(),
-            sender_id: "unknown",
-            isNew: true,
-          },
-        ]);
-        return;
-      }
+    if (!isValidJSON(event.data)) {
+      const messageKey = `${event.data}-${new Date().toISOString()}`;
+      if (processedMessages.current.has(messageKey)) return;
+      processedMessages.current.add(messageKey);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "user",
+          text: event.data,
+          timestamp: new Date().toISOString(),
+          sender_id: "unknown",
+          isNew: true,
+        },
+      ]);
+      return;
+    }
 
+    try {
       const messageData = JSON.parse(event.data);
       console.log("Получено сообщение:", messageData);
       if (messageData.event === "new-chat") {
@@ -195,25 +190,22 @@ export default function AdminChat() {
           adminSenderId && sender_id === adminSenderId ? "manager" : "user";
 
         if (chat_id === selectedChatId) {
-          setMessages((prev) => {
-            const newMessages = [
-              ...prev,
-              {
-                type: messageType,
-                text: message || "Пустое сообщение",
-                timestamp: time_to_send || new Date().toISOString(),
-                sender_id,
-                isNew: true,
-              },
-            ];
-            // Автоскролл только для нового сообщения
-            setTimeout(() => {
-              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, 0);
-            return newMessages;
-          });
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: messageType,
+              text: message || "Пустое сообщение",
+              timestamp: time_to_send || new Date().toISOString(),
+              sender_id,
+              isNew: true,
+            },
+          ]);
           if (sender_id !== adminSenderId && !read_status && id) {
             markAsRead(id, adminSenderId);
+            console.log(
+              "Новое сообщение пользователя отмечено как прочитанное:",
+              id
+            );
           }
         } else {
           setUnreadCounts((prev) => ({
@@ -271,13 +263,24 @@ export default function AdminChat() {
             (msg) =>
               msg.id && msg.sender_id !== adminSenderId && !msg.read_status
           );
-          userMessages.forEach((msg) => markAsRead(msg.id, adminSenderId));
+          console.log("Непрочитанные сообщения пользователя:", userMessages);
+          if (userMessages.length > 0) {
+            userMessages.forEach((msg) => {
+              markAsRead(msg.id, adminSenderId);
+              console.log(
+                "Отправлен ID сообщения пользователя для markAsRead:",
+                msg.id
+              );
+            });
+          } else {
+            console.log(
+              "Нет непрочитанных сообщений пользователя для отметки как прочитанные"
+            );
+          }
+        } else {
+          console.warn("selectedChatId или adminSenderId не определены");
         }
         setIsLoadingHistory(false);
-        // Автоскролл при загрузке истории чата
-        // setTimeout(() => {
-        //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        // }, 0);
       }
     } catch (err) {
       console.error("Ошибка парсинга сообщения:", err, "Данные:", event.data);
@@ -286,35 +289,31 @@ export default function AdminChat() {
     }
   };
 
-  const connectWebSocket = () => {
+  useEffect(() => {
+    fetchAdminSenderId();
+    fetchChatRooms();
+
     ws.current = new WebSocket(supportChat);
+
     ws.current.onopen = () => {
-      console.log("WebSocket подключен, URL:", supportChat);
       setIsConnected(true);
       setError("");
       if (chatId) sendJoinEvent(chatId);
     };
-    ws.current.onerror = (event) => {
-      console.error("WebSocket ошибка:", event);
-      setIsConnected(false);
-      setError("Ошибка подключения к чату. Пытаемся переподключиться...");
-      setIsLoadingHistory(false);
-      setTimeout(connectWebSocket, 5000);
-    };
-    ws.current.onclose = () => {
-      console.log("WebSocket закрыт");
-      setIsConnected(false);
-      setError("Соединение с чатом разорвано. Пытаемся переподключиться...");
-      setIsLoadingHistory(false);
-      setTimeout(connectWebSocket, 5000);
-    };
-    ws.current.onmessage = handleWebSocketMessage;
-  };
 
-  useEffect(() => {
-    fetchAdminSenderId();
-    fetchChatRooms();
-    connectWebSocket();
+    ws.current.onmessage = handleWebSocketMessage;
+
+    ws.current.onerror = () => {
+      setError("Не удалось подключиться к чату. Проверьте соединение.");
+      setIsConnected(false);
+      setIsLoadingHistory(false);
+    };
+
+    ws.current.onclose = () => {
+      setIsConnected(false);
+      setError("Соединение с чатом разорвано.");
+      setIsLoadingHistory(false);
+    };
 
     if ("Notification" in window && window.Notification !== undefined) {
       Notification.requestPermission().catch((err) => {
@@ -361,23 +360,16 @@ export default function AdminChat() {
         },
       };
       ws.current.send(JSON.stringify(messageEvent));
-      setMessages((prev) => {
-        const newMessages = [
-          ...prev,
-          {
-            type: "manager",
-            text: input.trim(),
-            timestamp: new Date().toISOString(),
-            sender_id: adminSenderId || "admin",
-            isNew: true,
-          },
-        ];
-        // Автоскролл при отправке сообщения
-        // setTimeout(() => {
-        //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        // }, 0);
-        return newMessages;
-      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "manager",
+          text: input.trim(),
+          timestamp: new Date().toISOString(),
+          sender_id: adminSenderId || "admin",
+          isNew: true,
+        },
+      ]);
       setInput("");
     }
   };
@@ -389,7 +381,6 @@ export default function AdminChat() {
     setUnreadCounts((prev) => ({ ...prev, [roomId]: 0 }));
     setIsLoadingHistory(true);
     processedMessages.current.clear();
-    setIsSidebarOpen(false); // Закрываем боковую панель только на мобильных
   };
 
   const handleCloseChat = () => {
@@ -397,7 +388,6 @@ export default function AdminChat() {
     setChatId("");
     setMessages([]);
     processedMessages.current.clear();
-    setIsSidebarOpen(true); // Открываем боковую панель
   };
 
   const ChatRoomRow = ({ index, style }) => {
@@ -426,7 +416,7 @@ export default function AdminChat() {
       >
         <ListItemAvatar>
           <Badge
-            badgeContent={unreadCounts[room.id] || 0}
+            badgeContent={room.unread_count || 0}
             sx={{
               "& .MuiBadge-badge": {
                 bgcolor: "#40C4FF",
@@ -497,11 +487,21 @@ export default function AdminChat() {
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterday = yesterdayDate.toDateString();
 
+    const sortedMessages = [...messages].sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
     const elements = [];
-    let lastDate = null;
-    for (const msg of messages) {
+    for (let i = 0; i < sortedMessages.length; i++) {
+      const msg = sortedMessages[i];
       const msgDateStr = new Date(msg.timestamp).toDateString();
-      if (msgDateStr !== lastDate) {
+      const prevMsg = sortedMessages[i - 1];
+      const nextMsg = sortedMessages[i + 1];
+
+      if (
+        !prevMsg ||
+        new Date(prevMsg.timestamp).toDateString() !== msgDateStr
+      ) {
         const dateLabel =
           msgDateStr === today
             ? "Сегодня"
@@ -514,7 +514,7 @@ export default function AdminChat() {
               });
         elements.push(
           <Typography
-            key={`date-${msg.timestamp}`}
+            key={`date-${msg.timestamp}-${i}`}
             variant="caption"
             align="center"
             sx={{ my: 2, color: "#708499" }}
@@ -522,12 +522,8 @@ export default function AdminChat() {
             {dateLabel}
           </Typography>
         );
-        lastDate = msgDateStr;
       }
 
-      const i = messages.indexOf(msg);
-      const prevMsg = messages[i - 1];
-      const nextMsg = messages[i + 1];
       const timeDiff = prevMsg
         ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
         : 0;
@@ -560,20 +556,11 @@ export default function AdminChat() {
           }}
         >
           {!isManager && isFirst && (
-            <Avatar
-              sx={{
-                bgcolor: "#40C4FF",
-                mr: 1,
-                width: { xs: 32, sm: 36 },
-                height: { xs: 32, sm: 36 },
-              }}
-            >
+            <Avatar sx={{ bgcolor: "#40C4FF", mr: 1, width: 36, height: 36 }}>
               <PersonIcon fontSize="small" sx={{ color: "#FFF" }} />
             </Avatar>
           )}
-          {!isManager && !isFirst && (
-            <Box sx={{ width: { xs: 32, sm: 36 }, mr: 1 }} />
-          )}
+          {!isManager && !isFirst && <Box sx={{ width: 36, mr: 1 }} />}
 
           <Paper
             sx={{
@@ -584,16 +571,13 @@ export default function AdminChat() {
               borderBottomLeftRadius: isLast ? 16 : 6,
               borderBottomRightRadius: isLast ? 16 : 6,
               p: 1.5,
-              maxWidth: { xs: "85%", sm: "70%" },
+              maxWidth: "70%",
               boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
             }}
           >
             <Typography
               variant="body1"
-              sx={{
-                fontSize: { xs: "0.9rem", sm: "0.95rem" },
-                lineHeight: 1.5,
-              }}
+              sx={{ fontSize: "0.95rem", lineHeight: 1.5 }}
             >
               {msg.text}
             </Typography>
@@ -605,7 +589,7 @@ export default function AdminChat() {
                   mt: 0.5,
                   color: "#708499",
                   textAlign: isManager ? "right" : "left",
-                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                  fontSize: "0.75rem",
                 }}
               >
                 {new Date(msg.timestamp).toLocaleString(undefined, {
@@ -617,29 +601,16 @@ export default function AdminChat() {
           </Paper>
 
           {isManager && isFirst && (
-            <Avatar
-              sx={{
-                bgcolor: "#40C4FF",
-                ml: 1,
-                width: { xs: 32, sm: 36 },
-                height: { xs: 32, sm: 36 },
-              }}
-            >
+            <Avatar sx={{ bgcolor: "#40C4FF", ml: 1, width: 36, height: 36 }}>
               <SupportAgentIcon fontSize="small" sx={{ color: "#FFF" }} />
             </Avatar>
           )}
-          {isManager && !isFirst && (
-            <Box sx={{ width: { xs: 32, sm: 36 }, ml: 1 }} />
-          )}
+          {isManager && !isFirst && <Box sx={{ width: 36, ml: 1 }} />}
         </Box>
       );
     }
 
-    return (
-      <Box sx={{ p: { xs: 1, sm: 2 }, WebkitOverflowScrolling: "touch" }}>
-        {elements}
-      </Box>
-    );
+    return <Box sx={{ p: 2 }}>{elements}</Box>;
   }, [messages]);
 
   return (

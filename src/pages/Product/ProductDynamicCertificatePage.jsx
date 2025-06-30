@@ -39,6 +39,30 @@ const TabPanel = memo(({ children, value, index, ...other }) => (
   </Box>
 ));
 
+// Функция для форматирования описания
+const formatDescription = (description) => {
+  if (!description) return ["Описание отсутствует"];
+
+  // Разделяем текст на предложения по точке, убирая лишние пробелы
+  const sentences = description
+    .split(".")
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence !== "");
+
+  // Если предложений меньше 2, возвращаем текст как есть
+  if (sentences.length <= 1) return [description];
+
+  // Объединяем предложения в абзацы (по 2 предложения в абзац)
+  const paragraphs = [];
+  for (let i = 0; i < sentences.length; i += 2) {
+    const paragraph =
+      sentences.slice(i, i + 2).join(". ") + (sentences[i + 1] ? "." : "");
+    paragraphs.push(paragraph);
+  }
+
+  return paragraphs;
+};
+
 export default function ProductDynamicCertificatePage() {
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [images, setImages] = useState([]);
@@ -264,7 +288,7 @@ export default function ProductDynamicCertificatePage() {
           {isCatalog2 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-                Выберите регион:
+                Выunsubscribe: Выберите регион:
               </Typography>
               <Select
                 value={newRegion?.value || ""}
@@ -461,16 +485,26 @@ export default function ProductDynamicCertificatePage() {
             />
           </Tabs>
           <TabPanel value={tabValue} index={0}>
-            <Typography
-              sx={{
-                wordBreak: "break-all",
-                overflowWrap: "break-word",
-                whiteSpace: "normal",
-                mt: 2,
-              }}
-            >
-              {products.data?.description || "Описание отсутствует"}
-            </Typography>
+            <Box sx={{ mt: 2 }}>
+              {formatDescription(products.data?.description).map(
+                (paragraph, index) => (
+                  <Typography
+                    key={index}
+                    variant="body1"
+                    sx={{
+                      mb: 2,
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                      whiteSpace: "normal",
+                      lineHeight: 1.5,
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                    }}
+                  >
+                    {paragraph}
+                  </Typography>
+                )
+              )}
+            </Box>
           </TabPanel>
           <TabPanel value={tabValue} index={1}>
             <List>
