@@ -111,20 +111,26 @@ const SidebarFilter = ({ setFilters }) => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <Box sx={{ mt: 5 }}>
-        <Button
-          sx={{
-            background: "#00B3A4",
-            color: "white",
-            height: "50px",
-            width: "150px",
-          }}
-          onClick={toggleDrawer}
-        >
-          Фильтр
-          <FilterListIcon />
-        </Button>
-      </Box>
+      <Button
+        variant="outlined"
+        sx={{
+          borderRadius: "20px",
+          textTransform: "none",
+          fontWeight: "medium",
+          px: { xs: 2, sm: 3 },
+
+          color: "#00B3A4",
+          borderColor: "#00B3A4",
+          "&:hover": {
+            backgroundColor: "rgba(0, 179, 164, 0.1)",
+            borderColor: "#00B3A4",
+          },
+        }}
+        onClick={toggleDrawer}
+      >
+        Фильтр
+        <FilterListIcon />
+      </Button>
 
       <Drawer
         anchor="left"
@@ -148,7 +154,7 @@ const SidebarFilter = ({ setFilters }) => {
             variant="h6"
             sx={{ fontWeight: "bold", color: "#00B3A4" }}
           >
-            Фильтрация
+            Фильтр
           </Typography>
           <Box sx={{ mt: 2 }}>
             <Box sx={{ mb: 2 }}>

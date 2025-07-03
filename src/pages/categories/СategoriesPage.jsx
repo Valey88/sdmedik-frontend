@@ -7,6 +7,7 @@ import {
   Grid,
   useTheme,
   useMediaQuery,
+  Breadcrumbs,
 } from "@mui/material";
 import React, { useEffect } from "react";
 import useCategoryStore from "../../store/categoryStore";
@@ -38,6 +39,7 @@ export default function CategoriesPage() {
         />
       </Helmet>
       <Container>
+       
         <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
           Категории товаров
         </Typography>

@@ -16,18 +16,6 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  CartesianGrid,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts";
 import XLSX from "xlsx";
 import useOrderStore from "../../../../store/orderStore";
 
@@ -41,14 +29,12 @@ Date.prototype.getWeek = function () {
 };
 
 const AdminOrdersTable = () => {
-  const { fetchOrders, orders, changeStatus, chats, fetchChats } =
-    useOrderStore();
+  const { fetchOrders, orders, changeStatus } = useOrderStore();
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [timeFrame, setTimeFrame] = useState("month");
   const [newStatuses, setNewStatuses] = useState({});
 
   useEffect(() => {
@@ -72,14 +58,6 @@ const AdminOrdersTable = () => {
     setCurrentPage(1);
   };
 
-  const handleTimeFrameChange = (event) => {
-    setTimeFrame(event.target.value);
-  };
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
-
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
   };
@@ -101,6 +79,31 @@ const AdminOrdersTable = () => {
     fetchOrders();
   };
 
+  // Подсчет заказов по статусам
+  const statusStats = filteredOrders.reduce((acc, order) => {
+    const status = order.status;
+    if (!acc[status]) {
+      acc[status] = 0;
+    }
+    acc[status] += 1;
+    return acc;
+  }, {});
+
+  // Преобразование в массив для таблицы
+  const statusData = [
+    { status: "В ожидании", count: statusStats["pending"] || 0 },
+    { status: "Рассмотрен", count: statusStats["processing"] || 0 },
+    { status: "Завершен", count: statusStats["completed"] || 0 },
+    { status: "Отменен", count: statusStats["cancelled"] || 0 },
+  ];
+
+  // Подсчет общей информации
+  const totalOrders = filteredOrders.length;
+  const totalProfit = filteredOrders.reduce(
+    (acc, order) => acc + order.total_price,
+    0
+  );
+
   // Function to export table to Excel
   const exportToExcel = () => {
     const data = filteredOrders.map((order) => ({
@@ -118,84 +121,29 @@ const AdminOrdersTable = () => {
     XLSX.writeFile(workbook, "orders.xlsx");
   };
 
-  // Подсчет количества заказов и прибыли по месяцам
-  const orderStatsByMonth = filteredOrders.reduce((acc, order) => {
-    const month = new Date(order.created_at).toLocaleString("default", {
-      month: "long",
-    });
-    const year = new Date(order.created_at).getFullYear();
-    const key = `${month} ${year}`;
-
-    if (!acc[key]) {
-      acc[key] = { count: 0, total: 0 };
-    }
-    acc[key].count += 1;
-    acc[key].total += order.total_price;
-    return acc;
-  }, {});
-
-  const orderDataByMonth = Object.keys(orderStatsByMonth).map((key) => ({
-    month: key,
-    count: orderStatsByMonth[key].count,
-    total: orderStatsByMonth[key].total,
-  }));
-
-  // Подсчет количества заказов и прибыли по неделям
-  const orderStatsByWeek = filteredOrders.reduce((acc, order) => {
-    const date = new Date(order.created_at);
-    const week = `${date.getFullYear()}-W${date.getWeek()}`;
-
-    if (!acc[week]) {
-      acc[week] = { count: 0, total: 0 };
-    }
-    acc[week].count += 1;
-    acc[week].total += order.total_price;
-    return acc;
-  }, {});
-
-  const orderDataByWeek = Object.keys(orderStatsByWeek).map((key) => ({
-    week: key,
-    count: orderStatsByWeek[key].count,
-    total: orderStatsByWeek[key].total,
-  }));
-
-  // Подсчет количества заказов и прибыли по дням
-  const orderStatsByDay = filteredOrders.reduce((acc, order) => {
-    const date = new Date(order.created_at).toLocaleDateString();
-
-    if (!acc[date]) {
-      acc[date] = { count: 0, total: 0 };
-    }
-    acc[date].count += 1;
-    acc[date].total += order.total_price;
-    return acc;
-  }, {});
-
-  const orderDataByDay = Object.keys(orderStatsByDay).map((key) => ({
-    date: key,
-    count: orderStatsByDay[key].count,
-    total: orderStatsByDay[key].total,
-  }));
-
-  // Выбор данных для отобржения
-  let orderData;
-  if (timeFrame === "month") {
-    orderData = orderDataByMonth;
-  } else if (timeFrame === "week") {
-    orderData = orderDataByWeek;
-  } else {
-    orderData = orderDataByDay;
-  }
-
-  // Подсчет общей информации
-  const totalOrders = filteredOrders.length;
-  const totalProfit = filteredOrders.reduce(
-    (acc, order) => acc + order.total_price,
-    0
-  );
-
   return (
     <Box sx={{ padding: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gridGap: 20 }}>
+        <FormControl variant="outlined" sx={{ mb: 2, minWidth: 120 }}>
+          <InputLabel>Статус</InputLabel>
+          <Select
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            label="Статус"
+          >
+            <MenuItem value="">
+              <em>Все</em>
+            </MenuItem>
+            <MenuItem value="pending">В ожидании</MenuItem>
+            <MenuItem value="processing">Рассмотрен</MenuItem>
+            <MenuItem value="completed">Завершен</MenuItem>
+            <MenuItem value="cancelled">Отменен</MenuItem>
+          </Select>
+        </FormControl>
+        <Button variant="contained" onClick={exportToExcel}>
+          Экспорт в Excel
+        </Button>
+      </Box>
       <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
         Таблица заказов и аналитикаческих данных
       </Typography>
@@ -255,11 +203,7 @@ const AdminOrdersTable = () => {
         </Box>
       ) : (
         <Paper sx={{ width: "100%" }}>
-          <Box sx={{ mb: 2 }}>
-            <Button variant="contained" onClick={exportToExcel}>
-              Экспорт в Excel
-            </Button>
-          </Box>
+          <Box sx={{ mb: 2 }}></Box>
           <TableContainer sx={{ overflowX: "auto", height: "600px" }}>
             <Table>
               <TableHead>
@@ -275,56 +219,63 @@ const AdminOrdersTable = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {currentItems.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>{order.fio}</TableCell>
-                    <TableCell>{order.email}</TableCell>
-                    <TableCell>{order.phone}</TableCell>
-                    <TableCell>{order.status}</TableCell>
-                    <TableCell>{order.total_price} ₽</TableCell>
-                    <TableCell>
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="contained"
-                        onClick={() => handleOrderSelect(order)}
+                {filteredOrders
+                  .slice(
+                    (currentPage - 1) * itemsPerPage,
+                    currentPage * itemsPerPage
+                  )
+                  .map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>{order.fio}</TableCell>
+                      <TableCell>{order.email}</TableCell>
+                      <TableCell>{order.phone}</TableCell>
+                      <TableCell>{order.status}</TableCell>
+                      <TableCell>{order.total_price} ₽</TableCell>
+                      <TableCell>
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="contained"
+                          onClick={() => handleOrderSelect(order)}
+                        >
+                          Корзина
+                        </Button>
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          display: "flex",
+                          gridGap: 5,
+                          flexDirection: "column",
+                        }}
                       >
-                        Корзина
-                      </Button>
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        display: "flex",
-                        gridGap: 5,
-                        flexDirection: "column",
-                      }}
-                    >
-                      <Select
-                        value={newStatuses[order.id] || order.status}
-                        onChange={(e) =>
-                          setNewStatuses((prev) => ({
-                            ...prev,
-                            [order.id]: e.target.value,
-                          }))
-                        }
-                        label="Статус"
-                      >
-                        <MenuItem value={order.status}>{order.status}</MenuItem>
-                        <MenuItem value="pending">В ожидании</MenuItem>
-                        <MenuItem value="processing">Рассмотрен</MenuItem>
-                        <MenuItem value="completed">Завершен</MenuItem>
-                        <MenuItem value="cancelled">Отменен</MenuItem>
-                      </Select>
-                      <Button
-                        variant="contained"
-                        onClick={() => handleStatusChange(order.id)}
-                      >
-                        Сохранить
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <Select
+                          value={newStatuses[order.id] || order.status}
+                          onChange={(e) =>
+                            setNewStatuses((prev) => ({
+                              ...prev,
+                              [order.id]: e.target.value,
+                            }))
+                          }
+                          label="Статус"
+                        >
+                          <MenuItem value={order.status}>
+                            {order.status}
+                          </MenuItem>
+                          <MenuItem value="pending">В ожидании</MenuItem>
+                          <MenuItem value="processing">Рассмотрен</MenuItem>
+                          <MenuItem value="completed">Завершен</MenuItem>
+                          <MenuItem value="cancelled">Отменен</MenuItem>
+                        </Select>
+                        <Button
+                          variant="contained"
+                          onClick={() => handleStatusChange(order.id)}
+                        >
+                          Сохранить
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -347,103 +298,26 @@ const AdminOrdersTable = () => {
           </Box>
         </Paper>
       )}
-
-      <FormControl variant="outlined" sx={{ mb: 2, minWidth: 120 }}>
-        <InputLabel>Статус</InputLabel>
-        <Select
-          value={statusFilter}
-          onChange={handleStatusFilterChange}
-          label="Статус"
-        >
-          <MenuItem value="">
-            <em>Все</em>
-          </MenuItem>
-          <MenuItem value="pending">В ожидании</MenuItem>
-          <MenuItem value="processing">Рассмотрен</MenuItem>
-          <MenuItem value="completed">Завершен</MenuItem>
-          <MenuItem value="cancelled">Отменен</MenuItem>
-        </Select>
-      </FormControl>
-
-      <FormControl variant="outlined" sx={{ mb: 2, minWidth: 120 }}>
-        <InputLabel>Промежуток времени</InputLabel>
-        <Select
-          value={timeFrame}
-          onChange={handleTimeFrameChange}
-          label="Промежуток времени"
-        >
-          <MenuItem value="day">По дням</MenuItem>
-          <MenuItem value="week">По неделям</MenuItem>
-          <MenuItem value="month">По месяцам</MenuItem>
-        </Select>
-      </FormControl>
-
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h6">
-          Количество заказов по статусам и росту ({timeFrame})
-        </Typography>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={orderData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-            <XAxis
-              dataKey={
-                timeFrame === "month"
-                  ? "month"
-                  : timeFrame === "week"
-                  ? "week"
-                  : "date"
-              }
-            />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar
-              type="monotone"
-              dataKey="count"
-              fill="#4CAF50"
-              strokeWidth={2}
-              barSize={20}
-              activeDot={{ r: 8 }}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </Box>
-
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6">
-          Прибыль по статусам и росту ({timeFrame})
-        </Typography>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={orderData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-            <XAxis
-              dataKey={
-                timeFrame === "month"
-                  ? "month"
-                  : timeFrame === "week"
-                  ? "week"
-                  : "date"
-              }
-            />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar
-              type="monotone"
-              dataKey="total"
-              fill="#82ca9d"
-              strokeWidth={2}
-              barSize={20}
-              activeDot={{ r: 8 }}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        <Typography variant="h6">Статистика заказов по статусам</Typography>
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Статус</TableCell>
+                <TableCell>Количество заказов</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {statusData.map((row) => (
+                <TableRow key={row.status}>
+                  <TableCell>{row.status}</TableCell>
+                  <TableCell>{row.count}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
 
       <Box sx={{ mb: 4 }}>

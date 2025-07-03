@@ -5,9 +5,9 @@ import {
   Card,
   CardContent,
   CardMedia,
-  IconButton,
   Pagination,
   Typography,
+  IconButton,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -15,6 +15,9 @@ import useProductStore from "../../../store/productStore";
 import useBascketStore from "../../../store/bascketStore";
 import { urlPictures } from "../../../constants/constants";
 import SidebarFilter from "./SidebarFilter";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 
 const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
   const isCatalog1 = e?.catalogs === 1;
@@ -31,7 +34,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           transition: "transform 0.2s, box-shadow 0.2s",
           "&:hover": {
             transform: "scale(1.05)",
-            boxShadow: " 0 8px 30px rgba(0, 0, 0, 0.2)",
+            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
           },
           display: "flex",
           flexDirection: "column",
@@ -83,8 +86,6 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
             {e.name}
           </Typography>
 
-          {/* Прочий контент */}
-
           <Box sx={{ mt: "auto" }}>
             {isCatalog1 && (
               <Box sx={{ mb: 1, display: "flex", justifyContent: "left" }}>
@@ -130,7 +131,8 @@ const CatalogDynamicCertificatePage = () => {
   const [ProductsPerPage] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const isCatalog1 = products.data?.catalogs === 1;
+  const [sortOrder, setSortOrder] = useState("default");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const category_id = id;
   let catalogs = "1,2";
@@ -151,14 +153,31 @@ const CatalogDynamicCertificatePage = () => {
       let normalizedProducts = Array.isArray(products.data)
         ? products.data
         : [products.data];
-      setCurrentProducts(normalizedProducts);
+
+      let sortedProducts = [...normalizedProducts];
+      if (sortOrder === "priceAsc") {
+        sortedProducts.sort((a, b) => a.price - b.price);
+      } else if (sortOrder === "priceDesc") {
+        sortedProducts.sort((a, b) => b.price - a.price);
+      }
+
+      setCurrentProducts(sortedProducts);
     } else {
       setCurrentProducts([]);
     }
-  }, [products]);
+  }, [products, sortOrder]);
 
   const handleChangePage = (event, value) => {
     setCurrentPage(value);
+  };
+
+  const handleSortChange = (order) => {
+    setSortOrder(order);
+    setCurrentPage(1); // Reset to first page on sort change
+  };
+
+  const toggleFilter = () => {
+    setIsFilterOpen((prev) => !prev);
   };
 
   const hendleAddProductThithBascket = useCallback(
@@ -171,9 +190,86 @@ const CatalogDynamicCertificatePage = () => {
 
   return (
     <Box sx={{ mt: 1, mb: 5 }}>
-      <Box sx={{ mb: 5 }}>
+      <Box
+        sx={{
+          mb: 3,
+          mt: 3,
+          display: "flex",
+          justifyContent: "flex-start",
+          gap: 1,
+          flexWrap: { xs: "wrap", sm: "nowrap" },
+        }}
+      >
         <SidebarFilter setFilters={setFilters} />
+        <Button
+          variant={sortOrder === "default" ? "contained" : "outlined"}
+          onClick={() => handleSortChange("default")}
+          sx={{
+            borderRadius: "20px",
+            textTransform: "none",
+            fontWeight: "medium",
+            px: { xs: 2, sm: 3 },
+            backgroundColor:
+              sortOrder === "default" ? "#00B3A4" : "transparent",
+            color: sortOrder === "default" ? "#FFFFFF" : "#00B3A4",
+            borderColor: "#00B3A4",
+            "&:hover": {
+              backgroundColor:
+                sortOrder === "default" ? "#00B3A4" : "rgba(0, 179, 164, 0.1)",
+              borderColor: "#00B3A4",
+            },
+          }}
+        >
+          По умолчанию
+        </Button>
+        <Button
+          variant={sortOrder === "priceDescx" ? "contained" : "outlined"}
+          onClick={() => handleSortChange("priceDesc")}
+          endIcon={<ArrowUpwardIcon />}
+          sx={{
+            borderRadius: "20px",
+            textTransform: "none",
+            fontWeight: "medium",
+            px: { xs: 2, sm: 3 },
+            backgroundColor:
+              sortOrder === "priceDesc" ? "#00B3A4" : "transparent",
+            color: sortOrder === "priceDesc" ? "#FFFFFF" : "#00B3A4",
+            borderColor: "#00B3A4",
+            "&:hover": {
+              backgroundColor:
+                sortOrder === "priceDesc"
+                  ? "#00B3A4"
+                  : "rgba(0, 179, 164, 0.1)",
+              borderColor: "#00B3A4",
+            },
+          }}
+        >
+          Цена
+        </Button>
+        <Button
+          variant={sortOrder === "priceAsc" ? "contained" : "outlined"}
+          onClick={() => handleSortChange("priceAsc")}
+          endIcon={<ArrowDownwardIcon />}
+          sx={{
+            borderRadius: "20px",
+            textTransform: "none",
+            fontWeight: "medium",
+            px: { xs: 2, sm: 3 },
+            backgroundColor:
+              sortOrder === "priceAsc" ? "#00B3A4" : "transparent",
+            color: sortOrder === "priceAsc" ? "#FFFFFF" : "#00B3A4",
+            borderColor: "#00B3A4",
+            "&:hover": {
+              backgroundColor:
+                sortOrder === "priceAsc" ? "#00B3A4" : "rgba(0, 179, 164, 0.1)",
+              borderColor: "#00B3A4",
+            },
+          }}
+        >
+          Цена
+        </Button>
       </Box>
+
       <Grid
         container
         spacing={{ xs: 1, md: 3 }}
