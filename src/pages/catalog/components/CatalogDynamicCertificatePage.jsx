@@ -49,7 +49,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
               position: "absolute",
               top: 0,
               left: 0,
-              backgroundColor: "#00B3A4",
+              backgroundColor: "#FFA500",
               color: "#FFFFFF",
               padding: "4px 12px",
               borderRadius: "0 0 8px 0",
