@@ -39,7 +39,7 @@ const useOrderStore = create((set, get) => ({
       //   set({ order: response.data });
       // Исправлено: проверка статуса ответа
       if (response.data.status === "success") {
-        // window.location.href = response.data.data.url;
+        window.location.href = response.data.data.url;
       }
     } catch (error) {
       toast.error(
@@ -59,7 +59,7 @@ const useOrderStore = create((set, get) => ({
           email,
           fio,
           phone_number,
-          delivery_address,
+          address: delivery_address,
         },
         {
           withCredentials: true,
