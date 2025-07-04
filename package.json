@@ -29,6 +29,8 @@
     "react-dom": "^18.3.1",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.54.1",
+    "react-html-parser": "^2.0.2",
+    "react-quill": "^2.0.0",
     "react-router-dom": "^6.27.0",
     "react-slick": "^0.30.2",
     "react-toastify": "^11.0.2",
@@ -39,7 +41,7 @@
     "slick-carousel": "^1.8.1",
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.13",
-    "swiper": "^11.2.1",
+    "swiper": "^11.2.10",
     "vite-plugin-compression": "^0.5.1",
     "websocket": "^1.0.35",
     "zustand": "^5.0.1"

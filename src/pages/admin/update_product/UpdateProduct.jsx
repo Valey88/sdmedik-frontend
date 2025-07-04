@@ -14,10 +14,12 @@ import {
   CircularProgress,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import { Delete as DeleteIcon } from "@mui/icons-material";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import useCategoryStore from "../../../store/categoryStore";
 import useProductStore from "../../../store/productStore";
 import { useParams } from "react-router-dom";
-import { Delete as DeleteIcon } from "@mui/icons-material";
 import { urlPictures } from "../../../constants/constants";
 import { toast } from "react-toastify";
 
@@ -38,7 +40,7 @@ export default function UpdateProduct() {
     del_images: [],
     tru: "",
   });
-  const [originalCharacteristics, setOriginalCharacteristics] = useState([]); // Сохраняем оригинальные характеристики
+  const [originalCharacteristics, setOriginalCharacteristics] = useState([]);
   const [characteristics, setCharacteristics] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [characteristicValues, setCharacteristicValues] = useState({});
@@ -46,39 +48,8 @@ export default function UpdateProduct() {
   const [delImages, setDelImages] = useState({});
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-
-  // const formatTRUForSubmit = (input) => {
-  //   if (!input) return "";
-
-  //   // Оставляем только цифры
-  //   let digitsOnly = input.replace(/\D/g, "");
-
-  //   // Разбиваем на части согласно шаблону
-  //   const part1 = digitsOnly.slice(0, 9); // Первые 9 цифр (NNNNNNNNN)
-  //   const part2 = digitsOnly.slice(9, 18); // Следующие 9 цифр (NNNNNNNNN)
-  //   const part3 = digitsOnly.slice(18, 22); // Год (YYYY)
-  //   const part4 = digitsOnly.slice(22, 25); // Месяц (MMM)
-  //   const part5 = digitsOnly.slice(25, 28); // ZZZ
-
-  //   // Формируем части с дополнением нулями
-  //   const formatted = [
-  //     part1.padEnd(9, "0"),
-  //     part2.padEnd(9, "0"),
-  //     part3.padEnd(4, "0"),
-  //     part4.padEnd(3, "0"),
-  //     part5.padEnd(3, "0"),
-  //   ];
-
-  //   // Собираем итоговую строку (29 символов: 28 цифр + 1 точка)
-  //   let result = `${formatted[0]}.${formatted[1]}${formatted[2]}${formatted[3]}${formatted[4]}`;
-
-  //   // Если нужно именно 30 символов, добавляем ещё нули
-  //   while (result.length < 30) {
-  //     result += "0";
-  //   }
-
-  //   return result.slice(0, 30); // Гарантируем ровно 30 символов
-  // };
+  const [isElectronicCertificate, setIsElectronicCertificate] = useState(false);
+  const [previewText, setPreviewText] = useState("");
 
   // Допустимые значения для catalogs
   const VALID_CATALOG_IDS = [1, 2];
@@ -111,8 +82,6 @@ export default function UpdateProduct() {
         tru: products.data.tru || "",
       });
 
-      // console.log(products.data.tru);
-
       setSelectedCategories(
         products.data.categories?.map((cat) => cat.id) || []
       );
@@ -141,6 +110,12 @@ export default function UpdateProduct() {
         ?.filter((cat) => selectedCats.includes(cat.id))
         .flatMap((cat) => cat.characteristic || []);
       setCharacteristics([...new Set(allCharacteristics)] || []);
+
+      // Инициализация состояния чекбокса и текста для preview
+      const hasPreview =
+        products.data.preview && products.data.preview.trim() !== "";
+      setIsElectronicCertificate(hasPreview);
+      setPreviewText(hasPreview ? products.data.preview : "");
     }
   }, [products.data, isFetching, category.data]);
 
@@ -169,6 +144,19 @@ export default function UpdateProduct() {
       );
       return updatedCatalogs;
     });
+  };
+
+  // Обработчик изменения чекбокса "Электронный сертификат"
+  const handleElectronicCertificateChange = (event) => {
+    setIsElectronicCertificate(event.target.checked);
+    if (!event.target.checked) {
+      setPreviewText("");
+    }
+  };
+
+  // Обработчик изменения текста в поле preview
+  const handlePreviewTextChange = (event) => {
+    setPreviewText(event.target.value);
   };
 
   // Обработчик изменения категорий
@@ -210,6 +198,14 @@ export default function UpdateProduct() {
     setCharacteristicValues((prevValues) => ({
       ...prevValues,
       [id]: value,
+    }));
+  };
+
+  // Обработчик изменения описания
+  const handleDescriptionChange = (value) => {
+    setProduct((prevProduct) => ({
+      ...prevProduct,
+      description: value,
     }));
   };
 
@@ -266,7 +262,7 @@ export default function UpdateProduct() {
         if (value === originalValue) {
           return {
             characteristic_id: Number(id),
-            value: originalChar.value, // Сохраняем оригинальный формат (массив строк)
+            value: originalChar.value,
           };
         }
 
@@ -283,7 +279,6 @@ export default function UpdateProduct() {
         };
       });
 
-    // const formattedTRU = formatTRUForSubmit(product.tru);
     const productData = {
       name: product.name,
       price: Number(product.price),
@@ -293,6 +288,7 @@ export default function UpdateProduct() {
       catalogs: catalogs.filter((id) => VALID_CATALOG_IDS.includes(id)),
       del_images: product.del_images,
       tru: product.tru,
+      preview: isElectronicCertificate ? previewText : "",
     };
 
     const formData = new FormData();
@@ -373,9 +369,6 @@ export default function UpdateProduct() {
                     maxLength: 30,
                   }}
                 />
-                {/* <Typography variant="caption" color="textSecondary">
-                                Формат: NNNNNNNNN.NNNNNNNNNYYYYMMMZZZ
-                              </Typography> */}
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -399,17 +392,30 @@ export default function UpdateProduct() {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  label="Описание"
+                <Typography variant="h6" gutterBottom>
+                  Описание
+                </Typography>
+                <ReactQuill
                   value={product.description}
-                  onChange={(e) =>
-                    setProduct({ ...product, description: e.target.value })
-                  }
-                  fullWidth
-                  margin="normal"
-                  multiline
-                  rows={4}
-                  required
+                  onChange={handleDescriptionChange}
+                  theme="snow"
+                  modules={{
+                    toolbar: [
+                      [{ header: [1, 2, false] }],
+                      ["bold", "italic", "underline"],
+                      [{ list: "ordered" }, { list: "bullet" }],
+                      ["clean"],
+                    ],
+                  }}
+                  formats={[
+                    "header",
+                    "bold",
+                    "italic",
+                    "underline",
+                    "list",
+                    "bullet",
+                  ]}
+                  style={{ height: "200px", marginBottom: "40px" }}
                 />
               </Grid>
 
@@ -513,6 +519,30 @@ export default function UpdateProduct() {
                   />
                 </Box>
               </Grid>
+              <Grid item xs={12}>
+                <Typography variant="h6">Шильд</Typography>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isElectronicCertificate}
+                        onChange={handleElectronicCertificateChange}
+                      />
+                    }
+                    label="Шилд для карточки товара"
+                  />
+                  {isElectronicCertificate && (
+                    <TextField
+                      label="Текст для шилда"
+                      value={previewText}
+                      onChange={handlePreviewTextChange}
+                      fullWidth
+                      margin="normal"
+                      placeholder="Введите текст"
+                    />
+                  )}
+                </Box>
+              </Grid>
 
               {/* Характеристики */}
               <Grid item xs={12}>
@@ -599,6 +629,7 @@ export default function UpdateProduct() {
                     images: products.data?.images || [],
                     price: products.data?.price || 0,
                     del_images: [],
+                    tru: products.data?.tru || "",
                   });
                   setSelectedCategories(
                     products.data?.categories?.map((cat) => cat.id) || []
@@ -620,6 +651,11 @@ export default function UpdateProduct() {
                     products.data?.characteristic || []
                   );
                   setDelImages({});
+                  const hasPreview =
+                    products.data?.preview &&
+                    products.data?.preview.trim() !== "";
+                  setIsElectronicCertificate(hasPreview);
+                  setPreviewText(hasPreview ? products.data?.preview : "");
                 }}
               >
                 Сбросить

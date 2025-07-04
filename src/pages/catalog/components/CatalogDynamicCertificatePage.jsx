@@ -39,8 +39,39 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
+          position: "relative", // For positioning the badge
         }}
       >
+        {/* Badge for preview text */}
+        {e.preview && e.preview.trim() !== "" && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              backgroundColor: "#00B3A4",
+              color: "#FFFFFF",
+              padding: "4px 12px",
+              borderRadius: "0 0 8px 0",
+              zIndex: 1,
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              maxWidth: "80%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: "bold",
+                fontSize: { xs: "0.7rem", md: "0.9rem" },
+              }}
+            >
+              {e.preview}
+            </Typography>
+          </Box>
+        )}
         <Box
           sx={{
             display: "flex",
@@ -223,7 +254,7 @@ const CatalogDynamicCertificatePage = () => {
           По умолчанию
         </Button>
         <Button
-          variant={sortOrder === "priceDescx" ? "contained" : "outlined"}
+          variant={sortOrder === "priceDesc" ? "contained" : "outlined"}
           onClick={() => handleSortChange("priceDesc")}
           endIcon={<ArrowUpwardIcon />}
           sx={{

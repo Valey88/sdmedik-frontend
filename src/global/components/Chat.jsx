@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Fab } from "@mui/material";
+import { Button, Fab } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 import ChatWindow from "./ChatWindow";
 
@@ -8,7 +8,7 @@ function Chat() {
 
   return (
     <>
-      <Fab
+      <Button
         color="primary"
         aria-label="chat"
         sx={{
@@ -20,11 +20,14 @@ function Chat() {
           "&:hover": {
             backgroundColor: "#009688",
           },
+          gridGap: 20,
+          p: 1,
         }}
         onClick={() => setIsOpen(true)}
       >
+        Напишите нам, мы онлайн
         <ChatIcon />
-      </Fab>
+      </Button>
       {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />}
     </>
   );

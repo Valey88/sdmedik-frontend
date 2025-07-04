@@ -11,7 +11,6 @@ function App() {
   const [hasShownToast, setHasShownToast] = useState(false);
 
   useEffect(() => {
-    // Устанавливаем таймер на 3 минуты (180000 мс)
     const timer = setTimeout(() => {
       if (!hasShownToast) {
         // Показываем уведомление
@@ -25,7 +24,7 @@ function App() {
         });
         setHasShownToast(true); // Устанавливаем флаг, чтобы уведомление не показывалось повторно
       }
-    }, 180000); // 3 минуты
+    }, 300000); // 30 секунд
 
     // Очищаем таймер при размонтировании компонента
     return () => clearTimeout(timer);

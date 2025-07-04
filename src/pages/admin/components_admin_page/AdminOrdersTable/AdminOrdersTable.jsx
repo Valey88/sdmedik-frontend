@@ -19,7 +19,6 @@ import {
 import XLSX from "xlsx";
 import useOrderStore from "../../../../store/orderStore";
 
-// Add the getWeek function to the Date prototype
 Date.prototype.getWeek = function () {
   const date = new Date(this.getTime());
   date.setHours(0, 0, 0, 0);
@@ -79,7 +78,6 @@ const AdminOrdersTable = () => {
     fetchOrders();
   };
 
-  // Подсчет заказов по статусам
   const statusStats = filteredOrders.reduce((acc, order) => {
     const status = order.status;
     if (!acc[status]) {
@@ -89,7 +87,6 @@ const AdminOrdersTable = () => {
     return acc;
   }, {});
 
-  // Преобразование в массив для таблицы
   const statusData = [
     { status: "В ожидании", count: statusStats["pending"] || 0 },
     { status: "Рассмотрен", count: statusStats["processing"] || 0 },
@@ -97,14 +94,12 @@ const AdminOrdersTable = () => {
     { status: "Отменен", count: statusStats["cancelled"] || 0 },
   ];
 
-  // Подсчет общей информации
   const totalOrders = filteredOrders.length;
   const totalProfit = filteredOrders.reduce(
     (acc, order) => acc + order.total_price,
     0
   );
 
-  // Function to export table to Excel
   const exportToExcel = () => {
     const data = filteredOrders.map((order) => ({
       ФИО: order.fio,
@@ -161,6 +156,7 @@ const AdminOrdersTable = () => {
           <Typography>Email: {selectedOrder.email}</Typography>
           <Typography>Телефон: {selectedOrder.phone}</Typography>
           <Typography>ФИО: {selectedOrder.fio}</Typography>
+          <Typography>Адрес доставки: {selectedOrder.address}</Typography>
           <Typography>Статус: {selectedOrder.status}</Typography>
           <Typography>
             Общая стоимость: {selectedOrder.total_price} ₽
@@ -183,6 +179,7 @@ const AdminOrdersTable = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Название</TableCell>
+                  <TableCell>Опции</TableCell>
                   <TableCell>Количество</TableCell>
                   <TableCell>Цена за штуку</TableCell>
                   <TableCell>Полная стоимость</TableCell>
@@ -192,6 +189,11 @@ const AdminOrdersTable = () => {
                 {selectedOrder.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
+                    {item.selected_options.map((i) => (
+                      <TableCell>
+                        {i.name}: {i.value}
+                      </TableCell>
+                    ))}
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>{item.price} ₽</TableCell>
                     <TableCell>{item.total_price} ₽</TableCell>

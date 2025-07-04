@@ -48,30 +48,6 @@ const TabPanel = memo(({ children, value, index, ...other }) => (
   </Box>
 ));
 
-// Функция для форматирования описания
-const formatDescription = (description) => {
-  if (!description) return ["Описание отсутствует"];
-
-  // Разделяем текст на предложения по точке, убирая лишние пробелы
-  const sentences = description
-    .split(".")
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence !== "");
-
-  // Если предложений меньше 2, возвращаем текст как есть
-  if (sentences.length <= 1) return [description];
-
-  // Объединяем предложения в абзацы (по 2 предложения в абзац)
-  const paragraphs = [];
-  for (let i = 0; i < sentences.length; i += 2) {
-    const paragraph =
-      sentences.slice(i, i + 2).join(". ") + (sentences[i + 1] ? "." : "");
-    paragraphs.push(paragraph);
-  }
-
-  return paragraphs;
-};
-
 export default function ProductDynamicCertificatePage() {
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [images, setImages] = useState([]);
@@ -85,7 +61,7 @@ export default function ProductDynamicCertificatePage() {
   const { id } = useParams();
 
   // Maximum quantity allowed in cart
-  const MAX_QUANTITY = 999; // Updated to 999 as requested
+  const MAX_QUANTITY = 999;
 
   // Категории, требующие выбора размера
   const SIZE_CATEGORIES = [
@@ -570,6 +546,8 @@ export default function ProductDynamicCertificatePage() {
                   </IconButton>
                   <TextField
                     value={quantity}
+                    on
+                    Ascending
                     onChange={handleQuantityChange}
                     inputProps={{
                       min: 1,
@@ -607,13 +585,6 @@ export default function ProductDynamicCertificatePage() {
                   >
                     <Add fontSize="small" />
                   </IconButton>
-                  {/* <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: 1 }}
-                >
-                  (Макс: {MAX_QUANTITY})
-                </Typography> */}
                 </Box>
                 <Button
                   variant="contained"
@@ -687,24 +658,24 @@ export default function ProductDynamicCertificatePage() {
           </Tabs>
           <TabPanel value={tabValue} index={0}>
             <Box sx={{ mt: 2 }}>
-              {formatDescription(products.data?.description).map(
-                (paragraph, index) => (
-                  <Typography
-                    key={index}
-                    variant="body1"
-                    sx={{
-                      mb: 2,
-                      wordBreak: "break-word",
-                      overflowWrap: "break-word",
-                      whiteSpace: "normal",
-                      lineHeight: 1.5,
-                      fontSize: { xs: "0.9rem", md: "1rem" },
-                      color: "#424242",
-                    }}
-                  >
-                    {paragraph}
-                  </Typography>
-                )
+              {products.data?.description ? (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: products.data.description,
+                  }}
+                  style={{
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                    whiteSpace: "normal",
+                    lineHeight: 1.5,
+                    fontSize: { xs: "0.9rem", md: "1rem" },
+                    color: "#424242",
+                  }}
+                />
+              ) : (
+                <Typography variant="body1" sx={{ color: "#424242" }}>
+                  Описание отсутствует
+                </Typography>
               )}
             </Box>
           </TabPanel>
