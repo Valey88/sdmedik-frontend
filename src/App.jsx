@@ -6,9 +6,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import useUserStore from "./store/userStore";
 import Chat from "./global/components/Chat";
+import ChatWindow from "./global/components/ChatWindow";
 
 function App() {
   const [hasShownToast, setHasShownToast] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -22,9 +24,10 @@ function App() {
           pauseOnHover: true,
           draggable: true,
         });
-        setHasShownToast(true); // Устанавливаем флаг, чтобы уведомление не показывалось повторно
+        setHasShownToast(true); // Устанавливаем флаг, чтобы уведомление и чат не открывались повторно
+        setIsOpen(true); // Открываем чат
       }
-    }, 300000); // 30 секунд
+    }, 30000); // 10 секунд
 
     // Очищаем таймер при размонтировании компонента
     return () => clearTimeout(timer);
@@ -35,6 +38,7 @@ function App() {
       <RouterProvider router={router} />
       <ToastContainer />
       <Chat />
+      {isOpen && <ChatWindow onClose={() => setIsOpen(false)} />}
     </Box>
   );
 }

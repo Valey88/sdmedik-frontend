@@ -4,15 +4,15 @@ import {
   Button,
   Drawer,
   IconButton,
-  Slider,
   Typography,
-  FormControlLabel,
+  TextField,
+  styled,
+  CircularProgress,
   Checkbox,
+  FormControlLabel,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  TextField,
-  styled,
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,23 +23,82 @@ import useProductStore from "../../../store/productStore";
 
 const CustomTextField = styled(TextField)({
   "& .MuiOutlinedInput-root": {
+    borderRadius: "8px",
+    backgroundColor: "#f8f9fa",
     "& fieldset": {
       borderColor: "#26BDB8",
     },
     "&:hover fieldset": {
-      borderColor: "#26BDB8",
+      borderColor: "#00B3A4",
     },
     "&.Mui-focused fieldset": {
-      borderColor: "#26BDB8",
+      borderColor: "#00B3A4",
+    },
+  },
+  "& .MuiInputLabel-root": {
+    color: "#666",
+    "&.Mui-focused": {
+      color: "#00B3A4",
     },
   },
 });
 
+const StyledAccordion = styled(Accordion)({
+  border: "none",
+  boxShadow: "none",
+  "&:before": {
+    display: "none",
+  },
+  "&.Mui-expanded": {
+    margin: "0",
+  },
+});
+
+const StyledAccordionSummary = styled(AccordionSummary)({
+  backgroundColor: "#f8f9fa",
+  borderRadius: "8px",
+  marginBottom: "8px",
+  "&:hover": {
+    backgroundColor: "rgba(0, 179, 164, 0.05)",
+  },
+  "& .MuiAccordionSummary-content": {
+    margin: "12px 0",
+  },
+});
+
+const StyledFormControlLabel = styled(FormControlLabel)(({ theme }) => ({
+  margin: 0,
+  padding: "8px 0",
+  "& .MuiCheckbox-root": {
+    color: "#26BDB8",
+    "&.Mui-checked": {
+      color: "#00B3A4",
+    },
+    "&:hover": {
+      backgroundColor: "rgba(0, 179, 164, 0.1)",
+    },
+  },
+  "& .MuiTypography-root": {
+    fontSize: "0.95rem",
+    color: "#333",
+    fontWeight: 400,
+  },
+  "&:hover": {
+    backgroundColor: "rgba(0, 179, 164, 0.05)",
+  },
+  transition: "all 0.2s ease",
+  [theme.breakpoints.down("sm")]: {
+    "& .MuiTypography-root": {
+      fontSize: "0.9rem",
+    },
+  },
+}));
+
 const SidebarFilter = ({ setFilters }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(0);
-  const { fetchFilter, filters } = useFilterStore();
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const { fetchFilter, filters, loading } = useFilterStore();
   const { fetchProducts } = useProductStore();
   const [selectedValues, setSelectedValues] = useState([]);
   const { id } = useParams();
@@ -65,7 +124,7 @@ const SidebarFilter = ({ setFilters }) => {
     setDrawerOpen(!drawerOpen);
   };
 
-  const handleChangeCheckbox = (event, characteristicId, value) => {
+  const handleChangeCheckbox = (characteristicId, value) => {
     const updatedSelectedValues = [...selectedValues];
     const index = updatedSelectedValues.findIndex(
       (item) => item.characteristic_id === characteristicId
@@ -73,12 +132,12 @@ const SidebarFilter = ({ setFilters }) => {
 
     if (index !== -1) {
       const currentCharacteristic = updatedSelectedValues[index];
-      if (event.target.checked) {
-        currentCharacteristic.values.push(value);
-      } else {
+      if (currentCharacteristic.values.includes(value)) {
         currentCharacteristic.values = currentCharacteristic.values.filter(
           (v) => v !== value
         );
+      } else {
+        currentCharacteristic.values.push(value);
       }
       setSelectedValues(updatedSelectedValues);
     }
@@ -87,8 +146,8 @@ const SidebarFilter = ({ setFilters }) => {
   const handleApplyFilters = async () => {
     const filterData = {
       price: {
-        min: minPrice,
-        max: maxPrice,
+        min: minPrice ? Number(minPrice) : 0,
+        max: maxPrice ? Number(maxPrice) : 0,
       },
       characteristics: selectedValues
         .filter((characteristic) => characteristic.values.length > 0)
@@ -99,37 +158,46 @@ const SidebarFilter = ({ setFilters }) => {
     };
 
     const jsonData = JSON.stringify(filterData);
-    fetchProducts(category_id, jsonData);
+    await fetchProducts(category_id, jsonData);
+    toggleDrawer();
   };
 
   const handleResetFilters = () => {
-    setSelectedValues([]);
-    setMinPrice(0);
-    setMaxPrice(0);
+    setSelectedValues(
+      filters.data.characteristics.map((filter) => ({
+        characteristic_id: filter.id,
+        values: [],
+      }))
+    );
+    setMinPrice("");
+    setMaxPrice("");
     fetchProducts(category_id, null);
+    toggleDrawer();
   };
 
   return (
     <Box sx={{ display: "flex" }}>
       <Button
         variant="outlined"
+        startIcon={<FilterListIcon />}
         sx={{
-          borderRadius: "20px",
+          borderRadius: "12px",
           textTransform: "none",
-          fontWeight: "medium",
-          px: { xs: 2, sm: 3 },
-
+          fontWeight: 500,
+          px: { xs: 2.5, sm: 3.5 },
+          py: 1,
           color: "#00B3A4",
           borderColor: "#00B3A4",
+          backgroundColor: "rgba(0, 179, 164, 0.05)",
           "&:hover": {
             backgroundColor: "rgba(0, 179, 164, 0.1)",
             borderColor: "#00B3A4",
           },
+          transition: "all 0.3s ease",
         }}
         onClick={toggleDrawer}
       >
-        Фильтр
-        <FilterListIcon />
+        Фильтры
       </Button>
 
       <Drawer
@@ -138,130 +206,196 @@ const SidebarFilter = ({ setFilters }) => {
         onClose={toggleDrawer}
         sx={{
           "& .MuiDrawer-paper": {
-            width: { xs: "100%", sm: "100%", md: "350px" },
+            width: { xs: "85%", sm: "400px", md: "450px" },
+            maxWidth: "100%",
             height: "100vh",
+            backgroundColor: "#fff",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            transition: "transform 0.3s ease-in-out",
           },
         }}
       >
-        <Box sx={{ padding: 2, height: "100vh", position: "relative" }}>
-          <IconButton
-            onClick={toggleDrawer}
-            sx={{ position: "absolute", right: 16, top: 16 }}
-          >
-            <CloseIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: "bold", color: "#00B3A4" }}
-          >
-            Фильтр
-          </Typography>
-          <Box sx={{ mt: 2 }}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body">Цена</Typography>
-            </Box>
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <Box sx={{ p: 3, borderBottom: "1px solid #f0f0f0" }}>
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                gridGap: "20px",
+                alignItems: "center",
               }}
             >
-              <CustomTextField
-                variant="outlined"
-                placeholder="От"
-                onChange={(e) => setMinPrice(Number(e.target.value))}
-                sx={{ width: "48%", mt: 2, color: "#00B3A4" }}
-              />
-              <CustomTextField
-                variant="outlined"
-                placeholder="До"
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                sx={{ width: "48%", mt: 2, color: "#00B3A4" }}
-              />
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 600, color: "#00B3A4" }}
+              >
+                Фильтры
+              </Typography>
+              <IconButton onClick={toggleDrawer}>
+                <CloseIcon sx={{ color: "#666" }} />
+              </IconButton>
             </Box>
-            {filters &&
-            filters.data &&
-            filters.data.characteristics &&
-            filters.data.characteristics.length > 0 ? (
-              filters.data.characteristics.map((char) => (
-                <Accordion sx={{ mt: 2, mb: 2 }} key={char.id}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>{char.name}</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    {char.values.map((value) => (
-                      <FormControlLabel
-                        key={`${char.id}-${value}`}
-                        control={
-                          <Checkbox
-                            sx={{
-                              color: "#00B3A4",
-                              "&.Mui-checked": { color: "#00B3A4" },
-                            }}
-                            checked={selectedValues.some(
-                              (c) =>
-                                c.characteristic_id === char.id &&
-                                c.values.includes(value)
-                            )}
-                            onChange={(e) =>
-                              handleChangeCheckbox(e, char.id, value)
-                            }
-                          />
-                        }
-                        label={
-                          typeof value === "boolean" ? (
-                            <>{value ? "Есть" : "Нету"}</>
-                          ) : (
-                            value
-                          )
-                        }
-                      />
-                    ))}
-                  </AccordionDetails>
-                </Accordion>
-              ))
+          </Box>
+
+          <Box sx={{ flex: 1, overflowY: "auto", px: 3, py: 2 }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress sx={{ color: "#00B3A4" }} />
+              </Box>
             ) : (
-              <Typography>Нет доступных фильтров</Typography>
+              <>
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 500, mb: 2 }}
+                  >
+                    Цена
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <CustomTextField
+                      label="От"
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      sx={{ flex: 1 }}
+                      InputProps={{ inputProps: { min: 0 } }}
+                    />
+                    <CustomTextField
+                      label="До"
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      sx={{ flex: 1 }}
+                      InputProps={{ inputProps: { min: 0 } }}
+                    />
+                  </Box>
+                </Box>
+
+                {filters &&
+                filters.data &&
+                filters.data.characteristics &&
+                filters.data.characteristics.length > 0 ? (
+                  filters.data.characteristics.map((char) => (
+                    <StyledAccordion key={char.id}>
+                      <StyledAccordionSummary
+                        expandIcon={
+                          <ExpandMoreIcon sx={{ color: "#00B3A4" }} />
+                        }
+                      >
+                        <Typography sx={{ fontWeight: 500, color: "#333" }}>
+                          {char.name}
+                        </Typography>
+                      </StyledAccordionSummary>
+                      <AccordionDetails sx={{ backgroundColor: "#fff", py: 2 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.5,
+                            maxHeight: "200px",
+                            overflowY: "auto",
+                            padding: "8px 0",
+                          }}
+                        >
+                          {char.values.map((value, index) => (
+                            <StyledFormControlLabel
+                              key={`${char.id}-${value}`}
+                              control={
+                                <Checkbox
+                                  checked={selectedValues.some(
+                                    (c) =>
+                                      c.characteristic_id === char.id &&
+                                      c.values.includes(value)
+                                  )}
+                                  onChange={() =>
+                                    handleChangeCheckbox(char.id, value)
+                                  }
+                                />
+                              }
+                              label={
+                                typeof value === "boolean"
+                                  ? value
+                                    ? "Есть"
+                                    : "Нету"
+                                  : value
+                              }
+                              sx={{
+                                borderBottom:
+                                  index < char.values.length - 1
+                                    ? "1px solid #f0f0f0"
+                                    : "none",
+                                py: 0.5,
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </AccordionDetails>
+                    </StyledAccordion>
+                  ))
+                ) : (
+                  <Typography sx={{ color: "#666", py: 2 }}>
+                    Нет доступных фильтров
+                  </Typography>
+                )}
+              </>
             )}
           </Box>
+
           <Box
             sx={{
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              mt: 2,
-              gridGap: 30,
+              p: 3,
+              borderTop: "1px solid #f0f0f0",
+              backgroundColor: "#fff",
+              boxShadow: "0 -2px 5px rgba(0,0,0,0.05)",
             }}
           >
-            <Button
-              sx={{
-                background: "#00B3A4",
-                color: "white",
-                height: "50px",
-                width: { xs: "30%", md: "150px" },
-              }}
-              onClick={() => {
-                handleApplyFilters();
-                toggleDrawer();
-              }}
-            >
-              Применить фильтры
-            </Button>
-            <Button
-              sx={{
-                background: "#E74C3C",
-                color: "white",
-                height: "50px",
-                width: { xs: "30%", md: "150px" },
-              }}
-              onClick={() => {
-                handleResetFilters();
-                toggleDrawer();
-              }}
-            >
-              Сбросить фильтры
-            </Button>
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+              <Button
+                variant="contained"
+                onClick={handleApplyFilters}
+                disabled={loading}
+                sx={{
+                  backgroundColor: "#00B3A4",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  px: 3,
+                  py: 1.5,
+                  "&:hover": {
+                    backgroundColor: "#26BDB8",
+                  },
+                  "&:disabled": {
+                    backgroundColor: "#ccc",
+                  },
+                }}
+              >
+                Применить
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleResetFilters}
+                disabled={loading}
+                sx={{
+                  borderColor: "#E74C3C",
+                  color: "#E74C3C",
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  px: 3,
+                  py: 1.5,
+                  "&:hover": {
+                    backgroundColor: "rgba(231, 76, 60, 0.05)",
+                    borderColor: "#E74C3C",
+                  },
+                  "&:disabled": {
+                    borderColor: "#ccc",
+                    color: "#ccc",
+                  },
+                }}
+              >
+                Сбросить
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Drawer>
