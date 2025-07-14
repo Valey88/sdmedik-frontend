@@ -90,9 +90,17 @@ const AdminOrdersTable = () => {
   const statusData = [
     { status: "В ожидании", count: statusStats["pending"] || 0 },
     { status: "Рассмотрен", count: statusStats["processing"] || 0 },
+    { status: "Оплачен", count: statusStats["paid"] || 0 },
     { status: "Завершен", count: statusStats["completed"] || 0 },
     { status: "Отменен", count: statusStats["cancelled"] || 0 },
   ];
+  const statusTranslations = {
+    pending: "В ожидании",
+    paid: "Оплачен",
+    processing: "Рассмотрен",
+    completed: "Завершен",
+    cancelled: "Отменен",
+  };
 
   const totalOrders = filteredOrders.length;
   const totalProfit = filteredOrders.reduce(
@@ -130,6 +138,7 @@ const AdminOrdersTable = () => {
               <em>Все</em>
             </MenuItem>
             <MenuItem value="pending">В ожидании</MenuItem>
+            <MenuItem value="paid">Оплачен</MenuItem>
             <MenuItem value="processing">Рассмотрен</MenuItem>
             <MenuItem value="completed">Завершен</MenuItem>
             <MenuItem value="cancelled">Отменен</MenuItem>
@@ -231,7 +240,10 @@ const AdminOrdersTable = () => {
                       <TableCell>{order.fio}</TableCell>
                       <TableCell>{order.email}</TableCell>
                       <TableCell>{order.phone}</TableCell>
-                      <TableCell>{order.status}</TableCell>
+                      <TableCell sx={{ width: "100%" }}>
+                        {statusTranslations[order.status] ||
+                          "Неизвестный статус"}
+                      </TableCell>
                       <TableCell>{order.total_price} ₽</TableCell>
                       <TableCell>
                         {new Date(order.created_at).toLocaleDateString()}
@@ -261,10 +273,12 @@ const AdminOrdersTable = () => {
                           }
                           label="Статус"
                         >
-                          <MenuItem value={order.status}>
-                            {order.status}
-                          </MenuItem>
+                          {/* <MenuItem value={order.status}>
+                            {statusTranslations[order.status] ||
+                              "Неизвестный статус"}
+                          </MenuItem> */}
                           <MenuItem value="pending">В ожидании</MenuItem>
+                          {/* <MenuItem value="paid">Оплачен</MenuItem> */}
                           <MenuItem value="processing">Рассмотрен</MenuItem>
                           <MenuItem value="completed">Завершен</MenuItem>
                           <MenuItem value="cancelled">Отменен</MenuItem>
