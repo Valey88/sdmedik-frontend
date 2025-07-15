@@ -16,6 +16,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import XLSX from "xlsx";
 import useOrderStore from "../../../../store/orderStore";
 
@@ -35,6 +36,7 @@ const AdminOrdersTable = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [newStatuses, setNewStatuses] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchOrders();
@@ -76,6 +78,30 @@ const AdminOrdersTable = () => {
       setNewStatuses((prev) => ({ ...prev, [order_id]: "" }));
     }
     fetchOrders();
+  };
+
+  const handleChatNavigation = (order) => {
+    if (!order.fragment_link) {
+      console.error("fragment_link отсутствует для заказа:", order.id);
+      return;
+    }
+    try {
+      const url = new URL(order.fragment_link);
+      const fragmentId = url.searchParams.get("fragment");
+      const chatId = url.searchParams.get("chat_id");
+      if (!chatId || !fragmentId) {
+        console.error("Некорректный fragment_link:", order.fragment_link);
+        return;
+      }
+      console.log("Navigating to chat:", {
+        orderId: order.id,
+        chatId,
+        fragmentId,
+      });
+      navigate(`/admin/admin_chat?chat_id=${chatId}&fragment=${fragmentId}`);
+    } catch (err) {
+      console.error("Ошибка парсинга fragment_link:", err, order.fragment_link);
+    }
   };
 
   const statusStats = filteredOrders.reduce((acc, order) => {
@@ -149,7 +175,7 @@ const AdminOrdersTable = () => {
         </Button>
       </Box>
       <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
-        Таблица заказов и аналитикаческих данных
+        Таблица заказов и аналитических данных
       </Typography>
 
       {selectedOrder ? (
@@ -166,7 +192,9 @@ const AdminOrdersTable = () => {
           <Typography>Телефон: {selectedOrder.phone}</Typography>
           <Typography>ФИО: {selectedOrder.fio}</Typography>
           <Typography>Адрес доставки: {selectedOrder.address}</Typography>
-          <Typography>Статус: {selectedOrder.status}</Typography>
+          <Typography>
+            Статус: {statusTranslations[selectedOrder.status]}
+          </Typography>
           <Typography>
             Общая стоимость: {selectedOrder.total_price} ₽
           </Typography>
@@ -174,6 +202,14 @@ const AdminOrdersTable = () => {
             Дата создания:{" "}
             {new Date(selectedOrder.created_at).toLocaleDateString()}
           </Typography>
+          <Button
+            variant="contained"
+            onClick={() => handleChatNavigation(selectedOrder)}
+            disabled={!selectedOrder.fragment_link}
+            sx={{ mt: 1 }}
+          >
+            Диалог с покупателем
+          </Button>
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" onClick={handleBackToOrders}>
               Назад к списку заказов
@@ -198,8 +234,8 @@ const AdminOrdersTable = () => {
                 {selectedOrder.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
-                    {item.selected_options.map((i) => (
-                      <TableCell>
+                    {item.selected_options.map((i, index) => (
+                      <TableCell key={index}>
                         {i.name}: {i.value}
                       </TableCell>
                     ))}
@@ -273,12 +309,7 @@ const AdminOrdersTable = () => {
                           }
                           label="Статус"
                         >
-                          {/* <MenuItem value={order.status}>
-                            {statusTranslations[order.status] ||
-                              "Неизвестный статус"}
-                          </MenuItem> */}
                           <MenuItem value="pending">В ожидании</MenuItem>
-                          {/* <MenuItem value="paid">Оплачен</MenuItem> */}
                           <MenuItem value="processing">Рассмотрен</MenuItem>
                           <MenuItem value="completed">Завершен</MenuItem>
                           <MenuItem value="cancelled">Отменен</MenuItem>

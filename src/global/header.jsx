@@ -74,7 +74,7 @@ export default function Header() {
   //   location.pathname.startsWith("/product/certificate/");
 
   return (
-    <AppBar position="sticky" sx={{ background: "white", p: 1 }}>
+    <AppBar position="relative" sx={{ background: "white", p: 1 }}>
       <Container>
         <StyledToolbar>
           <Box
