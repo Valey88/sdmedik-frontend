@@ -15,6 +15,9 @@ import {
   CircularProgress,
   IconButton,
   styled,
+  Dialog,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
@@ -50,7 +53,7 @@ const DateDivider = styled(Box)(({ theme }) => ({
   },
 }));
 
-const SIDEBAR_WIDTH = 260;
+const SIDEBAR_WIDTH = 360;
 const MESSAGE_GAP = 5 * 60 * 1000; // 5 минут в миллисекундах
 
 export default function AdminChat() {
@@ -68,9 +71,11 @@ export default function AdminChat() {
   const [isAdminLoaded, setIsAdminLoaded] = useState(false);
   const [fragments, setFragments] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(null);
   const ws = useRef(null);
   const messagesEndRef = useRef(null);
   const fragmentRefs = useRef({});
+  const chatContainerRef = useRef(null); // Реф для контейнера чата
   const processedMessages = useRef(new Set());
   const { getUserInfo, user } = useUserStore();
   const location = useLocation();
@@ -130,7 +135,7 @@ export default function AdminChat() {
   const fetchFragments = async (chatId) => {
     try {
       const response = await api.get(`/chat/${chatId}/fragments`);
-      console.log("Fragments API response:", response.data); // Логирование ответа API
+      console.log("Fragments API response:", response.data);
       const fragmentsData = response.data || [];
       const formattedFragments = fragmentsData.map((fragment) => ({
         id: fragment.id,
@@ -141,7 +146,7 @@ export default function AdminChat() {
             id: msg.id,
             text,
             sender_id: msg.sender_id,
-          }); // Логирование каждого сообщения
+          });
           return {
             id: msg.id,
             text,
@@ -177,7 +182,7 @@ export default function AdminChat() {
           };
         })
       );
-      console.log("New messages from fragments:", newMessages); // Логирование новых сообщений
+      console.log("New messages from fragments:", newMessages);
       setMessages((prev) => [...prev, ...newMessages]);
 
       if (chatId && adminSenderId) {
@@ -255,6 +260,7 @@ export default function AdminChat() {
     } catch (err) {
       setError("Не удалось удалить чат: " + err.message);
     }
+    setOpenDeleteDialog(null);
   };
 
   // Обновление типов сообщений после загрузки adminSenderId
@@ -270,7 +276,7 @@ export default function AdminChat() {
 
   // Обработка сообщений WebSocket
   const handleWebSocketMessage = (event) => {
-    console.log("WebSocket message received:", event.data); // Логирование входящих данных
+    console.log("WebSocket message received:", event.data);
     if (!isValidJSON(event.data)) {
       const messageKey = `${event.data}-${new Date().toISOString()}`;
       if (processedMessages.current.has(messageKey)) return;
@@ -592,27 +598,26 @@ export default function AdminChat() {
       if (isConnected) sendJoinEvent(chatIdFromUrl);
     }
 
-    // Прокрутка к фрагменту после загрузки данных
-    if (fragmentId && !isLoadingHistory && fragments.length > 0) {
+    // Прокрутка только к фрагменту внутри контейнера чата
+    if (
+      chatContainerRef.current &&
+      !isLoadingHistory &&
+      fragmentId &&
+      fragmentRefs.current[fragmentId]
+    ) {
       setTimeout(() => {
-        if (fragmentRefs.current[fragmentId]) {
-          fragmentRefs.current[fragmentId].scrollIntoView({
-            behavior: "smooth",
-          });
-        }
-      }, 100);
-    } else if (!fragmentId && messages.length > 0 && !isLoadingHistory) {
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+        const fragmentElement = fragmentRefs.current[fragmentId];
+        fragmentElement.scrollIntoView({ behavior: "smooth" });
+        // Корректировка скролла контейнера чата
+        const container = chatContainerRef.current;
+        const offset = fragmentElement.offsetTop - container.offsetTop;
+        container.scrollTop = offset;
       }, 100);
     }
   }, [
     location.search,
     isLoadingHistory,
     fragments,
-    messages,
     isConnected,
     isAdminLoaded,
   ]);
@@ -749,7 +754,7 @@ export default function AdminChat() {
                   variant="caption"
                   color="#708499"
                   noWrap
-                  sx={{ maxWidth: { xs: 100, sm: 140 }, fontSize: "0.85rem" }}
+                  sx={{ maxWidth: { xs: 140, sm: 180 }, fontSize: "0.85rem" }}
                 >
                   {(
                     lastMessage.message ||
@@ -782,15 +787,6 @@ export default function AdminChat() {
             </Box>
           }
         />
-        <IconButton
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteChat(room.id);
-          }}
-          sx={{ color: "#F44336" }}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
       </ListItem>
     );
   };
@@ -1132,6 +1128,7 @@ export default function AdminChat() {
         flexDirection: { xs: "column", sm: "row" },
         p: 0,
         fontFamily: "Roboto, sans-serif",
+        overflow: "hidden", // Предотвращаем скролл всей страницы
       }}
     >
       <Box
@@ -1142,6 +1139,7 @@ export default function AdminChat() {
           display: { xs: selectedChatId ? "none" : "flex", sm: "flex" },
           flexDirection: "column",
           height: { xs: "100%", sm: "100vh" },
+          overflowY: "auto", // Скролл для боковой панели
         }}
       >
         <Box
@@ -1208,6 +1206,7 @@ export default function AdminChat() {
           flexDirection: "column",
           width: { xs: "100%", sm: `calc(100% - ${SIDEBAR_WIDTH}px)` },
           bgcolor: "#FFFFFF",
+          height: "100vh", // Фиксируем высоту контейнера чата
         }}
       >
         <Box
@@ -1242,15 +1241,41 @@ export default function AdminChat() {
               >
                 {messages.length} сообщений
               </Typography>
+
               <Button
                 onClick={handleCloseChat}
                 sx={{ color: "#F44336", fontSize: "0.9rem" }}
               >
                 Закрыть
               </Button>
+              <Button
+                onClick={() => setOpenDeleteDialog(selectedChatId)}
+                sx={{ color: "#F44336", mr: 1 }}
+              >
+                удалить чат
+                <DeleteIcon fontSize="small" />
+              </Button>
             </>
           )}
         </Box>
+
+        <Dialog
+          open={!!openDeleteDialog}
+          onClose={() => setOpenDeleteDialog(null)}
+        >
+          <DialogTitle>
+            Удалить чат {openDeleteDialog?.split("-")[0]}?
+          </DialogTitle>
+          <DialogActions>
+            <Button onClick={() => setOpenDeleteDialog(null)}>Отмена</Button>
+            <Button
+              onClick={() => handleDeleteChat(openDeleteDialog)}
+              color="error"
+            >
+              Удалить
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {error && (
           <Box sx={{ p: 2, bgcolor: "#FFEBEE" }}>
@@ -1265,10 +1290,12 @@ export default function AdminChat() {
         )}
 
         <Box
+          ref={chatContainerRef}
           sx={{
             flexGrow: 1,
-            overflowY: "auto",
-            maxHeight: "calc(100vh - 140px)",
+            overflowY: "auto", // Скролл только внутри контейнера чата
+            position: "relative",
+            maxHeight: { xs: "calc(100vh - 180px)", sm: "calc(100vh - 140px)" }, // Учитываем заголовок и поле ввода
             WebkitOverflowScrolling: "touch",
             p: 2,
             bgcolor: "#FFFFFF",

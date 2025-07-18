@@ -24,7 +24,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: "flex",
-  gridGap: "25px",
+  gridGap: "5px",
   flexDirection: "column",
   position: "relative",
   [theme.breakpoints.down("lg")]: {
@@ -89,9 +89,7 @@ export default function Header() {
             <Box sx={{ display: "flex", gridGap: 20 }}>
               <Logo />
             </Box>
-
             <Search />
-
             <Box sx={{ display: "flex", alignItems: "center", gridGap: 20 }}>
               <ContactMenu />
             </Box>
@@ -112,7 +110,6 @@ export default function Header() {
                 gridGap: 10,
               }}
             >
-              {/* {!shouldHideCatalogButton && ( // Условие для отображения кнопки "Каталог" */}
               <CatalogButtons />
             </Box>
             <Box>

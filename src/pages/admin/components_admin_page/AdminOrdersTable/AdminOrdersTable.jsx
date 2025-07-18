@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Button,
@@ -15,6 +15,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Container,
+  TextField,
+  CircularProgress,
+  Tooltip,
+  TableSortLabel,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import XLSX from "xlsx";
@@ -32,35 +37,89 @@ const AdminOrdersTable = () => {
   const { fetchOrders, orders, changeStatus } = useOrderStore();
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [newStatuses, setNewStatuses] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [sortConfig, setSortConfig] = useState({
+    key: "created_at",
+    direction: "desc",
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    const loadOrders = async () => {
+      setLoading(true);
+      try {
+        await fetchOrders();
+      } catch (err) {
+        setError("Ошибка загрузки заказов");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadOrders();
+  }, [fetchOrders]);
 
   useEffect(() => {
     if (Array.isArray(orders.data)) {
-      setFilteredOrders(orders.data);
+      let filtered = orders.data;
+
+      // Apply status filter
+      if (statusFilter) {
+        filtered = filtered.filter((order) => order.status === statusFilter);
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        filtered = filtered.filter(
+          (order) =>
+            order.fio.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.phone.includes(searchQuery)
+        );
+      }
+
+      // Apply sorting
+      filtered = [...filtered].sort((a, b) => {
+        const key = sortConfig.key;
+        const direction = sortConfig.direction === "asc" ? 1 : -1;
+        if (key === "created_at") {
+          return direction * (new Date(a[key]) - new Date(b[key]));
+        }
+        return direction * String(a[key]).localeCompare(String(b[key]));
+      });
+
+      setFilteredOrders(filtered);
     }
-  }, [orders]);
+  }, [orders, statusFilter, searchQuery, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
 
   const handleStatusFilterChange = (event) => {
-    const value = event.target.value;
-    setStatusFilter(value);
-    if (value) {
-      setFilteredOrders(orders.data.filter((order) => order.status === value));
-    } else {
-      setFilteredOrders(orders.data);
-    }
+    setStatusFilter(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
     setCurrentPage(1);
   };
 
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
+  };
+
+  const handleItemsPerPageChange = (event) => {
+    setItemsPerPage(Number(event.target.value));
+    setCurrentPage(1);
   };
 
   const handleOrderSelect = (order) => {
@@ -71,18 +130,21 @@ const AdminOrdersTable = () => {
     setSelectedOrder(null);
   };
 
-  const handleStatusChange = async (order_id) => {
-    const status = newStatuses[order_id];
-    if (status) {
+  const handleStatusChange = async (order_id, status) => {
+    setLoading(true);
+    try {
       await changeStatus(order_id, status);
-      setNewStatuses((prev) => ({ ...prev, [order_id]: "" }));
+      fetchOrders();
+    } catch (err) {
+      setError(`Ошибка изменения статуса заказа ${order_id}`);
+    } finally {
+      setLoading(false);
     }
-    fetchOrders();
   };
 
   const handleChatNavigation = (order) => {
     if (!order.fragment_link) {
-      console.error("fragment_link отсутствует для заказа:", order.id);
+      setError("Отсутствует ссылка на чат для заказа");
       return;
     }
     try {
@@ -90,28 +152,23 @@ const AdminOrdersTable = () => {
       const fragmentId = url.searchParams.get("fragment");
       const chatId = url.searchParams.get("chat_id");
       if (!chatId || !fragmentId) {
-        console.error("Некорректный fragment_link:", order.fragment_link);
+        setError("Некорректная ссылка на чат");
         return;
       }
-      console.log("Navigating to chat:", {
-        orderId: order.id,
-        chatId,
-        fragmentId,
-      });
       navigate(`/admin/admin_chat?chat_id=${chatId}&fragment=${fragmentId}`);
     } catch (err) {
-      console.error("Ошибка парсинга fragment_link:", err, order.fragment_link);
+      setError("Ошибка парсинга ссылки на чат");
     }
   };
 
-  const statusStats = filteredOrders.reduce((acc, order) => {
-    const status = order.status;
-    if (!acc[status]) {
-      acc[status] = 0;
-    }
-    acc[status] += 1;
-    return acc;
-  }, {});
+  const statusStats = useMemo(
+    () =>
+      filteredOrders.reduce((acc, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {}),
+    [filteredOrders]
+  );
 
   const statusData = [
     { status: "В ожидании", count: statusStats["pending"] || 0 },
@@ -120,12 +177,21 @@ const AdminOrdersTable = () => {
     { status: "Завершен", count: statusStats["completed"] || 0 },
     { status: "Отменен", count: statusStats["cancelled"] || 0 },
   ];
+
   const statusTranslations = {
     pending: "В ожидании",
     paid: "Оплачен",
     processing: "Рассмотрен",
     completed: "Завершен",
     cancelled: "Отменен",
+  };
+
+  const statusColors = {
+    pending: "#ff9800",
+    paid: "#4caf50",
+    processing: "#2196f3",
+    completed: "#2e7d32",
+    cancelled: "#f44336",
   };
 
   const totalOrders = filteredOrders.length;
@@ -139,7 +205,7 @@ const AdminOrdersTable = () => {
       ФИО: order.fio,
       Email: order.email,
       Телефон: order.phone,
-      Статус: order.status,
+      Статус: statusTranslations[order.status],
       "Общая стоимость": `${order.total_price} ₽`,
       Дата: new Date(order.created_at).toLocaleDateString(),
     }));
@@ -151,43 +217,67 @@ const AdminOrdersTable = () => {
   };
 
   return (
-    <Box sx={{ padding: 2 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gridGap: 20 }}>
-        <FormControl variant="outlined" sx={{ mb: 2, minWidth: 120 }}>
-          <InputLabel>Статус</InputLabel>
+    <Container sx={{ padding: 2 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>
+        Управление заказами
+      </Typography>
+
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
+
+      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+        <FormControl variant="outlined" sx={{ minWidth: 150 }}>
+          <InputLabel>Фильтр по статусу</InputLabel>
           <Select
             value={statusFilter}
             onChange={handleStatusFilterChange}
-            label="Статус"
+            label="Фильтр по статусу"
           >
             <MenuItem value="">
               <em>Все</em>
             </MenuItem>
-            <MenuItem value="pending">В ожидании</MenuItem>
-            <MenuItem value="paid">Оплачен</MenuItem>
-            <MenuItem value="processing">Рассмотрен</MenuItem>
-            <MenuItem value="completed">Завершен</MenuItem>
-            <MenuItem value="cancelled">Отменен</MenuItem>
+            {Object.entries(statusTranslations).map(([key, value]) => (
+              <MenuItem key={key} value={key}>
+                {value}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
+
+        <TextField
+          label="Поиск по ФИО, email или телефону"
+          variant="outlined"
+          value={searchQuery}
+          onChange={handleSearchChange}
+          sx={{ flex: 1, minWidth: 200 }}
+        />
+
+        <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+          <InputLabel>На странице</InputLabel>
+          <Select
+            value={itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            label="На странице"
+          >
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={20}>20</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
+          </Select>
+        </FormControl>
+
         <Button variant="contained" onClick={exportToExcel}>
           Экспорт в Excel
         </Button>
       </Box>
-      <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
-        Таблица заказов и аналитических данных
-      </Typography>
 
       {selectedOrder ? (
-        <Box
-          sx={{
-            padding: 2,
-            border: "1px solid #e0e0e0",
-            borderRadius: 2,
-            mb: 2,
-          }}
-        >
-          <Typography variant="h6">Информация о заказе</Typography>
+        <Box sx={{ p: 3, border: "1px solid #e0e0e0", borderRadius: 2, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Детали заказа #{selectedOrder.id}
+          </Typography>
           <Typography>Email: {selectedOrder.email}</Typography>
           <Typography>Телефон: {selectedOrder.phone}</Typography>
           <Typography>ФИО: {selectedOrder.fio}</Typography>
@@ -202,21 +292,26 @@ const AdminOrdersTable = () => {
             Дата создания:{" "}
             {new Date(selectedOrder.created_at).toLocaleDateString()}
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => handleChatNavigation(selectedOrder)}
-            disabled={!selectedOrder.fragment_link}
-            sx={{ mt: 1 }}
-          >
-            Диалог с покупателем
-          </Button>
-          <Box sx={{ mt: 2 }}>
+          <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+            <Tooltip title="Открыть чат с покупателем">
+              <Button
+                variant="contained"
+                onClick={() => handleChatNavigation(selectedOrder)}
+                disabled={!selectedOrder.fragment_link || loading}
+              >
+                {loading ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  "Диалог с покупателем"
+                )}
+              </Button>
+            </Tooltip>
             <Button variant="outlined" onClick={handleBackToOrders}>
-              Назад к списку заказов
+              Назад к списку
             </Button>
           </Box>
 
-          <Typography variant="h6" sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ mt: 3 }}>
             Товары в заказе
           </Typography>
           <TableContainer component={Paper} sx={{ mt: 2 }}>
@@ -234,11 +329,13 @@ const AdminOrdersTable = () => {
                 {selectedOrder.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
-                    {item.selected_options.map((i, index) => (
-                      <TableCell key={index}>
-                        {i.name}: {i.value}
-                      </TableCell>
-                    ))}
+                    <TableCell>
+                      {item.selected_options.map((i, index) => (
+                        <div key={index}>
+                          {i.name}: {i.value}
+                        </div>
+                      ))}
+                    </TableCell>
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>{item.price} ₽</TableCell>
                     <TableCell>{item.total_price} ₽</TableCell>
@@ -249,93 +346,130 @@ const AdminOrdersTable = () => {
           </TableContainer>
         </Box>
       ) : (
-        <Paper sx={{ width: "100%" }}>
-          <Box sx={{ mb: 2 }}></Box>
-          <TableContainer sx={{ overflowX: "auto", height: "600px" }}>
-            <Table>
+        <Paper sx={{ width: "100%", mb: 3 }}>
+          <TableContainer sx={{ maxHeight: 600 }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>ФИО</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortConfig.key === "fio"}
+                      direction={
+                        sortConfig.key === "fio" ? sortConfig.direction : "asc"
+                      }
+                      onClick={() => handleSort("fio")}
+                    >
+                      ФИО
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Телефон</TableCell>
                   <TableCell>Статус</TableCell>
-                  <TableCell>Общая стоимость</TableCell>
-                  <TableCell>Дата</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortConfig.key === "total_price"}
+                      direction={
+                        sortConfig.key === "total_price"
+                          ? sortConfig.direction
+                          : "asc"
+                      }
+                      onClick={() => handleSort("total_price")}
+                    >
+                      Общая стоимость
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortConfig.key === "created_at"}
+                      direction={
+                        sortConfig.key === "created_at"
+                          ? sortConfig.direction
+                          : "asc"
+                      }
+                      onClick={() => handleSort("created_at")}
+                    >
+                      Дата
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>Действия</TableCell>
-                  <TableCell>Изменить статус</TableCell>
+                  <TableCell>Статус</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredOrders
-                  .slice(
-                    (currentPage - 1) * itemsPerPage,
-                    currentPage * itemsPerPage
-                  )
-                  .map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>{order.fio}</TableCell>
-                      <TableCell>{order.email}</TableCell>
-                      <TableCell>{order.phone}</TableCell>
-                      <TableCell sx={{ width: "100%" }}>
-                        {statusTranslations[order.status] ||
-                          "Неизвестный статус"}
-                      </TableCell>
-                      <TableCell>{order.total_price} ₽</TableCell>
-                      <TableCell>
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="contained"
-                          onClick={() => handleOrderSelect(order)}
-                        >
-                          Корзина
-                        </Button>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          display: "flex",
-                          gridGap: 5,
-                          flexDirection: "column",
-                        }}
-                      >
-                        <Select
-                          value={newStatuses[order.id] || order.status}
-                          onChange={(e) =>
-                            setNewStatuses((prev) => ({
-                              ...prev,
-                              [order.id]: e.target.value,
-                            }))
-                          }
-                          label="Статус"
-                        >
-                          <MenuItem value="pending">В ожидании</MenuItem>
-                          <MenuItem value="processing">Рассмотрен</MenuItem>
-                          <MenuItem value="completed">Завершен</MenuItem>
-                          <MenuItem value="cancelled">Отменен</MenuItem>
-                        </Select>
-                        <Button
-                          variant="contained"
-                          onClick={() => handleStatusChange(order.id)}
-                        >
-                          Сохранить
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredOrders
+                    .slice(
+                      (currentPage - 1) * itemsPerPage,
+                      currentPage * itemsPerPage
+                    )
+                    .map((order) => (
+                      <TableRow key={order.id} hover>
+                        <TableCell>{order.fio}</TableCell>
+                        <TableCell>{order.email}</TableCell>
+                        <TableCell>{order.phone}</TableCell>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              width: "100px",
+                              color: statusColors[order.status],
+                            }}
+                          >
+                            {statusTranslations[order.status] ||
+                              "Неизвестный статус"}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{order.total_price} ₽</TableCell>
+                        <TableCell>
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title="Просмотреть товары в заказе">
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => handleOrderSelect(order)}
+                            >
+                              Корзина
+                            </Button>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={order.status}
+                            onChange={(e) =>
+                              handleStatusChange(order.id, e.target.value)
+                            }
+                            size="small"
+                            sx={{
+                              backgroundColor: statusColors[order.status],
+                              color: "#fff",
+                              "& .MuiSelect-icon": { color: "#fff" },
+                            }}
+                            disabled={loading}
+                          >
+                            {Object.entries(statusTranslations).map(
+                              ([key, value]) => (
+                                <MenuItem key={key} value={key}>
+                                  {value}
+                                </MenuItem>
+                              )
+                            )}
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              mt: 2,
-              mb: 2,
-              p: 1,
-            }}
-          >
+          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
             <Pagination
               count={Math.ceil(filteredOrders.length / itemsPerPage)}
               page={currentPage}
@@ -345,8 +479,9 @@ const AdminOrdersTable = () => {
           </Box>
         </Paper>
       )}
+
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h6">Статистика заказов по статусам</Typography>
+        <Typography variant="h6">Статистика заказов</Typography>
         <TableContainer component={Paper} sx={{ mt: 2 }}>
           <Table>
             <TableHead>
@@ -367,12 +502,12 @@ const AdminOrdersTable = () => {
         </TableContainer>
       </Box>
 
-      <Box sx={{ mb: 4 }}>
+      <Box>
         <Typography variant="h6">Общая информация</Typography>
         <Typography>Всего заказов: {totalOrders}</Typography>
         <Typography>Общая прибыль: {totalProfit.toFixed(2)} ₽</Typography>
       </Box>
-    </Box>
+    </Container>
   );
 };
 

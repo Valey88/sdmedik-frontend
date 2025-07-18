@@ -50,7 +50,6 @@ export default function AdminDashboard() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <NavBar />
-      <Container sx={{ mt: 4, mb: 4 }}>
         <Routes>
           <Route path="/" element={<MainContent />}></Route>
           <Route
@@ -94,7 +93,6 @@ export default function AdminDashboard() {
             element={<ProtectedRoute element={<AdminChat />} />}
           />
         </Routes>
-      </Container>
     </Box>
   );
 }

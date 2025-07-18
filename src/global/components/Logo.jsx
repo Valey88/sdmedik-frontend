@@ -23,7 +23,7 @@ const Logo = () => {
         navigate("/");
       }}
       sx={{
-        width: { xs: "150px", sm: "150px", md: "150px", lg: "250px" },
+        width: { xs: "150px", sm: "150px", md: "150px", lg: "225px" },
         cursor: "pointer",
       }}
     >

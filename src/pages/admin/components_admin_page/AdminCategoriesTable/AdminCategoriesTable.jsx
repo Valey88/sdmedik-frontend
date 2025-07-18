@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Container,
   Paper,
   Table,
   TableBody,
@@ -28,7 +29,7 @@ export default function AdminCategoriesTable() {
   };
 
   return (
-    <Box>
+    <Container>
       <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
         Таблица с категориями
       </Typography>
@@ -80,6 +81,6 @@ export default function AdminCategoriesTable() {
           </TableBody>
         </Table>
       </TableContainer>
-    </Box>
+    </Container>
   );
 }

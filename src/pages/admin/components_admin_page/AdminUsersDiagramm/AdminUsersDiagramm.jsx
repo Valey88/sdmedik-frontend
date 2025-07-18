@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import useUserStore from "../../../../store/userStore";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Container, Paper, Typography } from "@mui/material";
 import {
   LineChart,
   Line,
@@ -34,7 +34,7 @@ export default function AdminUsersDiagramm() {
   }, [allUsers]);
 
   return (
-    <Box>
+    <Container>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography sx={{ fontSize: "20px", mb: 2, fontWeight: "bold" }}>
           Рост пользователей
@@ -62,6 +62,6 @@ export default function AdminUsersDiagramm() {
           Всего пользователей : ({allUsers?.data?.count || 0})
         </Typography>
       </Paper>
-    </Box>
+    </Container>
   );
 }

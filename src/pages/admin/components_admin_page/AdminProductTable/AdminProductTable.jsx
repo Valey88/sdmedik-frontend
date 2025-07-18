@@ -14,6 +14,7 @@ import {
   Select,
   MenuItem,
   TextField,
+  Container,
 } from "@mui/material";
 import useProductStore from "../../../../store/productStore";
 import { urlPictures } from "../../../../constants/constants";
@@ -89,7 +90,7 @@ const AdminProductTable = () => {
   }, []);
 
   return (
-    <Box sx={{ padding: 2 }}>
+    <Container sx={{ padding: 2 }}>
       <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
         Таблица с Продуктами
       </Typography>
@@ -223,7 +224,7 @@ const AdminProductTable = () => {
           />
         </Box>
       </Paper>
-    </Box>
+    </Container>
   );
 };
 

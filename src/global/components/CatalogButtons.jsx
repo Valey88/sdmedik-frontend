@@ -14,34 +14,7 @@ const CatalogButtons = () => {
         p: "0px 10px",
       }}
     >
-      {/* <Link
-        style={{
-          background: `linear-gradient(95.61deg, #A5DED1 4.71%, #00B3A4 97.25%)`,
-          padding: "10px 20px",
-          fontSize: "18px",
-          fontWeight: "500",
-          borderRadius: "5px",
-          color: "#fff",
-          marginLeft: "0px",
-          marginRight: "0px",
-        }}
-        to="/catalog"
-      > */}
-      {/* <Button
-          variant="contained"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate("/catalog");
-          }}
-          sx={{
-            background: `linear-gradient(95.61deg, #A5DED1 4.71%, #00B3A4 97.25%)`,
-            fontSize: "16px",
-          }}
-        >
-          Каталог
-        </Button> */}
-      {/* Каталог
-      </Link> */}
+      {/* Каталог */}
       <Link
         style={{
           background: `linear-gradient(95.61deg, #A5DED1 4.71%, #00B3A4 97.25%)`,
@@ -58,19 +31,7 @@ const CatalogButtons = () => {
         }}
         to="/catalog/certificate"
       >
-        {/* <Button
-          variant="contained"
-          // onClick={(e) => {
-          //   e.preventDefault();
-          //   navigate("/catalog/certificate");
-          // }}
-          sx={{
-            background: `linear-gradient(95.61deg, #A5DED1 4.71%, #00B3A4 97.25%)`,
-            fontSize: "16px",
-          }}
-        > */}
         Каталог
-        {/* </Button> */}
       </Link>
       {/* <Link
         style={{
