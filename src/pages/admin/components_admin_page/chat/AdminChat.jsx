@@ -770,20 +770,7 @@ export default function AdminChat() {
                   Нет сообщений
                 </Typography>
               )}
-              {lastMessage?.time_to_send && (
-                <Typography
-                  variant="caption"
-                  color="#708499"
-                  sx={{ display: "block", fontSize: "0.8rem" }}
-                >
-                  {new Date(lastMessage.time_to_send).toLocaleString(
-                    undefined,
-                    {
-                      timeStyle: "short",
-                    }
-                  )}
-                </Typography>
-              )}
+              {/* Время последнего сообщения удалено */}
             </Box>
           }
         />
@@ -937,23 +924,7 @@ export default function AdminChat() {
                           msg.text
                         )}
                       </Typography>
-                      {isLast && msg.timestamp && (
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            display: "block",
-                            mt: 0.5,
-                            color: "#708499",
-                            textAlign: isManager ? "right" : "left",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {new Date(msg.timestamp).toLocaleString(undefined, {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })}
-                        </Typography>
-                      )}
+                      {/* Время сообщения удалено */}
                     </Paper>
                     {isManager && isFirst && (
                       <Avatar
@@ -1086,23 +1057,7 @@ export default function AdminChat() {
                   msg.text
                 )}
               </Typography>
-              {isLast && msg.timestamp && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: "block",
-                    mt: 0.5,
-                    color: "#708499",
-                    textAlign: isManager ? "right" : "left",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {new Date(msg.timestamp).toLocaleString(undefined, {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
-                </Typography>
-              )}
+              {/* Время сообщения удалено */}
             </Paper>
             {isManager && isFirst && (
               <Avatar sx={{ bgcolor: "#40C4FF", ml: 1, width: 36, height: 36 }}>
