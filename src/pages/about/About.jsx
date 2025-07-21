@@ -12,6 +12,11 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Helmet } from "react-helmet";
 import api from "../../configs/axiosConfig";
 
+// Utility function to strip HTML tags
+const stripHtml = (html) => {
+  return html.replace(/<[^>]+>/g, "");
+};
+
 export default function About() {
   const [content, setContent] = useState({
     "page-title": "О нас - Средства реабилитации и медицинская техника",
@@ -39,9 +44,8 @@ export default function About() {
     const fetchContent = async () => {
       try {
         const response = await api.get("/page/about");
-        console.log("About API Response:", response.data); // Отладка
+        console.log("About API Response:", response.data); // Debugging
         const newContent = {};
-        // Извлекаем элементы из response.data.data.elements или response.data.elements
         const elements = Array.isArray(response.data?.data?.elements)
           ? response.data.data.elements
           : Array.isArray(response.data?.elements)
@@ -50,7 +54,7 @@ export default function About() {
         elements.forEach((item) => {
           newContent[item.element_id] = item.value;
         });
-        console.log("Processed content:", newContent); // Отладка
+        console.log("Processed content:", newContent); // Debugging
         setContent((prev) => ({ ...prev, ...newContent }));
       } catch (error) {
         console.error("Error fetching page content:", error);
@@ -85,7 +89,7 @@ export default function About() {
             sx={{
               fontWeight: "bold",
               color: "#333",
-              fontSize: "24px",
+              fontSize: { xs: "24px", md: "32px" }, // Adjusted to match original context
               textAlign: "center",
             }}
             dangerouslySetInnerHTML={{
@@ -133,7 +137,7 @@ export default function About() {
                 }
                 sx={{ fontSize: "20px" }}
               >
-                {content[item.title] || `Accordion ${index + 1}`}
+                {stripHtml(content[item.title] || `Accordion ${index + 1}`)}
               </AccordionSummary>
               <AccordionDetails sx={{ maxHeight: 200, overflow: "auto" }}>
                 <Typography

@@ -14,6 +14,11 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Helmet } from "react-helmet";
 import api from "../../configs/axiosConfig";
 
+// Utility function to strip HTML tags
+const stripHtml = (html) => {
+  return html.replace(/<[^>]+>/g, "");
+};
+
 export default function ReturnPolicy() {
   const [content, setContent] = useState({
     "page-title": "Политика возврата - СД-МЕД",
@@ -72,9 +77,8 @@ export default function ReturnPolicy() {
     const fetchContent = async () => {
       try {
         const response = await api.get("/page/returnpolicy");
-        console.log("ReturnPolicy API Response:", response.data); // Отладка
+        console.log("ReturnPolicy API Response:", response.data);
         const newContent = {};
-        // Извлекаем элементы из response.data.data.elements или response.data.elements
         const elements = Array.isArray(response.data?.data?.elements)
           ? response.data.data.elements
           : Array.isArray(response.data?.elements)
@@ -83,7 +87,7 @@ export default function ReturnPolicy() {
         elements.forEach((item) => {
           newContent[item.element_id] = item.value;
         });
-        console.log("Processed content:", newContent); // Отладка
+        console.log("Processed content:", newContent);
         setContent((prev) => ({ ...prev, ...newContent }));
       } catch (error) {
         console.error("Error fetching page content:", error);
@@ -112,7 +116,11 @@ export default function ReturnPolicy() {
             <Typography
               component="h1"
               variant="h2"
-              sx={{ fontWeight: "bold", color: "#333", fontSize: "24px", textAlign: "center" }}
+              sx={{
+                fontWeight: "bold",
+                color: "#333",
+                fontSize: { xs: "24px", md: "32px" },
+              }} // Adjusted for consistency
               dangerouslySetInnerHTML={{
                 __html: content["main-heading"] || "<h1>Политика возврата</h1>",
               }}
@@ -186,8 +194,10 @@ export default function ReturnPolicy() {
                 }
                 sx={{ fontSize: "22px" }}
               >
-                {content["accordion-1-title"] ||
-                  "Если товар входит в перечень товаров, подлежащих возврату..."}
+                {stripHtml(
+                  content["accordion-1-title"] ||
+                    "Если товар входит в перечень товаров, подлежащих возврату..."
+                )}
               </AccordionSummary>
               <AccordionDetails sx={{ maxHeight: 400, overflow: "auto" }}>
                 <List>
@@ -219,8 +229,10 @@ export default function ReturnPolicy() {
                 }
                 sx={{ fontSize: "22px" }}
               >
-                {content["accordion-2-title"] ||
-                  "Возврат товара ненадлежащего качества"}
+                {stripHtml(
+                  content["accordion-2-title"] ||
+                    "Возврат товара ненадлежащего качества"
+                )}
               </AccordionSummary>
               <AccordionDetails sx={{ maxHeight: 400, overflow: "auto" }}>
                 <List>

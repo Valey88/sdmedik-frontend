@@ -14,6 +14,11 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Helmet } from "react-helmet";
 import api from "../../configs/axiosConfig";
 
+// Utility function to strip HTML tags
+const stripHtml = (html) => {
+  return html.replace(/<[^>]+>/g, "");
+};
+
 export default function ElectronicCertificate() {
   const [content, setContent] = useState({
     "page-title":
@@ -67,9 +72,8 @@ export default function ElectronicCertificate() {
     const fetchContent = async () => {
       try {
         const response = await api.get("/page/certificate");
-        console.log("ElectronicCertificate API Response:", response.data); // Отладка
+        console.log("ElectronicCertificate API Response:", response.data);
         const newContent = {};
-        // Извлекаем элементы из response.data.data.elements или response.data.elements
         const elements = Array.isArray(response.data?.data?.elements)
           ? response.data.data.elements
           : Array.isArray(response.data?.elements)
@@ -78,7 +82,7 @@ export default function ElectronicCertificate() {
         elements.forEach((item) => {
           newContent[item.element_id] = item.value;
         });
-        console.log("Processed content:", newContent); // Отладка
+        console.log("Processed content:", newContent);
         setContent((prev) => ({ ...prev, ...newContent }));
       } catch (error) {
         console.error("Error fetching page content:", error);
@@ -105,7 +109,7 @@ export default function ElectronicCertificate() {
             sx={{
               fontWeight: "bold",
               color: "#333",
-              fontSize: { xs: "22px", lg: "30px" },
+              fontSize: { xs: "50px", lg: "62px" }, // Reverted to match original context
             }}
             dangerouslySetInnerHTML={{
               __html:
@@ -163,7 +167,7 @@ export default function ElectronicCertificate() {
                   }
                   sx={{ fontSize: "25px" }}
                 >
-                  {content[item.title] || `Accordion ${index + 1}`}
+                  {stripHtml(content[item.title] || `Accordion ${index + 1}`)}
                 </AccordionSummary>
                 <AccordionDetails sx={{ maxHeight: 400, overflow: "auto" }}>
                   <List>
