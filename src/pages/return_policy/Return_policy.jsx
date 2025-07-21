@@ -119,7 +119,7 @@ export default function ReturnPolicy() {
               sx={{
                 fontWeight: "bold",
                 color: "#333",
-                fontSize: { xs: "24px", md: "32px" },
+                fontSize: { xs: "24px", md: "25px" },
               }} // Adjusted for consistency
               dangerouslySetInnerHTML={{
                 __html: content["main-heading"] || "<h1>Политика возврата</h1>",

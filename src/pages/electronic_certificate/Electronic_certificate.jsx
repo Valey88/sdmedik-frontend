@@ -109,7 +109,8 @@ export default function ElectronicCertificate() {
             sx={{
               fontWeight: "bold",
               color: "#333",
-              fontSize: { xs: "50px", lg: "62px" }, // Reverted to match original context
+              fontSize: { xs: "22px", lg: "30px" }, // Reverted to match original context
+              textAlign: "center",
             }}
             dangerouslySetInnerHTML={{
               __html:

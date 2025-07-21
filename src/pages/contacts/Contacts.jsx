@@ -26,6 +26,10 @@ export default function Contacts() {
     "coords-4": "[56.838, 60.597]",
   });
 
+  const stripHtml = (html) => {
+    return html.replace(/<[^>]+>/g, "");
+  };
+
   useEffect(() => {
     const fetchContent = async () => {
       try {
@@ -81,7 +85,12 @@ export default function Contacts() {
           <Typography
             component="h1"
             variant="h2"
-            sx={{ fontWeight: "bold", color: "#333", fontSize: "24px", textAlign: "center" }}
+            sx={{
+              fontWeight: "bold",
+              color: "#333",
+              fontSize: "24px",
+              textAlign: "center",
+            }}
             dangerouslySetInnerHTML={{
               __html: content["main-heading"] || "<h1>Контакты</h1>",
             }}
@@ -135,10 +144,10 @@ export default function Contacts() {
               </Box>
               <Box>
                 <Typography>
-                  {content["phone-1"] || "+7 (903) 086 3091"}
+                  {stripHtml(content["phone-1"] || "+7 (903) 086 3091")}
                 </Typography>
                 <Typography>
-                  {content["phone-2"] || "+7 (353) 293 5241"}
+                  {stripHtml(content["phone-2"] || "+7 (353) 293 5241")}
                 </Typography>
               </Box>
             </Box>
