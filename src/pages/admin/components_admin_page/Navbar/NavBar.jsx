@@ -113,6 +113,11 @@ const NavBar = () => {
       handleClose: handleCloseUsersMenu,
       id: "users-menu",
     },
+    {
+      label: "Редактор страниц",
+      href: "/admin/edit_page",
+      isButton: false,
+    },
   ];
 
   return (

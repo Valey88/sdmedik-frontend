@@ -1,63 +1,91 @@
-import {
-  Box,
-  Container,
-  Link,
-  List,
-  ListItem,
-  Typography,
-} from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, Container, List, ListItem, Typography } from "@mui/material";
 import { YMaps, Map, Placemark } from "react-yandex-maps";
-import React from "react";
 import { Helmet } from "react-helmet";
+import api from "../../configs/axiosConfig";
 
 export default function Contacts() {
+  const [content, setContent] = useState({
+    "page-title": "Контакты - Компании СД-МЕД",
+    "meta-description": "Контактная информация нашей компании",
+    "meta-keywords": "контакты, адрес, телефон",
+    "main-heading": "<h1>Контакты</h1>",
+    "phone-1": "+7 (903) 086 3091",
+    "phone-2": "+7 (353) 293 5241",
+    "address-1":
+      "г. Оренбург, ул. Шевченко д. 20 «В» Магазин - Склад<br>+7 3532 93-52-41",
+    "address-2":
+      "г. Орск, проспект Мира. 15 «Д», ТД Яшма, магазин «Памперсы»<br>+7 905 896-23-23",
+    "address-3":
+      "г. Уфа, ул. Степана Кувыкина, 41, Магазин-Склад<br>+7 961 366-82-46",
+    "address-4":
+      "г. Екатеринбург, пр-т. Ленина 79 «Б», Центр обучения и обеспечения техническими средствами реабилитации<br>+7 903 086-34-11",
+    "coords-1": "[51.769, 55.096]",
+    "coords-2": "[51.227, 58.562]",
+    "coords-3": "[54.738, 55.972]",
+    "coords-4": "[56.838, 60.597]",
+  });
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const response = await api.get("/page/contacts");
+        console.log("Contacts API Response:", response.data); // Debugging
+        const newContent = {};
+        const elements = Array.isArray(response.data?.data?.elements)
+          ? response.data.data.elements
+          : Array.isArray(response.data?.elements)
+          ? response.data.elements
+          : [];
+        elements.forEach((item) => {
+          newContent[item.element_id] = item.value;
+        });
+        console.log("Processed content:", newContent); // Debugging
+        setContent((prev) => ({ ...prev, ...newContent }));
+      } catch (error) {
+        console.error("Error fetching page content:", error);
+      }
+    };
+    fetchContent();
+  }, []);
+
+  // Parse coordinates for Yandex Maps
   const addresses = [
     {
-      address: "г. Оренбург, ул. Шевченко д. 20 «В»",
-      coords: [51.769, 55.096],
+      address: content["address-1"],
+      coords: JSON.parse(content["coords-1"] || "[51.769, 55.096]"),
     },
     {
-      address: "г. Орск, проспект Мира. 15 «Д», ТД Яшма, магазин «Памперсы»",
-      coords: [51.227, 58.562],
+      address: content["address-2"],
+      coords: JSON.parse(content["coords-2"] || "[51.227, 58.562]"),
     },
     {
-      address: "г. Уфа, ул. Степана Кувыкина, 41, Магазин-Склад",
-      coords: [54.738, 55.972],
+      address: content["address-3"],
+      coords: JSON.parse(content["coords-3"] || "[54.738, 55.972]"),
     },
     {
-      address: "г. Екатеринбург, пр-т. Ленина 79 «Б», Центр обучения",
-      coords: [56.838, 60.597],
+      address: content["address-4"],
+      coords: JSON.parse(content["coords-4"] || "[56.838, 60.597]"),
     },
-    // {
-    //   address: "респ. Чечня, г. Гудермес, ул. Нагорная, 2",
-    //   coords: [43.307, 45.826],
-    // },
-    // {
-    //   address: "респ. Чечня, г. Грозный, ул. Маты Кишиева, 142",
-    //   coords: [43.317, 45.694],
-    // },
-    // { address: "г. Нижний Новгород, ул Дежнëва, 2", coords: [56.328, 44.002] },
   ];
 
   return (
     <Box sx={{ mb: 5 }}>
       <Helmet>
-        <title>Контакты - Компании СД-МЕД</title>
-        <meta
-          name="description"
-          content="Контактная информация нашей компании"
-        />
-        <meta name="keywords" content="контакты, адрес, телефон" />
+        <title>{content["page-title"] || "Контакты - Компании СД-МЕД"}</title>
+        <meta name="description" content={content["meta-description"] || ""} />
+        <meta name="keywords" content={content["meta-keywords"] || ""} />
       </Helmet>
       <Container>
         <Box sx={{ display: "flex", justifyContent: "center" }}>
           <Typography
             component="h1"
             variant="h2"
-            sx={{ fontWeight: "bold", color: "#333" }}
-          >
-            Контакты
-          </Typography>
+            sx={{ fontWeight: "bold", color: "#333", fontSize: "24px", textAlign: "center" }}
+            dangerouslySetInnerHTML={{
+              __html: content["main-heading"] || "<h1>Контакты</h1>",
+            }}
+          />
         </Box>
         <Box sx={{ width: "100%" }}>
           <img
@@ -106,18 +134,14 @@ export default function Contacts() {
                 <img src="/Phone.png" alt="Телефон" />
               </Box>
               <Box>
-                <Typography>+7 (903) 086 3091</Typography>
-                <Typography>+7 (353) 293 5241</Typography>
+                <Typography>
+                  {content["phone-1"] || "+7 (903) 086 3091"}
+                </Typography>
+                <Typography>
+                  {content["phone-2"] || "+7 (353) 293 5241"}
+                </Typography>
               </Box>
             </Box>
-            {/* <Box sx={{ display: "flex", gridGap: 20, alignItems: "center" }}>
-              <Box>
-                <img src="/mail.png" alt="Почта" />
-              </Box>
-              <Box>
-                <Link>olimp1-info@yandex.ru</Link>
-              </Box>
-            </Box> */}
             <Box sx={{ display: "flex", gridGap: 20 }}>
               <Box>
                 <img src="/mark.png" alt="Адрес" />
@@ -127,34 +151,16 @@ export default function Contacts() {
                   <Typography sx={{ fontSize: "20px" }}>
                     Пункты выдачи заказов:
                   </Typography>
-                  <ListItem>
-                    г. Оренбург, ул. Шевченко д. 20 «В» Магазин - Склад{" "}
-                    <br></br>+ 7 3532 93-52-41
-                  </ListItem>
-                  <ListItem>
-                    г. Орск, проспект Мира. 15 «Д», ТД Яшма, магазин «Памперсы»
-                    <br></br> +7 905 896-23-23
-                  </ListItem>
-                  <ListItem>
-                    г. Уфа, ул. Степана Кувыкина, 41, Магазин-Склад<br></br> +7
-                    961 366-82-46
-                  </ListItem>
-                  <ListItem>
-                    г. Екатеринбург, пр-т. Ленина 79 «Б», Центр обучения и
-                    обеспечения техническими средствами реабилитации<br></br> +7
-                    903 086-34-11
-                  </ListItem>
-                  {/* <ListItem>
-                    р . Чечня, г. Гудермес, ул. Нагорная, 2<br></br> +7 928
-                    002-34-19
-                  </ListItem> */}
-                  {/* <ListItem>
-                    респ. Чечня, г. Грозный, ул. Маты Кишиева, 142<br></br> +7
-                    928 002-34-19
-                  </ListItem> */}
-                  {/* <ListItem>
-                    г. Нижний Новгород, ул Дежнëва, 2<br></br> +7 960 181-03-50
-                  </ListItem> */}
+                  {[1, 2, 3, 4].map((index) => (
+                    <ListItem key={index}>
+                      <Typography
+                        dangerouslySetInnerHTML={{
+                          __html:
+                            content[`address-${index}`] || "<p>Нет данных</p>",
+                        }}
+                      />
+                    </ListItem>
+                  ))}
                 </List>
               </Box>
             </Box>

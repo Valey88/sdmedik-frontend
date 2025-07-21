@@ -15,6 +15,7 @@ import CreatePromotion from "./create_promotion/CreatePromotion";
 import AdminPromotionTable from "./components_admin_page/AdminPromotionTable/AdminPromotionTable";
 import UpdateCategory from "./update_category/UpdateCategory";
 import AdminChat from "./components_admin_page/chat/AdminChat";
+import PageContentEditor from "./edit_page/PageContentEditor";
 
 function ProtectedRoute({ element }) {
   const { getUserInfo, user } = useUserStore();
@@ -50,49 +51,53 @@ export default function AdminDashboard() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <NavBar />
-        <Routes>
-          <Route path="/" element={<MainContent />}></Route>
-          <Route
-            path="/create_product"
-            element={<ProtectedRoute element={<CreateProduct />} />}
-          />
-          <Route
-            path="/create_category"
-            element={<ProtectedRoute element={<CreateCategory />} />}
-          />
-          <Route
-            path="/create_promotion"
-            element={<ProtectedRoute element={<CreatePromotion />} />}
-          />
-          <Route
-            path="/table_promotion"
-            element={<ProtectedRoute element={<AdminPromotionTable />} />}
-          />
-          <Route
-            path="/table_category"
-            element={<ProtectedRoute element={<AdminCategoriesTable />} />}
-          />
-          <Route
-            path="/table_product"
-            element={<ProtectedRoute element={<AdminProductTable />} />}
-          />
-          <Route
-            path="/table_user"
-            element={<ProtectedRoute element={<AdminUserTable />} />}
-          />
-          <Route
-            path="/update_product/:id"
-            element={<ProtectedRoute element={<UpdateProduct />} />}
-          />
-          <Route
-            path="/update_category/:id"
-            element={<ProtectedRoute element={<UpdateCategory />} />}
-          />
-          <Route
-            path="/admin_chat"
-            element={<ProtectedRoute element={<AdminChat />} />}
-          />
-        </Routes>
+      <Routes>
+        <Route path="/" element={<MainContent />}></Route>
+        <Route
+          path="/create_product"
+          element={<ProtectedRoute element={<CreateProduct />} />}
+        />
+        <Route
+          path="/create_category"
+          element={<ProtectedRoute element={<CreateCategory />} />}
+        />
+        <Route
+          path="/create_promotion"
+          element={<ProtectedRoute element={<CreatePromotion />} />}
+        />
+        <Route
+          path="/table_promotion"
+          element={<ProtectedRoute element={<AdminPromotionTable />} />}
+        />
+        <Route
+          path="/table_category"
+          element={<ProtectedRoute element={<AdminCategoriesTable />} />}
+        />
+        <Route
+          path="/table_product"
+          element={<ProtectedRoute element={<AdminProductTable />} />}
+        />
+        <Route
+          path="/table_user"
+          element={<ProtectedRoute element={<AdminUserTable />} />}
+        />
+        <Route
+          path="/update_product/:id"
+          element={<ProtectedRoute element={<UpdateProduct />} />}
+        />
+        <Route
+          path="/update_category/:id"
+          element={<ProtectedRoute element={<UpdateCategory />} />}
+        />
+        <Route
+          path="/admin_chat"
+          element={<ProtectedRoute element={<AdminChat />} />}
+        />
+        <Route
+          path="/edit_page"
+          element={<ProtectedRoute element={<PageContentEditor />} />}
+        />
+      </Routes>
     </Box>
   );
 }
