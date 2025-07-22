@@ -41,7 +41,7 @@ const UserMenu = () => {
         aria-expanded={openLk ? "true" : undefined}
         onClick={handleClickLk}
       >
-        <img src="/Profile.png" alt="profile" />
+        <img style={{ width: "50px" }} src="/Profile.png" alt="profile" />
       </IconButton>
       <Menu
         id="lk-menu"
@@ -99,7 +99,11 @@ const UserMenu = () => {
             },
           }}
         >
-          <img src="/basket_header.png" alt="basket" />
+          <img
+            style={{ width: "50px" }}
+            src="/basket_header.png"
+            alt="basket"
+          />
         </Badge>
       </IconButton>
     </>

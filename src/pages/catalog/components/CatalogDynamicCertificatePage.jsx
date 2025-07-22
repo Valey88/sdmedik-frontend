@@ -8,6 +8,7 @@ import {
   Pagination,
   Typography,
   IconButton,
+  Chip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -26,16 +27,16 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
     <Link to={`/product/certificate/${e.id}`}>
       <Card
         sx={{
-          width: { xs: "167px", md: "261px" },
-          height: { xs: "600px", md: "620px" },
+          width: { xs: "167px", md: "281px" },
+          height: { xs: "600px", md: "580px" },
           background: "#F5FCFF",
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
           borderRadius: "8px",
           transition: "transform 0.2s, box-shadow 0.2s",
-          "&:hover": {
-            transform: "scale(1.05)",
-            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
-          },
+          // "&:hover": {
+          //   transform: "scale(1.05)",
+          //   boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
+          // },
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
@@ -106,7 +107,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
         >
           <Typography
             sx={{
-              fontSize: { xs: "0.8rem", md: "1rem" },
+              fontSize: { xs: "0.65rem", md: "0.8rem" },
               fontWeight: "bold",
               mb: 1,
             }}
@@ -116,13 +117,24 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           >
             {e.name}
           </Typography>
+          {e.nameplate && (
+            <Chip
+              label={e.nameplate}
+              size="small"
+              sx={{ mt: 1, bgcolor: "#E0F2F1", color: "#00796B" }}
+            />
+          )}
 
           <Box sx={{ mt: "auto" }}>
             {isCatalog1 && (
               <Box sx={{ mb: 1, display: "flex", justifyContent: "left" }}>
                 <Typography
                   variant="h6"
-                  sx={{ color: "#00B3A4", fontWeight: "bold" }}
+                  sx={{
+                    color: "#00B3A4",
+                    fontWeight: "bold",
+                    fontSize: { xs: "1rem", md: "1.2rem" },
+                  }}
                 >
                   {e.price} ₽
                 </Typography>
@@ -303,7 +315,7 @@ const CatalogDynamicCertificatePage = () => {
 
       <Grid
         container
-        spacing={{ xs: 1, md: 3 }}
+        spacing={{ xs: 1, md: 1 }}
         columns={{ xs: 4, sm: 4, md: 4 }}
         sx={{ pt: 2, pb: 2 }}
       >

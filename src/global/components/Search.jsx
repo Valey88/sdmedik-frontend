@@ -107,7 +107,7 @@ const Search = () => {
         value={searchQuery}
         sx={{
           height: "53px",
-          width: "100%",
+          width: { xs: "100%", md: "70%" },
           border: "2px solid #87EBEB",
           borderRight: "none",
           paddingLeft: "20px",

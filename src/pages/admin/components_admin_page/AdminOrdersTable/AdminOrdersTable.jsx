@@ -218,7 +218,7 @@ const AdminOrdersTable = () => {
 
   return (
     <Container sx={{ padding: 2 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
+      <Typography variant="h6" sx={{ mb:1 }}>
         Управление заказами
       </Typography>
 
@@ -229,7 +229,7 @@ const AdminOrdersTable = () => {
       )}
 
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <FormControl variant="outlined" sx={{ minWidth: 150 }}>
+        <FormControl variant="outlined" sx={{ minWidth: 150, height: 20 }}>
           <InputLabel>Фильтр по статусу</InputLabel>
           <Select
             value={statusFilter}
@@ -347,7 +347,7 @@ const AdminOrdersTable = () => {
         </Box>
       ) : (
         <Paper sx={{ width: "100%", mb: 3 }}>
-          <TableContainer sx={{ maxHeight: 600 }}>
+          <TableContainer sx={{ maxHeight: 750 }}>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>

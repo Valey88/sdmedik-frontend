@@ -1,4 +1,4 @@
-import { Paper } from "@mui/material";
+import { Box, Paper } from "@mui/material";
 import { Link } from "react-router-dom";
 
 const Navigation = () => {
@@ -11,15 +11,15 @@ const Navigation = () => {
   ];
 
   return (
-    <Paper
+    <Box
       sx={{
         width: "max-content",
-        background: "#FAFAFA",
+        // background: "#FAFAFA",
         borderRadius: "15px",
         display: { xs: "none", sm: "none", md: "", lg: "flex" },
         alignItems: "center",
-        padding: "20px 5px",
-        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+        padding: "10px 5px",
+        // boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
       }}
     >
       <Link to="/delivery">Доставка</Link>
@@ -28,7 +28,7 @@ const Navigation = () => {
       <Link to="/returnpolicy">Возврат</Link>
       <Link to="/about">О нас</Link>
       <Link to="/contacts">Контакты</Link>
-    </Paper>
+    </Box>
   );
 };
 

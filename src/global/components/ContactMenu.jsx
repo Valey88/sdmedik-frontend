@@ -17,7 +17,7 @@ const ContactMenu = () => {
         aria-expanded={open ? "true" : undefined}
         onClick={handleClick}
       >
-        <img src="/Phone.png" alt="phone" />
+        <img style={{ width: "50px" }} src="/Phone.png" alt="phone" />
       </IconButton>
       <Menu
         id="contact-menu"

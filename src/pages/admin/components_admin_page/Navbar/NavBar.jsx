@@ -122,7 +122,7 @@ const NavBar = () => {
 
   return (
     <AppBar position="static" sx={{ bgcolor: "#1976D2" }}>
-      <Toolbar sx={{ minHeight: { xs: 48, sm: 64 }, px: { xs: 1, sm: 2 } }}>
+      <Toolbar sx={{ minHeight: { xs: 48, sm: 34 }, px: { xs: 1, sm: 2 } }}>
         {/* Desktop Menu */}
         <Box
           sx={{

@@ -91,56 +91,58 @@ const AdminProductTable = () => {
 
   return (
     <Container sx={{ padding: 2 }}>
-      <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
+      <Typography sx={{ fontSize: "20px", mb: 2, mt: 2 }}>
         Таблица с Продуктами
       </Typography>
-      <Select
-        value={selectedCategory}
-        onChange={handleCategoryChange}
-        displayEmpty
-        sx={{ mb: 2, minWidth: 200 }}
-      >
-        <MenuItem value="">
-          <em>Все категории</em>
-        </MenuItem>
-        {category.data &&
-          category.data.map((cat) => (
-            <MenuItem key={cat.id} value={cat.id}>
-              {cat.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-        <TextField
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Поиск по названию"
-        />
-        <Button
-          variant="contained"
-          onClick={(e) => {
-            e.preventDefault();
-            handleSearchName();
-          }}
+      <Box sx={{ display: "flex", gridGap:20 }}>
+        <Select
+          value={selectedCategory}
+          onChange={handleCategoryChange}
+          displayEmpty
+          sx={{ mb: 2, minWidth: 200 }}
         >
-          Найти
-        </Button>
-      </Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-        <TextField
-          value={searchArcticle}
-          onChange={(e) => setSearchArcticle(e.target.value)}
-          placeholder="Поиск по арктиклу"
-        />
-        <Button
-          variant="contained"
-          onClick={(e) => {
-            e.preventDefault();
-            handleSearchArcticle();
-          }}
-        >
-          Найти
-        </Button>
+          <MenuItem value="">
+            <em>Все категории</em>
+          </MenuItem>
+          {category.data &&
+            category.data.map((cat) => (
+              <MenuItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </MenuItem>
+            ))}
+        </Select>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+          <TextField
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Поиск по названию"
+          />
+          <Button
+            variant="contained"
+            onClick={(e) => {
+              e.preventDefault();
+              handleSearchName();
+            }}
+          >
+            Найти
+          </Button>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+          <TextField
+            value={searchArcticle}
+            onChange={(e) => setSearchArcticle(e.target.value)}
+            placeholder="Поиск по арктиклу"
+          />
+          <Button
+            variant="contained"
+            onClick={(e) => {
+              e.preventDefault();
+              handleSearchArcticle();
+            }}
+          >
+            Найти
+          </Button>
+        </Box>
       </Box>
       <Paper sx={{ width: "100%" }}>
         <TableContainer sx={{ overflowX: "auto", height: "600px" }}>

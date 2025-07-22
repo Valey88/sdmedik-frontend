@@ -50,8 +50,10 @@ export default function UpdateProduct() {
   const [isFetching, setIsFetching] = useState(true);
   const [isElectronicCertificate, setIsElectronicCertificate] = useState(false);
   const [previewText, setPreviewText] = useState("");
+  // New state for nameplate
+  const [isNameplate, setIsNameplate] = useState(false);
+  const [nameplateText, setNameplateText] = useState("");
 
-  // Допустимые значения для catalogs
   const VALID_CATALOG_IDS = [1, 2];
 
   // Загрузка категорий и данных продукта
@@ -86,7 +88,6 @@ export default function UpdateProduct() {
         products.data.categories?.map((cat) => cat.id) || []
       );
 
-      // Инициализация catalogs
       const catalogValue = products.data.catalogs;
       const initialCatalogs =
         catalogValue && VALID_CATALOG_IDS.includes(catalogValue)
@@ -94,7 +95,6 @@ export default function UpdateProduct() {
           : [];
       setCatalogs(initialCatalogs);
 
-      // Инициализация характеристик
       const initialCharValues = {};
       products.data.characteristic?.forEach((char) => {
         initialCharValues[char.id] = Array.isArray(char.value)
@@ -104,18 +104,23 @@ export default function UpdateProduct() {
       setCharacteristicValues(initialCharValues);
       setOriginalCharacteristics(products.data.characteristic || []);
 
-      // Инициализация характеристик категорий
       const selectedCats = products.data.categories?.map((cat) => cat.id) || [];
       const allCharacteristics = category.data
         ?.filter((cat) => selectedCats.includes(cat.id))
         .flatMap((cat) => cat.characteristic || []);
       setCharacteristics([...new Set(allCharacteristics)] || []);
 
-      // Инициализация состояния чекбокса и текста для preview
+      // Инициализация preview
       const hasPreview =
         products.data.preview && products.data.preview.trim() !== "";
       setIsElectronicCertificate(hasPreview);
       setPreviewText(hasPreview ? products.data.preview : "");
+
+      // Инициализация nameplate
+      const hasNameplate =
+        products.data.nameplate && products.data.nameplate.trim() !== "";
+      setIsNameplate(hasNameplate);
+      setNameplateText(hasNameplate ? products.data.nameplate : "");
     }
   }, [products.data, isFetching, category.data]);
 
@@ -157,6 +162,19 @@ export default function UpdateProduct() {
   // Обработчик изменения текста в поле preview
   const handlePreviewTextChange = (event) => {
     setPreviewText(event.target.value);
+  };
+
+  // Обработчик изменения чекбокса "Nameplate"
+  const handleNameplateChange = (event) => {
+    setIsNameplate(event.target.checked);
+    if (!event.target.checked) {
+      setNameplateText("");
+    }
+  };
+
+  // Обработчик изменения текста в поле nameplate
+  const handleNameplateTextChange = (event) => {
+    setNameplateText(event.target.value);
   };
 
   // Обработчик изменения категорий
@@ -239,14 +257,12 @@ export default function UpdateProduct() {
     e.preventDefault();
     setLoading(true);
 
-    // Валидация обязательных полей
     if (!product.name || !product.price || !product.description) {
       toast.error("Заполните все обязательные поля: название, цена, описание");
       setLoading(false);
       return;
     }
 
-    // Формируем characteristic_values
     const formattedCharacteristics = Object.entries(characteristicValues)
       .filter(([id]) => characteristics.some((char) => char.id === Number(id)))
       .map(([id, value]) => {
@@ -255,7 +271,6 @@ export default function UpdateProduct() {
         );
         const char = characteristics.find((c) => c.id === Number(id));
 
-        // Если значение не изменилось, возвращаем оригинальное
         const originalValue = Array.isArray(originalChar?.value)
           ? originalChar.value.join(", ")
           : String(originalChar?.value);
@@ -266,7 +281,6 @@ export default function UpdateProduct() {
           };
         }
 
-        // Если значение изменилось, форматируем как массив строк
         return {
           characteristic_id: Number(id),
           value:
@@ -289,6 +303,7 @@ export default function UpdateProduct() {
       del_images: product.del_images,
       tru: product.tru,
       preview: isElectronicCertificate ? previewText : "",
+      nameplate: isNameplate ? nameplateText : "", // Add nameplate to productData
     };
 
     const formData = new FormData();
@@ -313,7 +328,6 @@ export default function UpdateProduct() {
     }
   };
 
-  // Отображение индикатора загрузки
   if (isFetching) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
@@ -519,6 +533,8 @@ export default function UpdateProduct() {
                   />
                 </Box>
               </Grid>
+
+              {/* Preview */}
               <Grid item xs={12}>
                 <Typography variant="h6">Шильд</Typography>
                 <Box>
@@ -529,16 +545,42 @@ export default function UpdateProduct() {
                         onChange={handleElectronicCertificateChange}
                       />
                     }
-                    label="Шилд для карточки товара"
+                    label="Шильд для карточки товара"
                   />
                   {isElectronicCertificate && (
                     <TextField
-                      label="Текст для шилда"
+                      label="Текст для шильда"
                       value={previewText}
                       onChange={handlePreviewTextChange}
                       fullWidth
                       margin="normal"
                       placeholder="Введите текст"
+                    />
+                  )}
+                </Box>
+              </Grid>
+
+              {/* Nameplate */}
+              <Grid item xs={12}>
+                <Typography variant="h6">Nameplate</Typography>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isNameplate}
+                        onChange={handleNameplateChange}
+                      />
+                    }
+                    label="Nameplate для карточки товара"
+                  />
+                  {isNameplate && (
+                    <TextField
+                      label="Текст для превью"
+                      value={nameplateText}
+                      onChange={handleNameplateTextChange}
+                      fullWidth
+                      margin="normal"
+                      placeholder="Введите текст для превью"
                     />
                   )}
                 </Box>
@@ -555,7 +597,6 @@ export default function UpdateProduct() {
                     return (
                       <Box key={char.id} sx={{ mb: 2 }}>
                         <Typography>{char.name}:</Typography>
-
                         {char.data_type === "bool" ? (
                           <Box>
                             <FormControlLabel
@@ -656,6 +697,14 @@ export default function UpdateProduct() {
                     products.data?.preview.trim() !== "";
                   setIsElectronicCertificate(hasPreview);
                   setPreviewText(hasPreview ? products.data?.preview : "");
+                  // Reset nameplate
+                  const hasNameplate =
+                    products.data?.nameplate &&
+                    products.data?.nameplate.trim() !== "";
+                  setIsNameplate(hasNameplate);
+                  setNameplateText(
+                    hasNameplate ? products.data?.nameplate : ""
+                  );
                 }}
               >
                 Сбросить

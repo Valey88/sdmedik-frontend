@@ -10,15 +10,15 @@ const CatalogButtons = () => {
         width: "max-content",
         display: { xs: "none", sm: "none", md: "flex", lg: "flex" },
         alignItems: "center",
-        gridGap: 10,
-        p: "0px 10px",
+        // gridGap: 10,
+        // p: "0px 10px",
       }}
     >
       {/* Каталог */}
       <Link
         style={{
           background: `linear-gradient(95.61deg, #A5DED1 4.71%, #00B3A4 97.25%)`,
-          padding: "10px 20px",
+          padding: "10px 5px",
           fontSize: "18px",
           fontWeight: "300",
           borderRadius: "5px",

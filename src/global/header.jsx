@@ -24,7 +24,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: "flex",
-  gridGap: "5px",
+  // gridGap: "5px",
   flexDirection: "column",
   position: "relative",
   [theme.breakpoints.down("lg")]: {
@@ -74,7 +74,7 @@ export default function Header() {
   //   location.pathname.startsWith("/product/certificate/");
 
   return (
-    <AppBar position="sticky" sx={{ background: "white", p: 1 }}>
+    <AppBar position="sticky" sx={{ background: "white" }}>
       <Container>
         <StyledToolbar>
           <Box
