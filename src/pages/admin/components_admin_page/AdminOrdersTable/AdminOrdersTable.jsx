@@ -37,7 +37,7 @@ const AdminOrdersTable = () => {
   const { fetchOrders, orders, changeStatus } = useOrderStore();
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(50); // Increased default to show more rows
   const [statusFilter, setStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -217,128 +217,156 @@ const AdminOrdersTable = () => {
   };
 
   return (
-    <Container sx={{ padding: 2 }}>
-      <Typography variant="h6" sx={{ mb:1 }}>
+    <Container sx={{ padding: 1 }}>
+      <Typography variant="h6" sx={{ mb: 0.5, fontSize: "0.9rem" }}>
         Управление заказами
       </Typography>
 
       {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
+        <Typography color="error" sx={{ mb: 0.5, fontSize: "0.8rem" }}>
           {error}
         </Typography>
       )}
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <FormControl variant="outlined" sx={{ minWidth: 150, height: 20 }}>
-          <InputLabel>Фильтр по статусу</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
-            label="Фильтр по статусу"
-          >
-            <MenuItem value="">
-              <em>Все</em>
-            </MenuItem>
-            {Object.entries(statusTranslations).map(([key, value]) => (
-              <MenuItem key={key} value={key}>
-                {value}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Box sx={{ display: "flex", gap: 1, mb: 1, flexWrap: "wrap" }}>
+        
 
         <TextField
-          label="Поиск по ФИО, email или телефону"
+          placeholder="Поиск"
           variant="outlined"
           value={searchQuery}
           onChange={handleSearchChange}
-          sx={{ flex: 1, minWidth: 200 }}
+          sx={{ flex: 1, minWidth: 120, fontSize: "0.7rem", height: 24 }}
+          InputProps={{ sx: { fontSize: "0.7rem", height: 24, py: 0 } }}
+          InputLabelProps={{ sx: { fontSize: "0.7rem" } }}
         />
 
-        <FormControl variant="outlined" sx={{ minWidth: 120 }}>
-          <InputLabel>На странице</InputLabel>
+        <FormControl variant="outlined" sx={{ minWidth: 80, height: 24 }}>
+          <InputLabel sx={{ fontSize: "0.7rem", lineHeight: "0.8rem" }}>
+            На странице
+          </InputLabel>
           <Select
             value={itemsPerPage}
             onChange={handleItemsPerPageChange}
             label="На странице"
+            sx={{ fontSize: "0.7rem", height: 24, py: 0 }}
           >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={20}>20</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
+            <MenuItem value={10} sx={{ fontSize: "0.7rem" }}>
+              10
+            </MenuItem>
+            <MenuItem value={20} sx={{ fontSize: "0.7rem" }}>
+              20
+            </MenuItem>
+            <MenuItem value={50} sx={{ fontSize: "0.7rem" }}>
+              50
+            </MenuItem>
+            <MenuItem value={100} sx={{ fontSize: "0.7rem" }}>
+              100
+            </MenuItem>
           </Select>
         </FormControl>
 
-        <Button variant="contained" onClick={exportToExcel}>
-          Экспорт в Excel
+        <Button
+          variant="contained"
+          onClick={exportToExcel}
+          sx={{ fontSize: "0.7rem", py: 0.2, px: 1, minWidth: 80, height: 24 }}
+        >
+          Excel
         </Button>
       </Box>
 
       {selectedOrder ? (
-        <Box sx={{ p: 3, border: "1px solid #e0e0e0", borderRadius: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Детали заказа #{selectedOrder.id}
+        <Box sx={{ p: 1, border: "1px solid #e0e0e0", borderRadius: 1, mb: 1 }}>
+          <Typography variant="h6" sx={{ fontSize: "0.9rem", mb: 0.5 }}>
+            Заказ #{selectedOrder.id}
           </Typography>
-          <Typography>Email: {selectedOrder.email}</Typography>
-          <Typography>Телефон: {selectedOrder.phone}</Typography>
-          <Typography>ФИО: {selectedOrder.fio}</Typography>
-          <Typography>Адрес доставки: {selectedOrder.address}</Typography>
-          <Typography>
+          <Typography sx={{ fontSize: "0.7rem" }}>
+            Email: {selectedOrder.email}
+          </Typography>
+          <Typography sx={{ fontSize: "0.7rem" }}>
+            Телефон: {selectedOrder.phone}
+          </Typography>
+          <Typography sx={{ fontSize: "0.7rem" }}>
+            ФИО: {selectedOrder.fio}
+          </Typography>
+          <Typography sx={{ fontSize: "0.7rem" }}>
+            Адрес: {selectedOrder.address}
+          </Typography>
+          <Typography sx={{ fontSize: "0.7rem" }}>
             Статус: {statusTranslations[selectedOrder.status]}
           </Typography>
-          <Typography>
-            Общая стоимость: {selectedOrder.total_price} ₽
+          <Typography sx={{ fontSize: "0.7rem" }}>
+            Стоимость: {selectedOrder.total_price} ₽
           </Typography>
-          <Typography>
-            Дата создания:{" "}
-            {new Date(selectedOrder.created_at).toLocaleDateString()}
+          <Typography sx={{ fontSize: "0.7rem" }}>
+            Дата: {new Date(selectedOrder.created_at).toLocaleDateString()}
           </Typography>
-          <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
-            <Tooltip title="Открыть чат с покупателем">
+          <Box sx={{ mt: 0.5, display: "flex", gap: 0.5 }}>
+            <Tooltip title="Чат с покупателем">
               <Button
                 variant="contained"
                 onClick={() => handleChatNavigation(selectedOrder)}
                 disabled={!selectedOrder.fragment_link || loading}
+                sx={{ fontSize: "0.7rem", py: 0.2, px: 1, height: 20 }}
               >
-                {loading ? (
-                  <CircularProgress size={24} />
-                ) : (
-                  "Диалог с покупателем"
-                )}
+                {loading ? <CircularProgress size={12} /> : "Чат"}
               </Button>
             </Tooltip>
-            <Button variant="outlined" onClick={handleBackToOrders}>
-              Назад к списку
+            <Button
+              variant="outlined"
+              onClick={handleBackToOrders}
+              sx={{ fontSize: "0.7rem", py: 0.2, px: 1, height: 20 }}
+            >
+              Назад
             </Button>
           </Box>
 
-          <Typography variant="h6" sx={{ mt: 3 }}>
-            Товары в заказе
+          <Typography variant="h6" sx={{ mt: 0.5, fontSize: "0.8rem" }}>
+            Товары
           </Typography>
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
-            <Table>
+          <TableContainer component={Paper} sx={{ mt: 0.5 }}>
+            <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Название</TableCell>
-                  <TableCell>Опции</TableCell>
-                  <TableCell>Количество</TableCell>
-                  <TableCell>Цена за штуку</TableCell>
-                  <TableCell>Полная стоимость</TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    Название
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    Опции
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    Кол-во
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    Цена
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    Итог
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {selectedOrder.items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                      {item.name}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
                       {item.selected_options.map((i, index) => (
-                        <div key={index}>
+                        <div key={index} style={{ fontSize: "0.7rem" }}>
                           {i.name}: {i.value}
                         </div>
                       ))}
                     </TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>{item.price} ₽</TableCell>
-                    <TableCell>{item.total_price} ₽</TableCell>
+                    <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                      {item.quantity}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                      {item.price} ₽
+                    </TableCell>
+                    <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                      {item.total_price} ₽
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -346,26 +374,33 @@ const AdminOrdersTable = () => {
           </TableContainer>
         </Box>
       ) : (
-        <Paper sx={{ width: "100%", mb: 3 }}>
-          <TableContainer sx={{ maxHeight: 750 }}>
-            <Table stickyHeader>
+        <Paper sx={{ width: "100%", mb: 1 }}>
+          <TableContainer sx={{ maxHeight: "calc(100vh - 150px)" }}>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
                     <TableSortLabel
                       active={sortConfig.key === "fio"}
                       direction={
                         sortConfig.key === "fio" ? sortConfig.direction : "asc"
                       }
                       onClick={() => handleSort("fio")}
+                      sx={{ fontSize: "0.7rem" }}
                     >
                       ФИО
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Телефон</TableCell>
-                  <TableCell>Статус</TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
+                    Email
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
+                    Телефон
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
+                    Статус
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
                     <TableSortLabel
                       active={sortConfig.key === "total_price"}
                       direction={
@@ -374,11 +409,12 @@ const AdminOrdersTable = () => {
                           : "asc"
                       }
                       onClick={() => handleSort("total_price")}
+                      sx={{ fontSize: "0.7rem" }}
                     >
-                      Общая стоимость
+                      Стоимость
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
                     <TableSortLabel
                       active={sortConfig.key === "created_at"}
                       direction={
@@ -387,19 +423,24 @@ const AdminOrdersTable = () => {
                           : "asc"
                       }
                       onClick={() => handleSort("created_at")}
+                      sx={{ fontSize: "0.7rem" }}
                     >
                       Дата
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>Действия</TableCell>
-                  <TableCell>Статус</TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
+                    Действия
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}>
+                    Статус
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <CircularProgress />
+                    <TableCell colSpan={8} align="center" sx={{ py: 0.2 }}>
+                      <CircularProgress size={16} />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -409,37 +450,68 @@ const AdminOrdersTable = () => {
                       currentPage * itemsPerPage
                     )
                     .map((order) => (
-                      <TableRow key={order.id} hover>
-                        <TableCell>{order.fio}</TableCell>
-                        <TableCell>{order.email}</TableCell>
-                        <TableCell>{order.phone}</TableCell>
-                        <TableCell>
+                      <TableRow key={order.id} hover sx={{ height: 24 }}>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
+                          {order.fio}
+                        </TableCell>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
+                          {order.email}
+                        </TableCell>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
+                          {order.phone}
+                        </TableCell>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
                           <Box
                             sx={{
-                              width: "100px",
+                              width: "80px",
                               color: statusColors[order.status],
+                              fontSize: "0.7rem",
                             }}
                           >
-                            {statusTranslations[order.status] ||
-                              "Неизвестный статус"}
+                            {statusTranslations[order.status] || "Неизвестный"}
                           </Box>
                         </TableCell>
-                        <TableCell>{order.total_price} ₽</TableCell>
-                        <TableCell>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
+                          {order.total_price} ₽
+                        </TableCell>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
                           {new Date(order.created_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>
-                          <Tooltip title="Просмотреть товары в заказе">
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
+                          <Tooltip title="Товары в заказе">
                             <Button
                               variant="contained"
                               size="small"
                               onClick={() => handleOrderSelect(order)}
+                              sx={{
+                                fontSize: "0.7rem",
+                                py: 0.2,
+                                px: 0.5,
+                                minWidth: 50,
+                                height: 20,
+                              }}
                             >
                               Корзина
                             </Button>
                           </Tooltip>
                         </TableCell>
-                        <TableCell>
+                        <TableCell
+                          sx={{ fontSize: "0.7rem", py: 0.2, px: 0.5 }}
+                        >
                           <Select
                             value={order.status}
                             onChange={(e) =>
@@ -447,6 +519,9 @@ const AdminOrdersTable = () => {
                             }
                             size="small"
                             sx={{
+                              fontSize: "0.7rem",
+                              height: 20,
+                              py: 0,
                               backgroundColor: statusColors[order.status],
                               color: "#fff",
                               "& .MuiSelect-icon": { color: "#fff" },
@@ -455,7 +530,11 @@ const AdminOrdersTable = () => {
                           >
                             {Object.entries(statusTranslations).map(
                               ([key, value]) => (
-                                <MenuItem key={key} value={key}>
+                                <MenuItem
+                                  key={key}
+                                  value={key}
+                                  sx={{ fontSize: "0.7rem" }}
+                                >
                                   {value}
                                 </MenuItem>
                               )
@@ -469,32 +548,70 @@ const AdminOrdersTable = () => {
             </Table>
           </TableContainer>
 
-          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 0.5 }}>
             <Pagination
               count={Math.ceil(filteredOrders.length / itemsPerPage)}
               page={currentPage}
               onChange={handlePageChange}
               color="primary"
+              size="small"
+              sx={{
+                "& .MuiPaginationItem-root": {
+                  fontSize: "0.7rem",
+                  minWidth: 24,
+                  height: 24,
+                },
+              }}
             />
           </Box>
         </Paper>
       )}
 
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6">Статистика заказов</Typography>
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table>
+      <Box sx={{ mb: 1 }}>
+        <Typography variant="h6" sx={{ fontSize: "0.8rem" }}>
+          Статистика
+        </Typography>
+        <FormControl variant="outlined" sx={{ minWidth: 100,}}>
+          <InputLabel sx={{ fontSize: "0.7rem", lineHeight: "0.8rem" }}>
+            Статус
+          </InputLabel>
+          <Select
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            label="Статус"
+            sx={{ fontSize: "0.7rem", height: 45, py: 0 }}
+          >
+            <MenuItem value="" sx={{ fontSize: "0.7rem" }}>
+              <em>Все</em>
+            </MenuItem>
+            {Object.entries(statusTranslations).map(([key, value]) => (
+              <MenuItem key={key} value={key} sx={{ fontSize: "0.7rem" }}>
+                {value}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TableContainer component={Paper} sx={{ mt: 0.5 }}>
+          <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Статус</TableCell>
-                <TableCell>Количество заказов</TableCell>
+                <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                  Статус
+                </TableCell>
+                <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                  Кол-во
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {statusData.map((row) => (
                 <TableRow key={row.status}>
-                  <TableCell>{row.status}</TableCell>
-                  <TableCell>{row.count}</TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    {row.status}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem", py: 0.2 }}>
+                    {row.count}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -503,9 +620,15 @@ const AdminOrdersTable = () => {
       </Box>
 
       <Box>
-        <Typography variant="h6">Общая информация</Typography>
-        <Typography>Всего заказов: {totalOrders}</Typography>
-        <Typography>Общая прибыль: {totalProfit.toFixed(2)} ₽</Typography>
+        <Typography variant="h6" sx={{ fontSize: "0.8rem" }}>
+          Итоги
+        </Typography>
+        <Typography sx={{ fontSize: "0.7rem" }}>
+          Заказов: {totalOrders}
+        </Typography>
+        <Typography sx={{ fontSize: "0.7rem" }}>
+          Прибыль: {totalProfit.toFixed(2)} ₽
+        </Typography>
       </Box>
     </Container>
   );

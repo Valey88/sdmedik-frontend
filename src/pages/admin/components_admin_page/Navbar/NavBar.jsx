@@ -118,6 +118,11 @@ const NavBar = () => {
       href: "/admin/edit_page",
       isButton: false,
     },
+    {
+      label: "блог",
+      href: "/admin/create-blog",
+      isButton: false,
+    },
   ];
 
   return (

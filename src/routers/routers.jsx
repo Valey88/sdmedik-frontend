@@ -33,6 +33,7 @@ import ProductDynamicCertificatePage from "../pages/Product/ProductDynamicCertif
 import LayoutWrapper from "../global/LayoutWrapper";
 import NotFound from "../pages/notfound/NotFound";
 import RessetPassword from "../global/components/RessetPassword";
+// import Blog from "../pages/blog/Blog";
 
 // const UsersRoute = ({ children }) => {
 //   const isLoggedIn = Cookies.get("logged_in") === "true";
@@ -99,6 +100,14 @@ export const router = createBrowserRouter([
       </LayoutWrapper>
     ),
   },
+  // {
+  //   path: "/blog",
+  //   element: (
+  //     <LayoutWrapper>
+  //       <Blog />
+  //     </LayoutWrapper>
+  //   ),
+  // },
   {
     path: "/catalog",
     element: (

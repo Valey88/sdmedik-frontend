@@ -16,6 +16,7 @@ import AdminPromotionTable from "./components_admin_page/AdminPromotionTable/Adm
 import UpdateCategory from "./update_category/UpdateCategory";
 import AdminChat from "./components_admin_page/chat/AdminChat";
 import PageContentEditor from "./edit_page/PageContentEditor";
+// import CreateBlog from "./create-blog/CreateBlog";
 
 function ProtectedRoute({ element }) {
   const { getUserInfo, user } = useUserStore();
@@ -97,6 +98,10 @@ export default function AdminDashboard() {
           path="/edit_page"
           element={<ProtectedRoute element={<PageContentEditor />} />}
         />
+        {/* <Route
+          path="/create-blog"
+          element={<ProtectedRoute element={<CreateBlog />} />}
+        /> */}
       </Routes>
     </Box>
   );
