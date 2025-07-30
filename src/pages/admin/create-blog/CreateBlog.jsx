@@ -636,7 +636,7 @@ export default function BlogAdminPanel() {
     prewiew: "",
     heading: "",
     text: "",
-    hex: "#000000",
+    hex: "#ffffff",
   });
   const [editingPost, setEditingPost] = useState(null);
   const [editedPost, setEditedPost] = useState({});
