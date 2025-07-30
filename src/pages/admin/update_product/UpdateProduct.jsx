@@ -344,7 +344,7 @@ export default function UpdateProduct() {
             Редактирование продукта
           </Typography>
           <Box component="form" onSubmit={handleSubmit}>
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gridGap: 20 }}>
               {/* Основная информация */}
               <Box>
                 <TextField

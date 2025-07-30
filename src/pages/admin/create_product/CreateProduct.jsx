@@ -7,7 +7,6 @@ import {
   Button,
   Container,
   Paper,
-  Grid,
   InputAdornment,
   IconButton,
   Avatar,
@@ -240,10 +239,14 @@ export default function CreateProduct() {
           <Typography variant="h4" align="center" gutterBottom>
             Создание продукта
           </Typography>
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
+          <Box
+            
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Box sx={{ display: "flex", flexDirection: "column", gridGap:20 }}container spacing={3}>
               {/* Основная информация */}
-              <Grid item xs={12}>
+              <Box>
                 <TextField
                   label="Название"
                   value={product.name}
@@ -254,8 +257,8 @@ export default function CreateProduct() {
                   margin="normal"
                   required
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <TextField
                   label="Артикул"
                   value={product.article}
@@ -265,8 +268,8 @@ export default function CreateProduct() {
                   fullWidth
                   margin="normal"
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <TextField
                   label="ТРУ код"
                   value={product.tru}
@@ -280,8 +283,8 @@ export default function CreateProduct() {
                     maxLength: 30,
                   }}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <TextField
                   label="Цена"
                   value={product.price}
@@ -301,8 +304,8 @@ export default function CreateProduct() {
                     ),
                   }}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <Typography variant="h6" gutterBottom>
                   Описание
                 </Typography>
@@ -328,10 +331,10 @@ export default function CreateProduct() {
                   ]}
                   style={{ height: "200px", marginBottom: "40px" }}
                 />
-              </Grid>
+              </Box>
 
               {/* Управление изображениями */}
-              <Grid item xs={12}>
+              <Box>
                 <input
                   type="file"
                   multiple
@@ -358,10 +361,10 @@ export default function CreateProduct() {
                     </Box>
                   ))}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Категории */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Категории</Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap" }}>
                   {Array.isArray(category.data) && category.data.length > 0 ? (
@@ -381,10 +384,10 @@ export default function CreateProduct() {
                     <p>Данных нет</p>
                   )}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Каталоги */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Каталоги</Typography>
                 <Box>
                   <FormControlLabel
@@ -408,10 +411,10 @@ export default function CreateProduct() {
                     label="Каталог по электронному сертификату"
                   />
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Шильд */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Шильд</Typography>
                 <Box>
                   <FormControlLabel
@@ -434,10 +437,10 @@ export default function CreateProduct() {
                     />
                   )}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Характеристики */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Характеристики</Typography>
                 {Array.isArray(characteristics) &&
                   characteristics.map((char) => {
@@ -500,8 +503,8 @@ export default function CreateProduct() {
                       </Box>
                     );
                   })}
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             {/* Кнопки управления */}
             <Box

@@ -43,7 +43,7 @@ export default function CategoriesPage() {
         </Typography>
         <Grid
           container
-          spacing={{ xs: 3, md: 5, lg: 5 }}
+          spacing={{ xs: 1, md: 3, lg: 3 }}
           columns={{ xs: 2, sm: 3, md: 4, lg: 5 }}
         >
           {Array.isArray(category.data) && category.data.length > 0 ? (
@@ -52,20 +52,15 @@ export default function CategoriesPage() {
                 <Link to={`/products/certificate/${item.id}`}>
                   <Card
                     sx={{
-                      width: "100%",
+                      width: { xs: "340px", md: "221px" },
                       height: "336px", // Фиксированная высота карточки
                       background: "#fff",
                       borderRadius: "12px",
                       boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.2)",
-                      },
                       cursor: "pointer",
                       display: "flex",
                       flexDirection: "column",
-                      p: { xs: 1, md: 2 },
+                      p: { xs: 0.5, md: 2 },
                     }}
                     // onClick={() => {
                     //   navigate(`/products/certificate/${item.id}`);
@@ -87,7 +82,7 @@ export default function CategoriesPage() {
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover",
+                          objectFit: "contain",
                         }}
                       />
                     </Box>
