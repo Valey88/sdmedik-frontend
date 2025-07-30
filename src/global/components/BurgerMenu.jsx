@@ -30,6 +30,11 @@ const BurgerMenu = () => {
           </Link>
         </ListItem>
         <ListItem>
+          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/blog-list">
+            Блог
+          </Link>
+        </ListItem>
+        <ListItem>
           <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/certificate">
             Электронный сертификат
           </Link>
@@ -43,7 +48,7 @@ const BurgerMenu = () => {
           <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/contacts">
             Контакты
           </Link>
-        </ListItem>
+        </ListItem>        
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column" }}>
           {/* {!shouldHideCatalogButton && ( // Условие для отображения кнопки "Каталог" в бургер-меню */}
           {/* <Link

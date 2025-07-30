@@ -7,7 +7,6 @@ import {
   Button,
   Container,
   Paper,
-  Grid,
   InputAdornment,
   IconButton,
   Avatar,
@@ -82,6 +81,7 @@ export default function UpdateProduct() {
         price: products.data.price || 0,
         del_images: [],
         tru: products.data.tru || "",
+        catalogs: products.data.tru || "",
       });
 
       setSelectedCategories(
@@ -344,9 +344,9 @@ export default function UpdateProduct() {
             Редактирование продукта
           </Typography>
           <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
               {/* Основная информация */}
-              <Grid item xs={12}>
+              <Box>
                 <TextField
                   label="Название"
                   value={product.name}
@@ -357,8 +357,8 @@ export default function UpdateProduct() {
                   margin="normal"
                   required
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <TextField
                   label="Артикул"
                   value={product.article}
@@ -368,8 +368,8 @@ export default function UpdateProduct() {
                   fullWidth
                   margin="normal"
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <TextField
                   label="ТРУ код"
                   value={product.tru}
@@ -383,8 +383,8 @@ export default function UpdateProduct() {
                     maxLength: 30,
                   }}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <TextField
                   label="Цена"
                   value={product.price}
@@ -404,8 +404,8 @@ export default function UpdateProduct() {
                     ),
                   }}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box>
                 <Typography variant="h6" gutterBottom>
                   Описание
                 </Typography>
@@ -431,10 +431,10 @@ export default function UpdateProduct() {
                   ]}
                   style={{ height: "200px", marginBottom: "40px" }}
                 />
-              </Grid>
+              </Box>
 
               {/* Управление изображениями */}
-              <Grid item xs={12}>
+              <Box>
                 <input
                   type="file"
                   multiple
@@ -482,10 +482,10 @@ export default function UpdateProduct() {
                     </Box>
                   ))}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Категории */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Категории</Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap" }}>
                   {Array.isArray(category.data) && category.data.length > 0 ? (
@@ -505,10 +505,10 @@ export default function UpdateProduct() {
                     <p>Данных нет</p>
                   )}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Каталоги */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Каталоги</Typography>
                 <Box>
                   <FormControlLabel
@@ -532,10 +532,10 @@ export default function UpdateProduct() {
                     label="Каталог по электронному сертификату"
                   />
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Preview */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Шильд</Typography>
                 <Box>
                   <FormControlLabel
@@ -558,10 +558,10 @@ export default function UpdateProduct() {
                     />
                   )}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Nameplate */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Nameplate</Typography>
                 <Box>
                   <FormControlLabel
@@ -584,10 +584,10 @@ export default function UpdateProduct() {
                     />
                   )}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Характеристики */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="h6">Характеристики</Typography>
                 {Array.isArray(characteristics) &&
                   characteristics.map((char) => {
@@ -649,8 +649,8 @@ export default function UpdateProduct() {
                       </Box>
                     );
                   })}
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             {/* Кнопки управления */}
             <Box

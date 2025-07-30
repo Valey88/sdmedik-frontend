@@ -25,6 +25,7 @@ const Navigation = () => {
       <Link to="/delivery">Доставка</Link>
       <Link to="/deteils">Реквизиты</Link>
       <Link to="/certificate">Сертификат</Link>
+      <Link to="/blog-list">Блог</Link>
       <Link to="/returnpolicy">Возврат</Link>
       <Link to="/about">О нас</Link>
       <Link to="/contacts">Контакты</Link>

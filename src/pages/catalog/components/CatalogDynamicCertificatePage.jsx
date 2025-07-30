@@ -9,8 +9,8 @@ import {
   Typography,
   IconButton,
   Chip,
+  Grid,
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import useProductStore from "../../../store/productStore";
 import useBascketStore from "../../../store/bascketStore";
@@ -33,14 +33,10 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
           borderRadius: "8px",
           transition: "transform 0.2s, box-shadow 0.2s",
-          // "&:hover": {
-          //   transform: "scale(1.05)",
-          //   boxShadow: "0 8px 30px rgba(0, 0, 0, 0.2)",
-          // },
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
-          position: "relative", // For positioning the badge
+          position: "relative",
         }}
       >
         {/* Badge for preview text */}
@@ -117,12 +113,27 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           >
             {e.name}
           </Typography>
-          {e.nameplate && (
-            <Chip
-              label={e.nameplate}
-              size="small"
-              sx={{ mt: 1, bgcolor: "#E0F2F1", color: "#00796B" }}
-            />
+          {e.nameplate && e.nameplate.trim() !== "" && (
+            <Box
+              sx={{
+                backgroundColor: "#2e9efaff",
+                color: "#FFFFFF",
+                padding: "4px 12px",
+                borderRadius: "8px",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                maxWidth: "100%",
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: { xs: "0.7rem", md: "0.9rem" },
+                }}
+              >
+                {e.nameplate}
+              </Typography>
+            </Box>
           )}
 
           <Box sx={{ mt: "auto" }}>
@@ -164,7 +175,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
   );
 });
 
-const CatalogDynamicCertificatePage = () => {
+export default function CatalogDynamicCertificatePage() {
   const { id } = useParams();
   const { fetchProducts, products } = useProductStore();
   const { addProductThisBascket } = useBascketStore();
@@ -325,7 +336,7 @@ const CatalogDynamicCertificatePage = () => {
           <Typography color="error">Ошибка: {error}</Typography>
         ) : currentProducts.length > 0 ? (
           currentProducts.map((e) => (
-            <Grid item={"true"} key={e.id} xs={6} sm={4} md={3}>
+            <Grid item key={e.id} xs={6} sm={4} md={3}>
               <ProductCard
                 e={e}
                 hendleAddProductThithBascket={hendleAddProductThithBascket}
@@ -346,6 +357,4 @@ const CatalogDynamicCertificatePage = () => {
       )}
     </Box>
   );
-};
-
-export default CatalogDynamicCertificatePage;
+}

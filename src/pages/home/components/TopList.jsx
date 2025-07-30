@@ -6,7 +6,7 @@ import {
   CardMedia,
   Typography,
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+// import Grid from "@mui/material/Grid2";
 import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";

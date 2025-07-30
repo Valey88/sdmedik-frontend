@@ -98,6 +98,8 @@ const SidebarFilter = ({ setFilters }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [article, setArticle] = useState("");
+
   const { fetchFilter, filters, loading } = useFilterStore();
   const { fetchProducts } = useProductStore();
   const [selectedValues, setSelectedValues] = useState([]);
@@ -137,7 +139,7 @@ const SidebarFilter = ({ setFilters }) => {
           (v) => v !== value
         );
       } else {
-        currentCharacteristic.values.push(value);
+        currentCharacteristic.values = [value]; // Только одно значение
       }
       setSelectedValues(updatedSelectedValues);
     }
@@ -155,10 +157,16 @@ const SidebarFilter = ({ setFilters }) => {
           characteristic_id: characteristic.characteristic_id,
           values: characteristic.values.map((value) => value.toString()),
         })),
+      article: article || undefined, // Добавляем артикл, если он задан
     };
 
+    const queryParams = new URLSearchParams();
+    if (article) {
+      queryParams.append("article", article);
+    }
+
     const jsonData = JSON.stringify(filterData);
-    await fetchProducts(category_id, jsonData);
+    await fetchProducts(category_id, jsonData, queryParams.toString());
     toggleDrawer();
   };
 
@@ -171,6 +179,7 @@ const SidebarFilter = ({ setFilters }) => {
     );
     setMinPrice("");
     setMaxPrice("");
+    setArticle("");
     fetchProducts(category_id, null);
     toggleDrawer();
   };
@@ -250,7 +259,7 @@ const SidebarFilter = ({ setFilters }) => {
                   >
                     Цена
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 2 }}>
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <CustomTextField
                       label="От"
                       type="number"
@@ -268,6 +277,18 @@ const SidebarFilter = ({ setFilters }) => {
                       InputProps={{ inputProps: { min: 0 } }}
                     />
                   </Box>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 500, mb: 2 }}
+                  >
+                    Поиск по артиклу
+                  </Typography>
+                  <CustomTextField
+                    label="Артикул"
+                    value={article}
+                    onChange={(e) => setArticle(e.target.value)}
+                    sx={{ width: "100%" }}
+                  />
                 </Box>
 
                 {filters &&

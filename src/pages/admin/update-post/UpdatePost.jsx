@@ -4,73 +4,119 @@ import {
   Toolbar,
   Typography,
   Container,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  Button,
-  TextField,
   Box,
-  Alert,
-  CircularProgress,
-  IconButton,
-  Modal,
-  Input,
+  TextField,
+  Button,
   Select,
   MenuItem,
+  CircularProgress,
+  Modal,
+  Input,
+  IconButton,
   FormControl,
   InputLabel,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
-import CancelIcon from "@mui/icons-material/Cancel";
-import DeleteIcon from "@mui/icons-material/Delete";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Helmet } from "react-helmet";
+import { useParams, Link } from "react-router-dom";
 import ReactQuill from "react-quill";
 import Quill from "quill";
 import "react-quill/dist/quill.snow.css";
 import sanitizeHtml from "sanitize-html";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import api from "../../../configs/axiosConfig"; // Adjust path
-import useUserStore from "../../../store/userStore"; // Adjust path
+import { toast, ToastContainer } from "react-toastify";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import api from "../../../configs/axiosConfig";
+import useBlogStore from "../../../store/blogStore";
 
-// Custom CSS for images
-const styles = `
-    .custom-image {
-      display: block;
-      margin: 0 auto;
-    }
-    .custom-image-left {
-      float: left;
-      margin-right: 10px;
-    }
-    .custom-image-right {
-      float: right;
-      margin-left: 10px;
-    }
-    .custom-image-center {
-      display: block;
-      margin: 0 auto;
-    }
-    .custom-image img {
-      object-fit: contain !important;
-      max-width: 100% !important;
-    }
-  `;
+// Валидация цвета hex
+const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
 
-// Inject styles into document
-const styleSheet = document.createElement("style");
-styleSheet.innerText = styles;
-document.head.appendChild(styleSheet);
+// Валидация стиля обводки
+const isValidBorder = (border) => {
+  if (!border) return true;
+  const borderRegex = /^\d+px\s+(solid|dashed|dotted)\s+#?[0-9A-Fa-f]{6}$/;
+  return borderRegex.test(border);
+};
 
-// Custom Quill Blot for images with parameters
+// Декодирование HTML для удаления лишних слэшей и HTML-сущностей
+const decodeHtml = (html) => {
+  if (!html) return "";
+  return html
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+};
+
+// Санитизация HTML-контента
+const sanitizeContent = (html) => {
+  if (!html) return "";
+  const sanitized = sanitizeHtml(html, {
+    allowedTags: [
+      "p",
+      "strong",
+      "em",
+      "ul",
+      "ol",
+      "li",
+      "img",
+      "video",
+      "br",
+      "span",
+      "a",
+      "div",
+    ],
+    allowedAttributes: {
+      img: ["src", "alt", "style"],
+      div: ["class", "style"],
+      video: ["src", "controls"],
+      a: ["href", "target"],
+      span: ["style"],
+    },
+    transformTags: {
+      img: (tagName, attribs) => {
+        const style = attribs.style || "";
+        const styles = style
+          .split(";")
+          .map((s) => s.trim())
+          .filter((s) => s);
+        if (!styles.includes("object-fit: contain")) {
+          styles.push("object-fit: contain");
+        }
+        return {
+          tagName: "img",
+          attribs: {
+            ...attribs,
+            src: decodeHtml(attribs.src || ""),
+            alt: attribs.alt !== undefined ? attribs.alt : "",
+            style: styles.join("; "),
+          },
+        };
+      },
+      div: (tagName, attribs) => {
+        if (attribs.class && attribs.class.includes("custom-image")) {
+          return {
+            tagName: "div",
+            attribs: { ...attribs, class: decodeHtml(attribs.class) },
+          };
+        }
+        return { tagName: "div", attribs: {} };
+      },
+    },
+  });
+  return decodeHtml(sanitized);
+};
+
+// Кастомный Quill Blot для изображений
 const BlockEmbed = Quill.import("blots/block/embed");
 class CustomImageBlot extends BlockEmbed {
   static create(value) {
     const wrapper = document.createElement("div");
-    wrapper.classList.add("custom-image", `custom-image-${value.align}`);
+    wrapper.classList.add(
+      "custom-image",
+      `custom-image-${value.align || "center"}`
+    );
     const img = document.createElement("img");
     img.setAttribute("src", value.src);
     img.setAttribute("alt", value.alt || "");
@@ -107,78 +153,7 @@ CustomImageBlot.tagName = "div";
 CustomImageBlot.className = "custom-image";
 Quill.register(CustomImageBlot);
 
-// Sanitize HTML content
-const sanitizeContent = (html) => {
-  return sanitizeHtml(html, {
-    allowedTags: [
-      "p",
-      "strong",
-      "em",
-      "ul",
-      "ol",
-      "li",
-      "img",
-      "video",
-      "br",
-      "span",
-      "a",
-      "div",
-    ],
-    allowedAttributes: {
-      img: ["src", "alt", "style"],
-      div: ["class", "style"],
-      video: ["src", "controls"],
-      a: ["href", "target"],
-      span: ["style"],
-    },
-    transformTags: {
-      img: (tagName, attribs) => {
-        const style = attribs.style || "";
-        const styles = style
-          .split(";")
-          .map((s) => s.trim())
-          .filter((s) => s);
-        if (!styles.includes("object-fit: contain")) {
-          styles.push("object-fit: contain");
-        }
-        return {
-          tagName: "img",
-          attribs: {
-            ...attribs,
-            alt: attribs.alt !== undefined ? attribs.alt : "",
-            style: styles.join("; "),
-          },
-        };
-      },
-      div: (tagName, attribs) => {
-        if (attribs.class && attribs.class.includes("custom-image")) {
-          return { tagName: "div", attribs };
-        }
-        return { tagName: "div", attribs: {} };
-      },
-    },
-  });
-};
-
-// Validate hex color
-const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
-
-// Validate border style
-const isValidBorder = (border) => {
-  if (!border) return true;
-  const borderRegex = /^\d+px\s+(solid|dashed|dotted)\s+#?[0-9A-Fa-f]{6}$/;
-  return borderRegex.test(border);
-};
-
-// Extract image URL from HTML
-const extractImageUrl = (html) => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  const img = doc.querySelector("img");
-  return img ? img.getAttribute("src") : "";
-};
-
-// Image Upload Modal for text field
+// Компонент модального окна для загрузки изображений
 const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
@@ -247,13 +222,6 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
       );
       return;
     }
-    console.log("Inserting image with params:", {
-      src: imageUrl,
-      width: parsedWidth,
-      height: parsedHeight,
-      border,
-      align,
-    });
     const quill = quillRef.current.getEditor();
     const range = quill.getSelection() || { index: 0 };
     quill.insertEmbed(range.index, "customImage", {
@@ -264,8 +232,7 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
       border: border || null,
       align,
     });
-    const updatedContent = sanitizeContent(quill.root.innerHTML);
-    console.log("Sanitized content:", updatedContent);
+    const updatedContent = decodeHtml(sanitizeContent(quill.root.innerHTML));
     setValue(updatedContent);
     onClose();
   };
@@ -316,7 +283,9 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
           type="number"
           fullWidth
           sx={{ mb: 2 }}
-          error={width && (isNaN(parseFloat(width)) || parseFloat(width) <= 0)}
+          error={
+            !!(width && (isNaN(parseFloat(width)) || parseFloat(width) <= 0))
+          }
           helperText={
             width && (isNaN(parseFloat(width)) || parseFloat(width) <= 0)
               ? "Введите положительное число"
@@ -331,7 +300,7 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
           fullWidth
           sx={{ mb: 2 }}
           error={
-            height && (isNaN(parseFloat(height)) || parseFloat(height) <= 0)
+            !!(height && (isNaN(parseFloat(height)) || parseFloat(height) <= 0))
           }
           helperText={
             height && (isNaN(parseFloat(height)) || parseFloat(height) <= 0)
@@ -353,7 +322,7 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
           onChange={(e) => setBorder(e.target.value)}
           fullWidth
           sx={{ mb: 2 }}
-          error={border && !isValidBorder(border)}
+          error={!!(border && !isValidBorder(border))}
           helperText={
             border && !isValidBorder(border)
               ? "Формат: Xpx solid/dashed/dotted #RRGGBB"
@@ -385,7 +354,7 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
   );
 };
 
-// Preview Image Modal for preview field
+// Компонент модального окна для загрузки изображения превью
 const PreviewImageModal = ({ open, onClose, quillRef, setValue }) => {
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
@@ -444,19 +413,27 @@ const PreviewImageModal = ({ open, onClose, quillRef, setValue }) => {
       toast.error("Ширина должна быть положительным числом");
       return;
     }
-    console.log("Inserting preview image with params:", {
-      src: imageUrl,
-      width: parsedWidth,
-    });
+    if (parsedHeight && (isNaN(parsedHeight) || parsedHeight <= 0)) {
+      toast.error("Высота должна быть положительным числом");
+      return;
+    }
+    if (!isValidBorder(border)) {
+      toast.error(
+        "Обводка должна быть в формате 'Xpx solid/dashed/dotted #RRGGBB'"
+      );
+      return;
+    }
     const quill = quillRef.current.getEditor();
-    const range = quill.getSelection() || { index: 0 };
-    quill.insertEmbed(range.index, "customImage", {
+    quill.deleteText(0, quill.getLength()); // Очищаем содержимое
+    quill.insertEmbed(0, "customImage", {
       src: imageUrl,
       alt: "",
       width: parsedWidth,
+      height: parsedHeight,
+      border: border || null,
+      align,
     });
-    const updatedContent = sanitizeContent(quill.root.innerHTML);
-    console.log("Sanitized preview content:", updatedContent);
+    const updatedContent = decodeHtml(sanitizeContent(quill.root.innerHTML));
     setValue(updatedContent);
     onClose();
   };
@@ -500,6 +477,22 @@ const PreviewImageModal = ({ open, onClose, quillRef, setValue }) => {
           fullWidth
           sx={{ mb: 2 }}
         />
+        <TextField
+          label="Ширина (px)"
+          value={width}
+          onChange={(e) => setWidth(e.target.value)}
+          type="number"
+          fullWidth
+          sx={{ mb: 2 }}
+          error={
+            !!(width && (isNaN(parseFloat(width)) || parseFloat(width) <= 0))
+          }
+          helperText={
+            width && (isNaN(parseFloat(width)) || parseFloat(width) <= 0)
+              ? "Введите положительное число"
+              : ""
+          }
+        />
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
             variant="contained"
@@ -525,18 +518,33 @@ const PreviewImageModal = ({ open, onClose, quillRef, setValue }) => {
   );
 };
 
-// Editable HTML field with ReactQuill
-const EditableHtmlField = ({
-  value,
-  setValue,
-  isEditing,
-  isPreview = false,
-}) => {
+// Компонент для редактирования HTML-полей
+const EditableHtmlField = ({ value, setValue, isEditing }) => {
   const quillRef = useRef(null);
   const [openModal, setOpenModal] = useState(false);
+  const isMounted = useRef(false);
 
   const imageHandler = useCallback(() => {
     setOpenModal(true);
+  }, []);
+
+  const handleQuillChange = useCallback(
+    (content) => {
+      if (isMounted.current) {
+        const decodedContent = decodeHtml(sanitizeContent(content));
+        if (decodedContent !== value) {
+          setValue(decodedContent);
+        }
+      }
+    },
+    [setValue, value]
+  );
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const modules = {
@@ -555,51 +563,57 @@ const EditableHtmlField = ({
       },
     },
   };
-  const previewModules = {
-    toolbar: {
-      container: [["image", "link"]],
-      handlers: {
-        image: imageHandler,
-      },
-    },
-  };
 
   return (
     <>
       <ReactQuill
         ref={quillRef}
         value={value}
-        onChange={setValue}
+        onChange={handleQuillChange}
         modules={modules}
         theme={isEditing ? "snow" : "bubble"}
         readOnly={!isEditing}
-        style={{ marginBottom: "16px" }}
+        style={{ minHeight: 300, marginBottom: 16 }}
       />
-      {isPreview ? (
-        <PreviewImageModal
-          open={openModal}
-          onClose={() => setOpenModal(false)}
-          quillRef={quillRef}
-          setValue={setValue}
-        />
-      ) : (
-        <ImageUploadModal
-          open={openModal}
-          onClose={() => setOpenModal(false)}
-          quillRef={quillRef}
-          setValue={setValue}
-        />
-      )}
+      <ImageUploadModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        quillRef={quillRef}
+        setValue={setValue}
+      />
     </>
   );
 };
+
+// Компонент для редактирования превью
 const PreviewFile = ({ value, setValue, isEditing }) => {
   const quillRef = useRef(null);
   const [openModal, setOpenModal] = useState(false);
+  const isMounted = useRef(false);
 
   const imageHandler = useCallback(() => {
     setOpenModal(true);
   }, []);
+
+  const handleQuillChange = useCallback(
+    (content) => {
+      if (isMounted.current) {
+        const decodedContent = decodeHtml(sanitizeContent(content));
+        if (decodedContent !== value) {
+          setValue(decodedContent);
+        }
+      }
+    },
+    [setValue, value]
+  );
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const previewModules = {
     toolbar: {
       container: [["image", "link"]],
@@ -614,11 +628,11 @@ const PreviewFile = ({ value, setValue, isEditing }) => {
       <ReactQuill
         ref={quillRef}
         value={value}
-        onChange={setValue}
+        onChange={handleQuillChange}
         modules={previewModules}
         theme={isEditing ? "snow" : "bubble"}
         readOnly={!isEditing}
-        style={{ marginBottom: "16px" }}
+        style={{ minHeight: 100, marginBottom: 16 }}
       />
       <PreviewImageModal
         open={openModal}
@@ -630,147 +644,159 @@ const PreviewFile = ({ value, setValue, isEditing }) => {
   );
 };
 
-export default function BlogAdminPanel() {
-  const [posts, setPosts] = useState([]);
-  const [newPost, setNewPost] = useState({
-    prewiew: "",
+export default function EditPost() {
+  const { id } = useParams();
+  const { post, fetchBlogById, updatePost } = useBlogStore();
+  const [postFormat, setPostFormat] = useState({
     heading: "",
+    prewiew: "",
     text: "",
-    hex: "#000000",
+    hex: "#fcf5f5ff",
   });
-  const [editingPost, setEditingPost] = useState(null);
-  const [editedPost, setEditedPost] = useState({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-
-  const { user, isAuthenticated, getUserInfo, logout } = useUserStore();
-  const isAdmin = isAuthenticated && user?.data?.role === "admin";
-  const navigate = useNavigate();
 
   useEffect(() => {
-    getUserInfo();
-    if (!isAuthenticated || user?.data?.role !== "admin") {
-      setError("Доступ только для администраторов");
-      navigate("/login");
-    }
-  }, []);
+    fetchBlogById(id);
+  }, [id, fetchBlogById]);
 
-  const handleCreatePost = async () => {
-    if (!isAdmin) {
-      setError("Только администраторы могут создавать посты");
-      return;
-    }
-    if (!newPost.prewiew || !newPost.text || !isValidHex(newPost.hex)) {
-      setError(
-        "Заполните все поля корректно (hex должен быть в формате #RRGGBB)"
-      );
-      return;
-    }
-    setIsSaving(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const response = await api.post("/blog", {
-        prewiew: sanitizeContent(newPost.prewiew),
-        heading: sanitizeContent(newPost.heading),
-        text: sanitizeContent(newPost.text),
-        hex: newPost.hex,
+  useEffect(() => {
+    if (post && post.data) {
+      console.log("Raw post.data:", post.data);
+      const newPostFormat = {
+        heading: decodeHtml(post.data.heading || ""),
+        prewiew: decodeHtml(post.data.prewiew || ""),
+        text: decodeHtml(post.data.text || ""),
+        hex: post.data.hex || "#fcf5f5ff",
+      };
+      console.log("Decoded postFormat:", newPostFormat);
+      setPostFormat((prev) => {
+        if (
+          prev.heading !== newPostFormat.heading ||
+          prev.prewiew !== newPostFormat.prewiew ||
+          prev.text !== newPostFormat.text ||
+          prev.hex !== newPostFormat.hex
+        ) {
+          return newPostFormat;
+        }
+        return prev;
       });
-      setPosts([...posts, response.data.data]);
-      setNewPost({ prewiew: "", text: "", hex: "#000000" });
-      setSuccess("Пост создан");
-      toast.success("Пост успешно создан");
+    }
+  }, [post]);
+
+  const handleChange = useCallback(
+    (field) => (value) => {
+      setPostFormat((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
+
+  const handleSubmit = async () => {
+    if (!postFormat.heading || !postFormat.prewiew || !postFormat.text) {
+      toast.error("Заполните все обязательные поля!");
+      return;
+    }
+    if (!isValidHex(postFormat.hex)) {
+      toast.error("Неверный формат цвета (например, #FFFFFF)");
+      return;
+    }
+    const postData = {
+      heading: decodeHtml(postFormat.heading),
+      prewiew: decodeHtml(postFormat.prewiew),
+      text: decodeHtml(postFormat.text),
+      hex: postFormat.hex,
+    };
+
+    console.log("Post data before sending:", postData);
+
+    try {
+      await updatePost(id, postData);
     } catch (error) {
-      setError(
-        "Ошибка создания поста: " +
+      toast.error(
+        "Ошибка сохранения поста: " +
           (error.response?.data?.message || error.message)
       );
-      toast.error("Ошибка создания поста");
-    } finally {
-      setIsSaving(false);
     }
   };
+
   return (
-    <Box>
-      <Container sx={{ py: 4 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
+    <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
+          <Button variant="outlined" component={Link} to="/admin">
+            Назад к админ-панели
+          </Button>
+          <Button variant="contained" color="primary" onClick={handleSubmit}>
+            Сохранить изменения
+          </Button>
+        </Box>
 
         <Box
           sx={{
-            mb: 4,
+            border: `2px solid ${postFormat.hex}`,
             p: 3,
-            bgcolor: "background.paper",
             borderRadius: 2,
-            boxShadow: 1,
+            boxShadow: 3,
+            bgcolor: "background.paper",
           }}
         >
-          <Typography variant="h6" gutterBottom>
-            Создать новый пост
+          <Typography variant="h5" gutterBottom>
+            Редактирование поста
           </Typography>
-          <Typography variant="subtitle1" gutterBottom>
-            Превью
-          </Typography>
-          <PreviewFile
-            value={newPost.prewiew}
-            setValue={(value) => setNewPost({ ...newPost, prewiew: value })}
-            isEditing={true}
-            isPreview={true}
-          />
-          <Typography variant="subtitle1" gutterBottom>
-            Заголовок
-          </Typography>
-          <EditableHtmlField
-            value={newPost.heading}
-            setValue={(value) => setNewPost({ ...newPost, heading: value })}
-            isEditing={true}
-            fullWidth
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Цвет окантовки (hex, #RRGGBB)"
-            value={newPost.hex}
-            onChange={(e) => setNewPost({ ...newPost, hex: e.target.value })}
-            fullWidth
-            error={newPost.hex && !isValidHex(newPost.hex)}
-            helperText={
-              newPost.hex && !isValidHex(newPost.hex)
-                ? "Введите корректный hex-цвет (#RRGGBB)"
-                : ""
-            }
-            sx={{ mb: 2 }}
-          />
 
-          <Typography variant="subtitle1" gutterBottom>
-            Описание
-          </Typography>
-          <EditableHtmlField
-            value={newPost.text}
-            setValue={(value) => setNewPost({ ...newPost, text: value })}
-            isEditing={true}
-            isPreview={false}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCreatePost}
-            disabled={isSaving}
-            startIcon={isSaving ? <CircularProgress size={24} /> : <SaveIcon />}
-            sx={{ mt: 2 }}
-          >
-            Создать пост
-          </Button>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Заголовок
+            </Typography>
+            <EditableHtmlField
+              value={postFormat.heading}
+              setValue={handleChange("heading")}
+              isEditing={true}
+            />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Превью (изображение)
+            </Typography>
+            <PreviewFile
+              value={postFormat.prewiew}
+              setValue={handleChange("prewiew")}
+              isEditing={true}
+            />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Содержимое
+            </Typography>
+            <EditableHtmlField
+              value={postFormat.text}
+              setValue={handleChange("text")}
+              isEditing={true}
+            />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Цвет обводки
+            </Typography>
+            <TextField
+              type="color"
+              value={postFormat.hex}
+              onChange={(e) => handleChange("hex")(e.target.value)}
+              fullWidth
+              variant="outlined"
+              sx={{ maxWidth: 200 }}
+              error={!!(postFormat.hex && !isValidHex(postFormat.hex))}
+              helperText={
+                postFormat.hex && !isValidHex(postFormat.hex)
+                  ? "Формат: #FFFFFF"
+                  : ""
+              }
+            />
+          </Box>
         </Box>
       </Container>
+      <ToastContainer />
     </Box>
   );
 }

@@ -23,11 +23,13 @@ const NavBar = () => {
   const [menuProducts, setMenuProducts] = useState(null);
   const [menuPromotion, setMenuPromotion] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuBlogs, setMenuBlogs] = useState(null);
 
   const openCategories = Boolean(menuCategories);
   const openProducts = Boolean(menuProducts);
   const openUsers = Boolean(menuUsers);
   const openPromotion = Boolean(menuPromotion);
+  const openBlog = Boolean(menuBlogs);
 
   const handleCloseCategoryMenu = () => {
     setMenuCategories(null);
@@ -52,6 +54,12 @@ const NavBar = () => {
   };
   const handleClosePromotionMenu = () => {
     setMenuPromotion(null);
+  };
+  const handleCloseBlogMenu = () => {
+    setMenuBlogs(null);
+  };
+  const handleClickBlogMenu = (event) => {
+    setMenuBlogs(event.currentTarget);
   };
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -119,9 +127,16 @@ const NavBar = () => {
       isButton: false,
     },
     {
-      label: "блог",
-      href: "/admin/create-blog",
-      isButton: false,
+      label: "Блог",
+      items: [
+        { label: "Создать Пост", href: "/admin/create-blog" },
+        { label: "Таблица Постов", href: "/admin/table_blog" },
+      ],
+      menuState: menuBlogs,
+      open: openBlog,
+      handleClick: handleClickBlogMenu,
+      handleClose: handleCloseBlogMenu,
+      id: "blog-menu",
     },
   ];
 
