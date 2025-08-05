@@ -98,7 +98,6 @@ const SidebarFilter = ({ setFilters }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [article, setArticle] = useState("");
 
   const { fetchFilter, filters, loading } = useFilterStore();
   const { fetchProducts } = useProductStore();
@@ -157,16 +156,12 @@ const SidebarFilter = ({ setFilters }) => {
           characteristic_id: characteristic.characteristic_id,
           values: characteristic.values.map((value) => value.toString()),
         })),
-      article: article || undefined, // Добавляем артикл, если он задан
     };
 
-    const queryParams = new URLSearchParams();
-    if (article) {
-      queryParams.append("article", article);
-    }
+    
 
     const jsonData = JSON.stringify(filterData);
-    await fetchProducts(category_id, jsonData, queryParams.toString());
+    await fetchProducts(category_id, jsonData);
     toggleDrawer();
   };
 
@@ -283,12 +278,12 @@ const SidebarFilter = ({ setFilters }) => {
                   >
                     Поиск по артиклу
                   </Typography>
-                  <CustomTextField
+                  {/* <CustomTextField
                     label="Артикул"
                     value={article}
                     onChange={(e) => setArticle(e.target.value)}
                     sx={{ width: "100%" }}
-                  />
+                  /> */}
                 </Box>
 
                 {filters &&
