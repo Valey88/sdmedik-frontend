@@ -23,6 +23,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
   const isCatalog1 = e?.catalogs === 1;
   const navigate = useNavigate();
+
   return (
     <Link to={`/product/certificate/${e.id}`}>
       <Card
@@ -39,7 +40,6 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           position: "relative",
         }}
       >
-        {/* Badge for preview text */}
         {e.preview && e.preview.trim() !== "" && (
           <Box
             sx={{
@@ -93,7 +93,6 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
             loading="lazy"
           />
         </Box>
-
         <CardContent
           sx={{
             display: "flex",
@@ -135,7 +134,6 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
               </Typography>
             </Box>
           )}
-
           <Box sx={{ mt: "auto" }}>
             {isCatalog1 && (
               <Box sx={{ mb: 1, display: "flex", justifyContent: "left" }}>
@@ -187,9 +185,9 @@ export default function CatalogDynamicCertificatePage() {
   const [error, setError] = useState(null);
   const [sortOrder, setSortOrder] = useState("default");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [catalogs, setCatalogs] = useState("1,2"); // State for catalogs
 
   const category_id = id;
-  let catalogs = "1,2";
 
   useEffect(() => {
     const offset = (currentPage - 1) * ProductsPerPage;
@@ -200,21 +198,19 @@ export default function CatalogDynamicCertificatePage() {
         setLoading(false);
         setError(err.message);
       });
-  }, [category_id, fetchProducts, filters, currentPage]);
+  }, [category_id, fetchProducts, filters, currentPage, catalogs]);
 
   useEffect(() => {
     if (products?.data) {
       let normalizedProducts = Array.isArray(products.data)
         ? products.data
         : [products.data];
-
       let sortedProducts = [...normalizedProducts];
       if (sortOrder === "priceAsc") {
         sortedProducts.sort((a, b) => a.price - b.price);
       } else if (sortOrder === "priceDesc") {
         sortedProducts.sort((a, b) => b.price - a.price);
       }
-
       setCurrentProducts(sortedProducts);
     } else {
       setCurrentProducts([]);
@@ -228,6 +224,13 @@ export default function CatalogDynamicCertificatePage() {
   const handleSortChange = (order) => {
     setSortOrder(order);
     setCurrentPage(1); // Reset to first page on sort change
+    setCatalogs("1,2"); // Reset catalogs when sorting changes
+  };
+
+  const handleFSSCertificateClick = () => {
+    setCatalogs("2"); // Set catalogs to 2 for FSS certificate
+    setCurrentPage(1); // Reset to first page
+    setSortOrder("default"); // Reset sort order
   };
 
   const toggleFilter = () => {
@@ -256,20 +259,31 @@ export default function CatalogDynamicCertificatePage() {
       >
         <SidebarFilter setFilters={setFilters} />
         <Button
-          variant={sortOrder === "default" ? "contained" : "outlined"}
+          variant={
+            sortOrder === "default" && catalogs === "1,2"
+              ? "contained"
+              : "outlined"
+          }
           onClick={() => handleSortChange("default")}
           sx={{
             borderRadius: "20px",
             textTransform: "none",
-            fontWeight: "medium",
+            fontWeight: " Magnesium",
             px: { xs: 2, sm: 3 },
             backgroundColor:
-              sortOrder === "default" ? "#00B3A4" : "transparent",
-            color: sortOrder === "default" ? "#FFFFFF" : "#00B3A4",
+              sortOrder === "default" && catalogs === "1,2"
+                ? "#00B3A4"
+                : "transparent",
+            color:
+              sortOrder === "default" && catalogs === "1,2"
+                ? "#FFFFFF"
+                : "#00B3A4",
             borderColor: "#00B3A4",
             "&:hover": {
               backgroundColor:
-                sortOrder === "default" ? "#00B3A4" : "rgba(0, 179, 164, 0.1)",
+                sortOrder === "default" && catalogs === "1,2"
+                  ? "#00B3A4"
+                  : "rgba(0, 179, 164, 0.1)",
               borderColor: "#00B3A4",
             },
           }}
@@ -322,8 +336,27 @@ export default function CatalogDynamicCertificatePage() {
         >
           Цена
         </Button>
+        <Button
+          variant={catalogs === "2" ? "contained" : "outlined"}
+          onClick={handleFSSCertificateClick}
+          sx={{
+            borderRadius: "20px",
+            textTransform: "none",
+            fontWeight: "medium",
+            px: { xs: 2, sm: 3 },
+            backgroundColor: catalogs === "2" ? "#00B3A4" : "transparent",
+            color: catalogs === "2" ? "#FFFFFF" : "#00B3A4",
+            borderColor: "#00B3A4",
+            "&:hover": {
+              backgroundColor:
+                catalogs === "2" ? "#00B3A4" : "rgba(0, 179, 164, 0.1)",
+              borderColor: "#00B3A4",
+            },
+          }}
+        >
+          Сертификат ФСС
+        </Button>
       </Box>
-
       <Grid
         container
         spacing={{ xs: 1, md: 1 }}
