@@ -179,7 +179,7 @@ export default function PageContentEditor() {
             Редактирование содержимого страницы
           </Typography>
           <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ flexDirection: "column" }}>
               {/* Выпадающее меню для выбора страницы */}
               <Grid item xs={12}>
                 <FormControl fullWidth margin="normal" required>

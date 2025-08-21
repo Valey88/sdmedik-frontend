@@ -32,6 +32,31 @@ export default function ProductDynamicCertificatePage() {
   const isCatalog1 = products.data?.catalogs === 1;
   const isCatalog2 = products.data?.catalogs === 2;
 
+  // Вычисление цены на основе выбранного размера
+  const getCurrentPrice = () => {
+    if (!products.data?.characteristic || !selectedSize) {
+      return products.data?.price || 0;
+    }
+
+    const sizeCharacteristic = products.data.characteristic.find(
+      (c) =>
+        c.name.toLowerCase() === "размер" ||
+        c.name.toLowerCase() === "объем/размер"
+    );
+
+    if (sizeCharacteristic && sizeCharacteristic.value.includes(selectedSize)) {
+      const sizeIndex = sizeCharacteristic.value.indexOf(selectedSize);
+      return sizeCharacteristic.prices &&
+        sizeCharacteristic.prices[sizeIndex] !== undefined
+        ? sizeCharacteristic.prices[sizeIndex]
+        : products.data.price || 0;
+    }
+
+    return products.data?.price || 0;
+  };
+
+  const currentPrice = getCurrentPrice();
+
   useEffect(() => {
     const loadProduct = async () => {
       await fetchProductById(id);
@@ -228,7 +253,7 @@ export default function ProductDynamicCertificatePage() {
           />
 
           <PriceAndCartActions
-            product={products.data}
+            product={{ ...products.data, price: currentPrice }}
             isCatalog1={isCatalog1}
             isCatalog2={isCatalog2}
             newRegion={newRegion}

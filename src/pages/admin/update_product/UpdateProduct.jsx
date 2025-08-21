@@ -49,7 +49,6 @@ export default function UpdateProduct() {
   const [isFetching, setIsFetching] = useState(true);
   const [isElectronicCertificate, setIsElectronicCertificate] = useState(false);
   const [previewText, setPreviewText] = useState("");
-  // New state for nameplate
   const [isNameplate, setIsNameplate] = useState(false);
   const [nameplateText, setNameplateText] = useState("");
 
@@ -97,9 +96,13 @@ export default function UpdateProduct() {
 
       const initialCharValues = {};
       products.data.characteristic?.forEach((char) => {
-        initialCharValues[char.id] = Array.isArray(char.value)
-          ? char.value.join(", ")
-          : String(char.value);
+        const isSizeCharacteristic = char.name.toLowerCase() === "размер";
+        initialCharValues[char.id] = {
+          value: Array.isArray(char.value)
+            ? char.value.join(", ")
+            : String(char.value),
+          prices: isSizeCharacteristic ? char.prices || [] : [],
+        };
       });
       setCharacteristicValues(initialCharValues);
       setOriginalCharacteristics(products.data.characteristic || []);
@@ -110,13 +113,11 @@ export default function UpdateProduct() {
         .flatMap((cat) => cat.characteristic || []);
       setCharacteristics([...new Set(allCharacteristics)] || []);
 
-      // Инициализация preview
       const hasPreview =
         products.data.preview && products.data.preview.trim() !== "";
       setIsElectronicCertificate(hasPreview);
       setPreviewText(hasPreview ? products.data.preview : "");
 
-      // Инициализация nameplate
       const hasNameplate =
         products.data.nameplate && products.data.nameplate.trim() !== "";
       setIsNameplate(hasNameplate);
@@ -211,11 +212,20 @@ export default function UpdateProduct() {
     });
   };
 
-  // Обработчик изменения значений характеристик
-  const handleValueChange = (id, value) => {
+  // Обработчик изменения значений характеристик и цен
+  const handleValueChange = (id, field, value) => {
     setCharacteristicValues((prevValues) => ({
       ...prevValues,
-      [id]: value,
+      [id]: {
+        ...prevValues[id],
+        [field]:
+          field === "value"
+            ? value
+            : value
+                .split(",")
+                .map(Number)
+                .filter((v) => !isNaN(v)),
+      },
     }));
   };
 
@@ -265,7 +275,7 @@ export default function UpdateProduct() {
 
     const formattedCharacteristics = Object.entries(characteristicValues)
       .filter(([id]) => characteristics.some((char) => char.id === Number(id)))
-      .map(([id, value]) => {
+      .map(([id, data]) => {
         const originalChar = originalCharacteristics.find(
           (c) => c.id === Number(id)
         );
@@ -274,23 +284,31 @@ export default function UpdateProduct() {
         const originalValue = Array.isArray(originalChar?.value)
           ? originalChar.value.join(", ")
           : String(originalChar?.value);
-        if (value === originalValue) {
-          return {
-            characteristic_id: Number(id),
-            value: originalChar.value,
-          };
+        const isSizeCharacteristic = char?.name.toLowerCase() === "размер";
+
+        const values =
+          char?.data_type === "bool"
+            ? [String(data.value)]
+            : String(data.value)
+                .split(",")
+                .map((v) => v.trim())
+                .filter((v) => v);
+
+        const result = {
+          characteristic_id: Number(id),
+          value: values,
+        };
+
+        if (isSizeCharacteristic) {
+          const prices = values.map((_, index) =>
+            data.prices && data.prices[index] !== undefined
+              ? data.prices[index]
+              : 0
+          );
+          result.prices = prices;
         }
 
-        return {
-          characteristic_id: Number(id),
-          value:
-            char?.data_type === "bool"
-              ? [String(value)]
-              : String(value)
-                  .split(",")
-                  .map((v) => v.trim())
-                  .filter((v) => v),
-        };
+        return result;
       });
 
     const productData = {
@@ -303,7 +321,7 @@ export default function UpdateProduct() {
       del_images: product.del_images,
       tru: product.tru,
       preview: isElectronicCertificate ? previewText : "",
-      nameplate: isNameplate ? nameplateText : "", // Add nameplate to productData
+      nameplate: isNameplate ? nameplateText : "",
     };
 
     const formData = new FormData();
@@ -603,11 +621,13 @@ export default function UpdateProduct() {
                               control={
                                 <Checkbox
                                   checked={
-                                    characteristicValues[char.id] === "true" ||
-                                    characteristicValues[char.id] === true
+                                    characteristicValues[char.id]?.value ===
+                                      "true" ||
+                                    characteristicValues[char.id]?.value ===
+                                      true
                                   }
                                   onChange={() =>
-                                    handleValueChange(char.id, "true")
+                                    handleValueChange(char.id, "value", "true")
                                   }
                                 />
                               }
@@ -617,11 +637,13 @@ export default function UpdateProduct() {
                               control={
                                 <Checkbox
                                   checked={
-                                    characteristicValues[char.id] === "false" ||
-                                    characteristicValues[char.id] === false
+                                    characteristicValues[char.id]?.value ===
+                                      "false" ||
+                                    characteristicValues[char.id]?.value ===
+                                      false
                                   }
                                   onChange={() =>
-                                    handleValueChange(char.id, "false")
+                                    handleValueChange(char.id, "value", "false")
                                   }
                                 />
                               }
@@ -629,22 +651,57 @@ export default function UpdateProduct() {
                             />
                           </Box>
                         ) : (
-                          <TextField
-                            label={
-                              isSizeCharacteristic
-                                ? "Значения размера (через запятую)"
-                                : `Значения для ${char.name} (через запятую)`
-                            }
-                            value={characteristicValues[char.id] || ""}
-                            onChange={(e) =>
-                              handleValueChange(char.id, e.target.value)
-                            }
-                            fullWidth
-                            margin="normal"
-                            inputProps={{
-                              inputMode: "text",
-                            }}
-                          />
+                          <>
+                            <TextField
+                              label={
+                                isSizeCharacteristic
+                                  ? "Значения размера (через запятую, например: XL,S,L)"
+                                  : `Значения для ${char.name} (через запятую)`
+                              }
+                              value={characteristicValues[char.id]?.value || ""}
+                              onChange={(e) =>
+                                handleValueChange(
+                                  char.id,
+                                  "value",
+                                  e.target.value
+                                )
+                              }
+                              fullWidth
+                              margin="normal"
+                              inputProps={{
+                                inputMode: "text",
+                              }}
+                            />
+                            {isSizeCharacteristic && (
+                              <TextField
+                                label="Цены для размеров (через запятую, например: 300,200,100)"
+                                value={
+                                  characteristicValues[char.id]?.prices?.join(
+                                    ", "
+                                  ) || ""
+                                }
+                                onChange={(e) =>
+                                  handleValueChange(
+                                    char.id,
+                                    "prices",
+                                    e.target.value
+                                  )
+                                }
+                                fullWidth
+                                margin="normal"
+                                inputProps={{
+                                  inputMode: "numeric",
+                                }}
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      ₽
+                                    </InputAdornment>
+                                  ),
+                                }}
+                              />
+                            )}
+                          </>
                         )}
                       </Box>
                     );
@@ -683,9 +740,14 @@ export default function UpdateProduct() {
                   );
                   const initialCharValues = {};
                   products.data?.characteristic?.forEach((char) => {
-                    initialCharValues[char.id] = Array.isArray(char.value)
-                      ? char.value.join(", ")
-                      : String(char.value);
+                    const isSizeCharacteristic =
+                      char.name.toLowerCase() === "размер";
+                    initialCharValues[char.id] = {
+                      value: Array.isArray(char.value)
+                        ? char.value.join(", ")
+                        : String(char.value),
+                      prices: isSizeCharacteristic ? char.prices || [] : [],
+                    };
                   });
                   setCharacteristicValues(initialCharValues);
                   setOriginalCharacteristics(
@@ -697,7 +759,6 @@ export default function UpdateProduct() {
                     products.data?.preview.trim() !== "";
                   setIsElectronicCertificate(hasPreview);
                   setPreviewText(hasPreview ? products.data?.preview : "");
-                  // Reset nameplate
                   const hasNameplate =
                     products.data?.nameplate &&
                     products.data?.nameplate.trim() !== "";

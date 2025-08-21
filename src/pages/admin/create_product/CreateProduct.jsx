@@ -35,7 +35,7 @@ export default function CreateProduct() {
     images: [],
     price: 0,
     tru: "",
-    preview: "", // Добавлено поле preview для шильда
+    preview: "",
   });
 
   const [characteristics, setCharacteristics] = useState([]);
@@ -43,10 +43,9 @@ export default function CreateProduct() {
   const [characteristicValues, setCharacteristicValues] = useState({});
   const [catalogs, setCatalogs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isElectronicCertificate, setIsElectronicCertificate] = useState(false); // Состояние для чекбокса шильда
-  const [previewText, setPreviewText] = useState(""); // Состояние для текста шильда
+  const [isElectronicCertificate, setIsElectronicCertificate] = useState(false);
+  const [previewText, setPreviewText] = useState("");
 
-  // Допустимые значения для catalogs
   const VALID_CATALOG_IDS = [1, 2];
 
   // Загрузка категорий
@@ -137,11 +136,20 @@ export default function CreateProduct() {
     });
   };
 
-  // Обработчик изменения значений характеристик
-  const handleValueChange = (id, value) => {
+  // Обработчик изменения значений характеристик и цен
+  const handleValueChange = (id, field, value) => {
     setCharacteristicValues((prevValues) => ({
       ...prevValues,
-      [id]: value,
+      [id]: {
+        ...prevValues[id],
+        [field]:
+          field === "value"
+            ? value
+            : value
+                .split(",")
+                .map(Number)
+                .filter((v) => !isNaN(v)),
+      },
     }));
   };
 
@@ -185,19 +193,33 @@ export default function CreateProduct() {
     // Формируем characteristic_values
     const formattedCharacteristics = Object.entries(characteristicValues)
       .filter(([id]) => characteristics.some((char) => char.id === Number(id)))
-      .map(([id, value]) => {
+      .map(([id, data]) => {
         const char = characteristics.find((c) => c.id === Number(id));
+        const isSizeCharacteristic = char?.name.toLowerCase() === "размер";
 
-        return {
+        const values =
+          char?.data_type === "bool"
+            ? [String(data.value)]
+            : String(data.value)
+                .split(",")
+                .map((v) => v.trim())
+                .filter((v) => v);
+
+        const result = {
           characteristic_id: Number(id),
-          value:
-            char?.data_type === "bool"
-              ? [String(value)]
-              : String(value)
-                  .split(",")
-                  .map((v) => v.trim())
-                  .filter((v) => v),
+          value: values,
         };
+
+        if (isSizeCharacteristic) {
+          const prices = values.map((_, index) =>
+            data.prices && data.prices[index] !== undefined
+              ? data.prices[index]
+              : 0
+          );
+          result.prices = prices;
+        }
+
+        return result;
       });
 
     const productData = {
@@ -209,7 +231,7 @@ export default function CreateProduct() {
       category_ids: product.category_ids,
       characteristic_values: formattedCharacteristics,
       catalogs: catalogs.filter((id) => VALID_CATALOG_IDS.includes(id)),
-      preview: isElectronicCertificate ? product.preview : "", // Добавляем preview в данные
+      preview: isElectronicCertificate ? product.preview : "",
     };
 
     const formData = new FormData();
@@ -239,12 +261,8 @@ export default function CreateProduct() {
           <Typography variant="h4" align="center" gutterBottom>
             Создание продукта
           </Typography>
-          <Box
-            
-            component="form"
-            onSubmit={handleSubmit}
-          >
-            <Box sx={{ display: "flex", flexDirection: "column", gridGap:20 }}container spacing={3}>
+          <Box component="form" onSubmit={handleSubmit}>
+            <Box sx={{ display: "flex", flexDirection: "column", gridGap: 20 }}>
               {/* Основная информация */}
               <Box>
                 <TextField
@@ -450,18 +468,19 @@ export default function CreateProduct() {
                     return (
                       <Box key={char.id} sx={{ mb: 2 }}>
                         <Typography>{char.name}:</Typography>
-
                         {char.data_type === "bool" ? (
                           <Box>
                             <FormControlLabel
                               control={
                                 <Checkbox
                                   checked={
-                                    characteristicValues[char.id] === "true" ||
-                                    characteristicValues[char.id] === true
+                                    characteristicValues[char.id]?.value ===
+                                      "true" ||
+                                    characteristicValues[char.id]?.value ===
+                                      true
                                   }
                                   onChange={() =>
-                                    handleValueChange(char.id, "true")
+                                    handleValueChange(char.id, "value", "true")
                                   }
                                 />
                               }
@@ -471,11 +490,13 @@ export default function CreateProduct() {
                               control={
                                 <Checkbox
                                   checked={
-                                    characteristicValues[char.id] === "false" ||
-                                    characteristicValues[char.id] === false
+                                    characteristicValues[char.id]?.value ===
+                                      "false" ||
+                                    characteristicValues[char.id]?.value ===
+                                      false
                                   }
                                   onChange={() =>
-                                    handleValueChange(char.id, "false")
+                                    handleValueChange(char.id, "value", "false")
                                   }
                                 />
                               }
@@ -483,22 +504,57 @@ export default function CreateProduct() {
                             />
                           </Box>
                         ) : (
-                          <TextField
-                            label={
-                              isSizeCharacteristic
-                                ? "Значения размера (через запятую)"
-                                : `Значения для ${char.name} (через запятую)`
-                            }
-                            value={characteristicValues[char.id] || ""}
-                            onChange={(e) =>
-                              handleValueChange(char.id, e.target.value)
-                            }
-                            fullWidth
-                            margin="normal"
-                            inputProps={{
-                              inputMode: "text",
-                            }}
-                          />
+                          <>
+                            <TextField
+                              label={
+                                isSizeCharacteristic
+                                  ? "Значения размера (через запятую, например: XL,S,L)"
+                                  : `Значения для ${char.name} (через запятую)`
+                              }
+                              value={characteristicValues[char.id]?.value || ""}
+                              onChange={(e) =>
+                                handleValueChange(
+                                  char.id,
+                                  "value",
+                                  e.target.value
+                                )
+                              }
+                              fullWidth
+                              margin="normal"
+                              inputProps={{
+                                inputMode: "text",
+                              }}
+                            />
+                            {isSizeCharacteristic && (
+                              <TextField
+                                label="Цены для размеров (через запятую, например: 300,200,100)"
+                                value={
+                                  characteristicValues[char.id]?.prices?.join(
+                                    ", "
+                                  ) || ""
+                                }
+                                onChange={(e) =>
+                                  handleValueChange(
+                                    char.id,
+                                    "prices",
+                                    e.target.value
+                                  )
+                                }
+                                fullWidth
+                                margin="normal"
+                                inputProps={{
+                                  inputMode: "numeric",
+                                }}
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      ₽
+                                    </InputAdornment>
+                                  ),
+                                }}
+                              />
+                            )}
+                          </>
                         )}
                       </Box>
                     );
