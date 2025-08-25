@@ -4,76 +4,103 @@ import { Link, useNavigate } from "react-router-dom";
 import useUserStore from "../../store/userStore";
 import useBascketStore from "../../store/bascketStore";
 
-const BurgerMenu = () => {
+const BurgerMenu = ({ toggleDrawer }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useUserStore();
   const { fetchUserBasket, basket } = useBascketStore();
+
   useEffect(() => {
     fetchUserBasket();
   }, []);
+
+  const handleLinkClick = () => {
+    toggleDrawer(false)();
+  };
+
+  const handleBasketClick = (e) => {
+    e.preventDefault();
+    navigate("/basket");
+    toggleDrawer(false)();
+  };
+
   return (
     <Box sx={{ width: 300 }} role="presentation">
       <List>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/delivery">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/delivery"
+            onClick={handleLinkClick}
+          >
             Доставка
           </Link>
         </ListItem>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/deteils">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/deteils"
+            onClick={handleLinkClick}
+          >
             Реквизиты
           </Link>
         </ListItem>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/returnpolicy">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/returnpolicy"
+            onClick={handleLinkClick}
+          >
             Возврат
           </Link>
         </ListItem>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/blog-list">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/blog-list"
+            onClick={handleLinkClick}
+          >
             Блог
           </Link>
         </ListItem>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/certificate">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/certificate"
+            onClick={handleLinkClick}
+          >
             Электронный сертификат
           </Link>
         </ListItem>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/about">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/about"
+            onClick={handleLinkClick}
+          >
             О нас
           </Link>
         </ListItem>
         <ListItem>
-          <Link style={{ color: "#26BDB8", marginLeft: 2 }} to="/contacts">
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/contacts"
+            onClick={handleLinkClick}
+          >
             Контакты
           </Link>
-        </ListItem>        
+        </ListItem>
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column" }}>
-          {/* {!shouldHideCatalogButton && ( // Условие для отображения кнопки "Каталог" в бургер-меню */}
-          {/* <Link
-            style={{
-              fontSize: "18px",
-              marginLeft: "16px",
-              marginTop: "16px",
-              textDicoration: "none",
-              color: "#26BDB8",
-            }}
-            to="/catalog"
-          >
-            Каталог
-          </Link> */}
-          {/* )} */}
           <Link
             style={{
               fontSize: "18px",
               marginLeft: "16px",
               marginTop: "16px",
               marginBottom: "12px",
-              textDicoration: "none",
+              textDecoration: "none",
               color: "#26BDB8",
             }}
             to="/catalog/certificate"
+            onClick={handleLinkClick}
           >
             Каталог
           </Link>
@@ -87,37 +114,41 @@ const BurgerMenu = () => {
             mt: 2,
           }}
         >
-          {isAuthenticated
-            ? [
-                <Link style={{ color: "#26BDB8" }} to="/profile" key="profile">
-                  Личный кабинет
-                </Link>,
-              ]
-            : [
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gridGap: 10,
-                  }}
-                  key="auth-links"
-                >
-                  <Link style={{ color: "#26BDB8" }} to="/auth">
-                    Войти
-                  </Link>
-                  <Link style={{ color: "#26BDB8" }} to="/register">
-                    Регистрация
-                  </Link>
-                </Box>,
-              ]}
-
-          <Box>
-            <IconButton
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/basket");
+          {isAuthenticated ? (
+            <Link
+              style={{ color: "#26BDB8" }}
+              to="/profile"
+              onClick={handleLinkClick}
+            >
+              Личный кабинет
+            </Link>
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gridGap: 10,
               }}
             >
+              <Link
+                style={{ color: "#26BDB8" }}
+                to="/auth"
+                onClick={handleLinkClick}
+              >
+                Войти
+              </Link>
+              <Link
+                style={{ color: "#26BDB8" }}
+                to="/register"
+                onClick={handleLinkClick}
+              >
+                Регистрация
+              </Link>
+            </Box>
+          )}
+
+          <Box>
+            <IconButton onClick={handleBasketClick}>
               <Badge
                 badgeContent={basket?.data?.quantity}
                 color="primary"

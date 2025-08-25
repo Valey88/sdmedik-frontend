@@ -24,7 +24,6 @@ import { Link, useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: "flex",
-  // gridGap: "5px",
   flexDirection: "column",
   position: "relative",
   [theme.breakpoints.down("lg")]: {
@@ -39,9 +38,6 @@ export default function Header() {
     useUserStore();
   const { getUserInfo, user, logout } = useUserStore();
   const navigate = useNavigate();
-  // const location = useLocation(); // Получаем текущий путь
-
-  // Используем хранилище Zustand для поиска
 
   useEffect(() => {
     checkAuthStatus();
@@ -66,12 +62,6 @@ export default function Header() {
     }
     setDrawerOpen(open);
   };
-
-  // Проверяем, находится ли пользователь на одной из указанных страниц
-  // const shouldHideCatalogButton =
-  //   location.pathname === "/catalog/certificate" ||
-  //   location.pathname.startsWith("/products/certificate/") ||
-  //   location.pathname.startsWith("/product/certificate/");
 
   return (
     <AppBar position="sticky" sx={{ background: "white" }}>
@@ -158,7 +148,7 @@ export default function Header() {
         </Box>
 
         <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
-          <BurgerMenu />
+          <BurgerMenu toggleDrawer={toggleDrawer} />
         </Drawer>
       </Toolbar>
       <Toolbar
@@ -197,7 +187,7 @@ export default function Header() {
         </Box>
         <Search />
         <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
-          <BurgerMenu />
+          <BurgerMenu toggleDrawer={toggleDrawer} />
         </Drawer>
       </Toolbar>
     </AppBar>
