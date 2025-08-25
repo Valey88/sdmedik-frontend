@@ -14,13 +14,13 @@ const BurgerMenu = ({ toggleDrawer }) => {
   }, []);
 
   const handleLinkClick = () => {
-    toggleDrawer(false)();
+    toggleDrawer(false);
   };
 
   const handleBasketClick = (e) => {
     e.preventDefault();
     navigate("/basket");
-    toggleDrawer(false)();
+    toggleDrawer(false);
   };
 
   return (
@@ -30,7 +30,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/delivery"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Доставка
           </Link>
@@ -39,7 +39,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/deteils"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Реквизиты
           </Link>
@@ -48,7 +48,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/returnpolicy"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Возврат
           </Link>
@@ -57,7 +57,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/blog-list"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Блог
           </Link>
@@ -66,7 +66,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/certificate"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Электронный сертификат
           </Link>
@@ -75,7 +75,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/about"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             О нас
           </Link>
@@ -84,7 +84,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/contacts"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Контакты
           </Link>
@@ -100,7 +100,7 @@ const BurgerMenu = ({ toggleDrawer }) => {
               color: "#26BDB8",
             }}
             to="/catalog/certificate"
-            onClick={handleLinkClick}
+            onClick={toggleDrawer(false)}
           >
             Каталог
           </Link>
@@ -133,14 +133,14 @@ const BurgerMenu = ({ toggleDrawer }) => {
               <Link
                 style={{ color: "#26BDB8" }}
                 to="/auth"
-                onClick={handleLinkClick}
+                onClick={toggleDrawer(false)}
               >
                 Войти
               </Link>
               <Link
                 style={{ color: "#26BDB8" }}
                 to="/register"
-                onClick={handleLinkClick}
+                onClick={toggleDrawer(false)}
               >
                 Регистрация
               </Link>
