@@ -17,11 +17,10 @@ const BurgerMenu = ({ toggleDrawer }) => {
     toggleDrawer(false);
   };
 
-  const handleBasketClick = (e) => {
-    e.preventDefault();
-    navigate("/basket");
-    toggleDrawer(false);
-  };
+  // const handleBasketClick = (e) => {
+  //   e.preventDefault();
+  //   navigate("/basket");
+  // };
 
   return (
     <Box sx={{ width: 300 }} role="presentation">
@@ -148,25 +147,27 @@ const BurgerMenu = ({ toggleDrawer }) => {
           )}
 
           <Box>
-            <IconButton onClick={handleBasketClick}>
-              <Badge
-                badgeContent={basket?.data?.quantity}
-                color="primary"
-                overlap="circular"
-                sx={{
-                  "& .MuiBadge-badge": {
-                    backgroundColor: "#26BDB8",
-                    color: "white",
-                  },
-                }}
-              >
-                <img
-                  style={{ width: 45, height: 45 }}
-                  src="/basket_header.png"
-                  alt="basket"
-                />
-              </Badge>
-            </IconButton>
+            <Link to="/basket">
+              <IconButton onClick={toggleDrawer(false)}>
+                <Badge
+                  badgeContent={basket?.data?.quantity}
+                  color="primary"
+                  overlap="circular"
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      backgroundColor: "#26BDB8",
+                      color: "white",
+                    },
+                  }}
+                >
+                  <img
+                    style={{ width: 45, height: 45 }}
+                    src="/basket_header.png"
+                    alt="basket"
+                  />
+                </Badge>
+              </IconButton>
+            </Link>
           </Box>
         </Box>
       </List>
