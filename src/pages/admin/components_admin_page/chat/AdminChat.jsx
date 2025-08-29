@@ -31,28 +31,6 @@ import useUserStore from "../../../../store/userStore";
 import { FixedSizeList } from "react-window";
 import { useLocation, useNavigate } from "react-router-dom";
 
-// Стили для разделителей дат
-const DateDivider = styled(Box)(({ theme }) => ({
-  textAlign: "center",
-  margin: "20px 0",
-  color: "#888",
-  position: "relative",
-  "& span": {
-    background: "#fff",
-    padding: "0 10px",
-  },
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    height: "1px",
-    background: "#e0e0e0",
-    zIndex: -1,
-  },
-}));
-
 const SIDEBAR_WIDTH = 360;
 const MESSAGE_GAP = 5 * 60 * 1000; // 5 минут в миллисекундах
 
@@ -75,7 +53,7 @@ export default function AdminChat() {
   const ws = useRef(null);
   const messagesEndRef = useRef(null);
   const fragmentRefs = useRef({});
-  const chatContainerRef = useRef(null); // Реф для контейнера чата
+  const chatContainerRef = useRef(null);
   const processedMessages = useRef(new Set());
   const { getUserInfo, user } = useUserStore();
   const location = useLocation();
@@ -770,7 +748,6 @@ export default function AdminChat() {
                   Нет сообщений
                 </Typography>
               )}
-              {/* Время последнего сообщения удалено */}
             </Box>
           }
         />
@@ -778,13 +755,8 @@ export default function AdminChat() {
     );
   };
 
-  // Рендеринг сообщений с группировкой и разделителями
+  // Рендеринг сообщений без разделителей дат
   const groupedMessages = useMemo(() => {
-    const today = new Date().toDateString();
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = yesterdayDate.toDateString();
-
     const sortedMessages = [...messages].sort(
       (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
     );
@@ -816,30 +788,8 @@ export default function AdminChat() {
                 Фрагмент {fragment.id}
               </Typography>
               {fragmentMessages.map((msg, index) => {
-                const msgDateStr = new Date(msg.timestamp).toDateString();
                 const prevMsg = fragmentMessages[index - 1];
                 const nextMsg = fragmentMessages[index + 1];
-
-                if (
-                  !prevMsg ||
-                  new Date(prevMsg.timestamp).toDateString() !== msgDateStr
-                ) {
-                  const dateLabel =
-                    msgDateStr === today
-                      ? "Сегодня"
-                      : msgDateStr === yesterday
-                      ? "Вчера"
-                      : new Date(msg.timestamp).toLocaleDateString("ru-RU", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        });
-                  elements.push(
-                    <DateDivider key={`date-${msg.timestamp}-${index}`}>
-                      <span>{dateLabel}</span>
-                    </DateDivider>
-                  );
-                }
 
                 const timeDiff = prevMsg
                   ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
@@ -924,7 +874,6 @@ export default function AdminChat() {
                           msg.text
                         )}
                       </Typography>
-                      {/* Время сообщения удалено */}
                     </Paper>
                     {isManager && isFirst && (
                       <Avatar
@@ -962,30 +911,8 @@ export default function AdminChat() {
       );
 
       ungroupedMessages.forEach((msg, index) => {
-        const msgDateStr = new Date(msg.timestamp).toDateString();
         const prevMsg = ungroupedMessages[index - 1];
         const nextMsg = ungroupedMessages[index + 1];
-
-        if (
-          !prevMsg ||
-          new Date(prevMsg.timestamp).toDateString() !== msgDateStr
-        ) {
-          const dateLabel =
-            msgDateStr === today
-              ? "Сегодня"
-              : msgDateStr === yesterday
-              ? "Вчера"
-              : new Date(msg.timestamp).toLocaleDateString("ru-RU", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                });
-          elements.push(
-            <DateDivider key={`date-${msg.timestamp}-${index}`}>
-              <span>{dateLabel}</span>
-            </DateDivider>
-          );
-        }
 
         const timeDiff = prevMsg
           ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
@@ -1057,7 +984,6 @@ export default function AdminChat() {
                   msg.text
                 )}
               </Typography>
-              {/* Время сообщения удалено */}
             </Paper>
             {isManager && isFirst && (
               <Avatar sx={{ bgcolor: "#40C4FF", ml: 1, width: 36, height: 36 }}>
@@ -1083,7 +1009,7 @@ export default function AdminChat() {
         flexDirection: { xs: "column", sm: "row" },
         p: 0,
         fontFamily: "Roboto, sans-serif",
-        overflow: "hidden", // Предотвращаем скролл всей страницы
+        overflow: "hidden",
       }}
     >
       <Box
@@ -1094,7 +1020,7 @@ export default function AdminChat() {
           display: { xs: selectedChatId ? "none" : "flex", sm: "flex" },
           flexDirection: "column",
           height: { xs: "100%", sm: "100vh" },
-          overflowY: "auto", // Скролл для боковой панели
+          overflowY: "auto",
         }}
       >
         <Box
@@ -1161,7 +1087,7 @@ export default function AdminChat() {
           flexDirection: "column",
           width: { xs: "100%", sm: `calc(100% - ${SIDEBAR_WIDTH}px)` },
           bgcolor: "#FFFFFF",
-          height: "100vh", // Фиксируем высоту контейнера чата
+          height: "100vh",
         }}
       >
         <Box
@@ -1248,9 +1174,9 @@ export default function AdminChat() {
           ref={chatContainerRef}
           sx={{
             flexGrow: 1,
-            overflowY: "auto", // Скролл только внутри контейнера чата
+            overflowY: "auto",
             position: "relative",
-            maxHeight: { xs: "calc(100vh - 180px)", sm: "calc(100vh - 140px)" }, // Учитываем заголовок и поле ввода
+            maxHeight: { xs: "calc(100vh - 180px)", sm: "calc(100vh - 140px)" },
             WebkitOverflowScrolling: "touch",
             p: 2,
             bgcolor: "#FFFFFF",

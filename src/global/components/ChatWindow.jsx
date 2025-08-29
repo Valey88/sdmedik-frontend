@@ -349,11 +349,6 @@ function ChatWindow({ onClose }) {
   };
 
   const renderMessages = () => {
-    const today = new Date().toDateString();
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = yesterdayDate.toDateString();
-
     const elements = [];
 
     messages.forEach((msg, index) => {
@@ -427,150 +422,108 @@ function ChatWindow({ onClose }) {
             ))}
           </Box>
         );
-      }
-    });
+      } else {
+        const prevMsg = messages[index - 1];
+        const nextMsg = messages[index + 1];
 
-    const chatMessages = messages
-      .filter((msg) => msg.type === "user" || msg.type === "manager")
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const timeDiff = prevMsg
+          ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
+          : Infinity;
+        const isFirst =
+          !prevMsg ||
+          prevMsg.senderId !== msg.senderId ||
+          timeDiff > MESSAGE_GAP;
+        const isLast =
+          !nextMsg ||
+          nextMsg.senderId !== msg.senderId ||
+          new Date(nextMsg.timestamp) - new Date(msg.timestamp) > MESSAGE_GAP;
 
-    for (let i = 0; i < chatMessages.length; i++) {
-      const msg = chatMessages[i];
-      const msgDateStr = new Date(msg.timestamp).toDateString();
-      const prevMsg = chatMessages[i - 1];
+        const isUser = msg.senderId === chatId;
+        const alignment = isUser ? "flex-end" : "flex-start";
 
-      if (
-        i === 0 ||
-        (prevMsg && new Date(prevMsg.timestamp).toDateString() !== msgDateStr)
-      ) {
-        let dateLabel =
-          msgDateStr === today
-            ? "Сегодня"
-            : msgDateStr === yesterday
-            ? "Вчера"
-            : new Date(msg.timestamp).toLocaleDateString("ru-RU", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              });
         elements.push(
           <Box
-            key={`date-${msg.timestamp}-${i}`}
-            sx={{ display: "flex", justifyContent: "center", my: 2 }}
+            key={`msg-row-${msg.timestamp}-${index}`}
+            sx={{
+              display: "flex",
+              justifyContent: alignment,
+              alignItems: "flex-end",
+              mb: isLast ? 2 : 0.5,
+              px: 1,
+            }}
           >
-            <Typography
-              variant="caption"
+            {!isUser && isFirst && (
+              <Avatar
+                sx={{
+                  bgcolor: "#00B3A4",
+                  mr: 1,
+                  width: 32,
+                  height: 32,
+                  flexShrink: 0,
+                }}
+              >
+                <SupportAgentIcon fontSize="small" />
+              </Avatar>
+            )}
+            {!isUser && !isFirst && <Box sx={{ width: 40, flexShrink: 0 }} />}
+            <Box
               sx={{
-                bgcolor: "#e0e0e0",
-                color: "#666",
-                fontSize: "0.7rem",
-                px: 2,
-                py: 0.5,
+                bgcolor: isUser ? "#00B3A4" : "#ffffff",
+                color: isUser ? "#fff" : "#000",
+                p: 1.5,
+                maxWidth: "100%",
                 borderRadius: "10px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              {dateLabel}
-            </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "0.85rem",
+                  lineHeight: 1.4,
+                  wordBreak: "break-word",
+                }}
+              >
+                {msg.text}
+              </Typography>
+              {isLast && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    mt: 0.5,
+                    color: isUser ? "#e0e0e0" : "#666",
+                    textAlign: isUser ? "right" : "left",
+                    fontSize: "0.65rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: isUser ? "flex-end" : "flex-start",
+                  }}
+                >
+                  {new Date(msg.timestamp).toLocaleString(undefined, {
+                    timeStyle: "short",
+                  })}
+                </Typography>
+              )}
+            </Box>
+            {isUser && isLast && (
+              <Avatar
+                sx={{
+                  bgcolor: "#00B3A4",
+                  ml: 1,
+                  width: 32,
+                  height: 32,
+                  flexShrink: 0,
+                }}
+              >
+                <PersonIcon fontSize="small" />
+              </Avatar>
+            )}
           </Box>
         );
       }
-
-      const timeDiff = prevMsg
-        ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
-        : Infinity;
-      const nextMsg = chatMessages[i + 1];
-      const isFirst =
-        !prevMsg || prevMsg.senderId !== msg.senderId || timeDiff > MESSAGE_GAP;
-      const isLast =
-        !nextMsg ||
-        nextMsg.senderId !== msg.senderId ||
-        new Date(nextMsg.timestamp) - new Date(msg.timestamp) > MESSAGE_GAP;
-
-      const isUser = msg.senderId === chatId;
-      const alignment = isUser ? "flex-end" : "flex-start";
-
-      elements.push(
-        <Box
-          key={`msg-row-${msg.timestamp}-${i}`}
-          sx={{
-            display: "flex",
-            justifyContent: alignment,
-            alignItems: "flex-end",
-            mb: isLast ? 2 : 0.5,
-            px: 1,
-          }}
-        >
-          {!isUser && isFirst && (
-            <Avatar
-              sx={{
-                bgcolor: "#00B3A4",
-                mr: 1,
-                width: 32,
-                height: 32,
-                flexShrink: 0,
-              }}
-            >
-              <SupportAgentIcon fontSize="small" />
-            </Avatar>
-          )}
-          {!isUser && !isFirst && <Box sx={{ width: 40, flexShrink: 0 }} />}
-          <Box
-            sx={{
-              bgcolor: isUser ? "#00B3A4" : "#ffffff",
-              color: isUser ? "#fff" : "#000",
-              p: 1.5,
-              maxWidth: "100%",
-              borderRadius: "10px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: "0.85rem",
-                lineHeight: 1.4,
-                wordBreak: "break-word",
-              }}
-            >
-              {msg.text}
-            </Typography>
-            {isLast && (
-              <Typography
-                variant="caption"
-                sx={{
-                  mt: 0.5,
-                  color: isUser ? "#e0e0e0" : "#666",
-                  textAlign: isUser ? "right" : "left",
-                  fontSize: "0.65rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: isUser ? "flex-end" : "flex-start",
-                }}
-              >
-                {new Date(msg.timestamp).toLocaleString(undefined, {
-                  timeStyle: "short",
-                })}
-              </Typography>
-            )}
-          </Box>
-          {isUser && isLast && (
-            <Avatar
-              sx={{
-                bgcolor: "#00B3A4",
-                ml: 1,
-                width: 32,
-                height: 32,
-                flexShrink: 0,
-              }}
-            >
-              <PersonIcon fontSize="small" />
-            </Avatar>
-          )}
-        </Box>
-      );
-    }
+    });
 
     return elements;
   };
