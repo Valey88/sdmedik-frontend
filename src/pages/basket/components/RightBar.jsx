@@ -7,7 +7,7 @@ import {
   Modal,
   IconButton,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import InfoIcon from "@mui/icons-material/Info";
 import useBascketStore from "../../../store/bascketStore";
 import { useNavigate } from "react-router-dom";
@@ -24,11 +24,21 @@ export default function RightBar() {
   const handleOpenCertificate = () => setOpenCertificate(true);
   const handleCloseCertificate = () => setOpenCertificate(false);
 
+  useEffect(() => {
+    const totalPrice =
+      basketData.total_price_with_promotion > 0
+        ? basketData.total_price_with_promotion
+        : basketData.total_price || 0;
+    if (totalPrice < 5000 && totalPrice > 0) {
+      setOpenDelivery(true);
+    }
+  }, [basketData.total_price_with_promotion, basketData.total_price]);
+
   return (
     <Box sx={{ mt: { xs: 3, md: "75px" }, width: { xs: "100%", md: "25%" } }}>
       <Paper
         sx={{
-          padding: 3,
+          padding: 2,
           borderRadius: 2,
           boxShadow: 3,
           backgroundColor: "#F5F6F5",
@@ -71,10 +81,18 @@ export default function RightBar() {
             Итого:{" "}
             {basketData.total_price_with_promotion > 0
               ? basketData.total_price_with_promotion
-              : basketData.total_price || 0}{" "}
+              : basketData.total_price || 0}
             ₽
           </Typography>
         </Box>
+        <Typography
+          variant="body2"
+          sx={{ color: "#333", ml: 1, fontStyle: "italic" }}
+        >
+          {basketData.total_price < 5000
+            ? "Доставка платная (заказ < 5000 ₽)"
+            : "Доставка бесплатная"}
+        </Typography>
         <Button
           variant="contained"
           fullWidth
@@ -111,7 +129,7 @@ export default function RightBar() {
           sx={{
             width: { xs: "90%", sm: "70%", md: "50%" },
             maxWidth: 600,
-            height: 200,
+            height: 220,
             backgroundColor: "rgba(245, 246, 245, 0.95)",
             borderRadius: "16px",
             p: 3,
@@ -136,8 +154,9 @@ export default function RightBar() {
             Условия доставки
           </Typography>
           <Typography variant="body1" sx={{ color: "#333", lineHeight: 1.6 }}>
-            Для уточнения стоимости доставки или возможности бесплатной
-            доставки, задайте вопрос в чате специалисту. Также, информация
+            Доставка платная для заказов на сумму менее 5000 ₽. Для заказов на
+            сумму 5000 ₽ и выше доставка бесплатная. Для уточнения стоимости
+            доставки, задайте вопрос в чате специалисту. Также информация
             указана в разделе «Доставка».
           </Typography>
           <Button

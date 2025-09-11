@@ -58,6 +58,8 @@ function ChatWindow({ onClose }) {
   const messagesEndRef = useRef(null);
   const processedMessages = useRef(new Set());
   const { isAuthenticated, user } = useUserStore();
+  const shownBotMessages = useRef(new Set());
+  const hasShownFaq = useRef(false);
 
   const generateUUID = () => {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
@@ -95,6 +97,27 @@ function ChatWindow({ onClose }) {
     console.log("Отправлено событие join:", joinEvent);
   };
 
+  const addBotMessageIfNotShown = (text) => {
+    if (!shownBotMessages.current.has(text)) {
+      shownBotMessages.current.add(text);
+      return {
+        type: "bot",
+        text: text,
+        timestamp: new Date().toISOString(),
+        senderId: "bot",
+      };
+    }
+    return null;
+  };
+
+  const addFaqIfNotShown = () => {
+    if (!hasShownFaq.current) {
+      hasShownFaq.current = true;
+      return { type: "faq", timestamp: new Date().toISOString() };
+    }
+    return null;
+  };
+
   useEffect(() => {
     let newChatId = null;
 
@@ -125,6 +148,21 @@ function ChatWindow({ onClose }) {
 
     setChatId(newChatId);
 
+    // Добавляем авто-сообщение бота и FAQ только один раз при открытии
+    const welcomeMessage = addBotMessageIfNotShown(
+      "Рабочий режим специалистов поддержки с 9 до 18.00, ПН по ПТ. Вы можете оставить свои контактные данные (имя, телефон), задать вопрос и наш специалист свяжется с Вами в рабочее время."
+    );
+
+    const faqMessage = addFaqIfNotShown();
+
+    const initialMessages = [];
+    if (welcomeMessage) initialMessages.push(welcomeMessage);
+    if (faqMessage) initialMessages.push(faqMessage);
+
+    if (initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+
     ws.current = new WebSocket(supportChat);
 
     ws.current.onopen = () => {
@@ -142,9 +180,17 @@ function ChatWindow({ onClose }) {
         if (processedMessages.current.has(messageKey)) return;
         processedMessages.current.add(messageKey);
         console.warn("Получены невалидные JSON данные:", event.data);
-        setMessages((prev) =>
-          [
-            ...prev,
+        setMessages((prev) => {
+          const botMessages = prev.filter(
+            (m) => m.type === "bot" || m.type === "faq"
+          );
+          const otherMessages = prev.filter(
+            (m) => m.type !== "bot" && m.type !== "faq"
+          );
+
+          return [
+            ...botMessages,
+            ...otherMessages,
             {
               type: "manager",
               text: String(event.data),
@@ -152,8 +198,8 @@ function ChatWindow({ onClose }) {
               senderId: `manager-${Date.now()}`,
               isNew: true,
             },
-          ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        );
+          ];
+        });
         return;
       }
 
@@ -170,24 +216,12 @@ function ChatWindow({ onClose }) {
             senderId: msg.sender_id,
             id: msg.id,
           }));
+
           setMessages((prev) => {
-            const newMessages = [
-              ...formattedMessages,
-              ...(prev.some((m) => m.type === "faq")
-                ? prev.filter((m) => m.type === "faq" || m.type === "bot")
-                : [
-                    {
-                      type: "bot",
-                      text: "Рабочий режим специалистов поддержки с 9 до 18.00, ПН по ПТ. Вы можете оставить свои контактные данные (имя, телефон), задать вопрос и наш специалист свяжется с Вами в рабочее время.",
-                      timestamp: new Date().toISOString(),
-                      senderId: "bot",
-                    },
-                    { type: "faq", timestamp: new Date().toISOString() },
-                  ]),
-            ];
-            return newMessages.sort(
-              (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+            const botMessages = prev.filter(
+              (m) => m.type === "bot" || m.type === "faq"
             );
+            return [...botMessages, ...formattedMessages];
           });
         } else if (messageData.event === "message-event") {
           const { message, sender_id, time_to_send, id } = messageData.data;
@@ -198,18 +232,25 @@ function ChatWindow({ onClose }) {
           processedMessages.current.add(messageKey);
 
           setMessages((prev) => {
-            const newMessage = {
-              type: sender_id !== chatId ? "manager" : "user",
-              text: message || "Пустое сообщение",
-              timestamp: normalizeTimestamp(time_to_send || new Date()),
-              senderId: sender_id,
-              isNew: true,
-              id,
-            };
-            const newMessages = [...prev, newMessage].sort(
-              (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+            const botMessages = prev.filter(
+              (m) => m.type === "bot" || m.type === "faq"
             );
-            return newMessages;
+            const otherMessages = prev.filter(
+              (m) => m.type !== "bot" && m.type !== "faq"
+            );
+
+            return [
+              ...botMessages,
+              ...otherMessages,
+              {
+                type: sender_id !== chatId ? "manager" : "user",
+                text: message || "Пустое сообщение",
+                timestamp: normalizeTimestamp(time_to_send || new Date()),
+                senderId: sender_id,
+                isNew: true,
+                id,
+              },
+            ];
           });
 
           if (sender_id !== chatId && "Notification" in window) {
@@ -229,35 +270,24 @@ function ChatWindow({ onClose }) {
               prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
             );
           }, 1000);
-        } else if (messageData.event === "new-chat") {
-          console.log("Получено событие new-chat:", messageData.data);
-          if ("Notification" in window) {
-            Notification.requestPermission().then((permission) => {
-              if (permission === "granted") {
-                new Notification("Новый чат", {
-                  body: `Создан новый чат: ${
-                    messageData.data.id.split("-")[0]
-                  }`,
-                });
-                console.log("Уведомление о новом чате отправлено");
-              }
-            });
-          }
         } else if (messageData.event === "error") {
           console.error("Ошибка от сервера:", messageData.data);
           setError(`Ошибка: ${messageData.data}`);
-          setMessages((prev) =>
-            [
-              ...prev,
-              {
-                type: "bot",
-                text: `Ошибка: ${messageData.data}`,
-                timestamp: new Date().toISOString(),
-                senderId: "bot",
-                isNew: true,
-              },
-            ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          const errorMessage = addBotMessageIfNotShown(
+            `Ошибка: ${messageData.data}`
           );
+          if (errorMessage) {
+            setMessages((prev) => {
+              const botMessages = prev.filter(
+                (m) => m.type === "bot" || m.type === "faq"
+              );
+              const otherMessages = prev.filter(
+                (m) => m.type !== "bot" && m.type !== "faq"
+              );
+
+              return [...botMessages, ...otherMessages, errorMessage];
+            });
+          }
         } else {
           console.warn("Неизвестное событие:", messageData);
         }
@@ -295,18 +325,21 @@ function ChatWindow({ onClose }) {
   const handleSend = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
-      setMessages((prev) =>
-        [
-          ...prev,
-          {
-            type: "bot",
-            text: "Нет соединения с сервером чата.",
-            timestamp: new Date().toISOString(),
-            senderId: "bot",
-            isNew: true,
-          },
-        ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+      const errorMessage = addBotMessageIfNotShown(
+        "Нет соединения с сервером чата."
       );
+      if (errorMessage) {
+        setMessages((prev) => {
+          const botMessages = prev.filter(
+            (m) => m.type === "bot" || m.type === "faq"
+          );
+          const otherMessages = prev.filter(
+            (m) => m.type !== "bot" && m.type !== "faq"
+          );
+
+          return [...botMessages, ...otherMessages, errorMessage];
+        });
+      }
       return;
     }
     const trimmedInput = input.trim();
@@ -317,8 +350,16 @@ function ChatWindow({ onClose }) {
       };
       ws.current.send(JSON.stringify(messageEvent));
       setMessages((prev) => {
-        const newMessages = [
-          ...prev,
+        const botMessages = prev.filter(
+          (m) => m.type === "bot" || m.type === "faq"
+        );
+        const otherMessages = prev.filter(
+          (m) => m.type !== "bot" && m.type !== "faq"
+        );
+
+        return [
+          ...botMessages,
+          ...otherMessages,
           {
             type: "user",
             text: trimmedInput,
@@ -326,26 +367,26 @@ function ChatWindow({ onClose }) {
             senderId: chatId,
             isNew: true,
           },
-        ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        return newMessages;
+        ];
       });
       setInput("");
     }
   };
 
   const handleFAQClick = (answer) => {
-    setMessages((prev) =>
-      [
-        ...prev,
-        {
-          type: "bot",
-          text: answer,
-          timestamp: new Date().toISOString(),
-          senderId: "bot",
-          isNew: true,
-        },
-      ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-    );
+    const botMessage = addBotMessageIfNotShown(answer);
+    if (botMessage) {
+      setMessages((prev) => {
+        const botMessages = prev.filter(
+          (m) => m.type === "bot" || m.type === "faq"
+        );
+        const otherMessages = prev.filter(
+          (m) => m.type !== "bot" && m.type !== "faq"
+        );
+
+        return [...botMessages, ...otherMessages, botMessage];
+      });
+    }
   };
 
   const renderMessages = () => {
@@ -415,7 +456,7 @@ function ChatWindow({ onClose }) {
                   bgcolor: "#e0f7fa",
                   color: "#007bff",
                   fontSize: "0.75rem",
-                  borderRadius: "8px",
+                  borderRadius: "16px",
                   "&:hover": { bgcolor: "#00B3A4", color: "#fff" },
                 }}
               />
