@@ -23,9 +23,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import useUserStore from "../../../../store/userStore";
+import XLSX from "xlsx";
 
 const AdminUserTable = () => {
-  const { fetchUsers, allUsers } = useUserStore();
+  const { fetchUsers, allUsers, deleteUser } = useUserStore();
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -55,11 +56,37 @@ const AdminUserTable = () => {
     setCurrentPage(value);
   };
 
+  const exportToExcel = () => {
+    const data = allUsers.data.users.map((user) => ({
+      ФИО: user.fio,
+      Email: user.email,
+      Телефон: user.phone_number,
+      // Дата: new Date(user.created_at).toLocaleDateString(),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+    XLSX.writeFile(workbook, "users.xlsx");
+  };
+
+  const removeUser = async (id) => {
+    await deleteUser(id);
+    fetchUsers();
+  };
+
   return (
     <Box sx={{ padding: 2 }}>
       <Typography sx={{ fontSize: "30px", mb: 2, mt: 2 }}>
         Таблица с пользователями
       </Typography>
+      <Button
+        variant="contained"
+        onClick={exportToExcel}
+        sx={{ fontSize: "0.7rem", py: 0.2, px: 1, minWidth: 80, height: 24 }}
+      >
+        Excel
+      </Button>
       <Paper sx={{ width: "100%" }}>
         <TableContainer
           sx={{ overflowX: "auto", display: { xs: "none", sm: "block" } }}
@@ -80,6 +107,15 @@ const AdminUserTable = () => {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.fio}</TableCell>
                     <TableCell>{user.phone_number}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => removeUser(user.id)}
+                      >
+                        удалить
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
             </TableBody>
@@ -100,11 +136,11 @@ const AdminUserTable = () => {
                     <Button
                       variant="contained"
                       color="error"
-                      onClick={() => handleDeleteProduct(user.id)}
+                      onClick={() => removeUser(user.id)}
                     >
                       удалить
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="contained"
                       color="info"
                       onClick={(e) => {
@@ -113,7 +149,7 @@ const AdminUserTable = () => {
                       }}
                     >
                       редактировать
-                    </Button>
+                    </Button> */}
                   </Box>
                 </Box>
               </Paper>
