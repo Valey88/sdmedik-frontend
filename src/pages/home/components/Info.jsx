@@ -57,7 +57,7 @@ export default function Info() {
             gap: "28px",
           }}
         >
-          {/* <Typography
+          <Typography
             variant="h4"
             component={motion.h4}
             initial={{ y: -20, opacity: 0 }}
@@ -93,7 +93,7 @@ export default function Info() {
               letterSpacing: "0.5px",
             }}
           >
-            График работы в майские праздники
+            График работы в ноябрьские праздники
           </Typography>
           <Box
             sx={{
@@ -119,7 +119,17 @@ export default function Info() {
                 lineHeight: 1.6,
               }}
             >
-              1 и 9 мая — выходные дни
+              3 ноября — сокращенный рабочий день до 18:30
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                fontSize: { xs: "16px", lg: "22px" },
+                fontWeight: "bold",
+                lineHeight: 1.6,
+              }}
+            >
+              4 ноября — выходной день
             </Typography>
             <Typography
               variant="body1"
@@ -128,10 +138,11 @@ export default function Info() {
                 lineHeight: 1.6,
               }}
             >
-              <strong>2, 3, 4, 8, 10, 11 мая</strong> — пункты выдачи и
-              выставочные залы работают в обычном режиме
+              <strong>Остальные дни в соответствии с графиком </strong>
+              {/* — пункты выдачи и
+              выставочные залы работают в обычном режиме */}
             </Typography>
-            <Typography
+            {/* <Typography
               variant="body1"
               sx={{
                 fontSize: { xs: "16px", lg: "22px" },
@@ -142,8 +153,8 @@ export default function Info() {
               специалистов сайта
               <br />
               (обработка заказов осуществляется только в рабочие дни)
-            </Typography>
-          </Box> */}
+            </Typography> */}
+          </Box>
           {/* <Box
             sx={{
               display: "flex",
@@ -183,7 +194,7 @@ export default function Info() {
               выходной день Остальные дни в соответствии с графиком работы
               магазина.
             </Typography>
-          </Box> */}
+          </Box>
           <Box
             sx={{
               display: "flex",
