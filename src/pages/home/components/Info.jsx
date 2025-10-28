@@ -95,6 +95,8 @@ export default function Info() {
           >
             График работы в ноябрьские праздники
           </Typography>
+
+          {/* График работы оффлайн-магазинов */}
           <Box
             sx={{
               display: "flex",
@@ -112,6 +114,16 @@ export default function Info() {
             transition={{ delay: 0.4, duration: 0.5 }}
           >
             <Typography
+              variant="h4"
+              sx={{
+                fontSize: { xs: "18px", lg: "25px" },
+                fontWeight: "bold",
+                lineHeight: 1.6,
+              }}
+            >
+              Граффик работы магазинов и Пвз:
+            </Typography>
+            <Typography
               variant="body1"
               sx={{
                 fontSize: { xs: "16px", lg: "22px" },
@@ -119,7 +131,7 @@ export default function Info() {
                 lineHeight: 1.6,
               }}
             >
-              3 ноября — сокращенный рабочий день до 18:30
+              3 ноября — Сокращенный рабочий день до 18:30
             </Typography>
             <Typography
               variant="body1"
@@ -138,68 +150,17 @@ export default function Info() {
                 lineHeight: 1.6,
               }}
             >
-              <strong>Остальные дни в соответствии с графиком </strong>
-              {/* — пункты выдачи и
-              выставочные залы работают в обычном режиме */}
-            </Typography>
-            {/* <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: "16px", lg: "22px" },
-                lineHeight: 1.6,
-              }}
-            >
-              <strong>С 1 по 4 и с 8 по 11 мая</strong> — выходные у
-              специалистов сайта
-              <br />
-              (обработка заказов осуществляется только в рабочие дни)
-            </Typography> */}
-          </Box>
-          {/* <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-              background: "rgba(255,255,255,0.15)",
-              borderRadius: "16px",
-              padding: { xs: "20px", lg: "24px" },
-              width: { xs: "100%", lg: "85%" },
-              boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
-            }}
-            component={motion.div}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: "16px", lg: "30px" },
-                fontWeight: "bold",
-                lineHeight: 1.6,
-                color: "#fff",
-              }}
-            >
-              Уважаемые клиенты Обращаем Ваше внимание на график работы в
-              праздничные дни:
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: "16px", lg: "20px" },
-                lineHeight: 1.6,
-              }}
-            >
-              11.06.2025 - сокращенный рабочий день до 18:30 12.06.2025 -
-              выходной день Остальные дни в соответствии с графиком работы
-              магазина.
+              <strong>Остальные дни</strong> — магазины работают в обычном
+              режиме
             </Typography>
           </Box>
+
+          {/* График работы онлайн-поддержки */}
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              gap: "20px",
               background: "rgba(255,255,255,0.15)",
               borderRadius: "16px",
               padding: { xs: "20px", lg: "24px" },
@@ -214,73 +175,34 @@ export default function Info() {
             <Typography
               variant="body1"
               sx={{
-                fontSize: { xs: "16px", lg: "30px" },
+                fontSize: { xs: "16px", lg: "20px" },
                 fontWeight: "bold",
                 lineHeight: 1.6,
-                color: "#fff",
               }}
             >
-              Важно
+              Онлайн-поддержка:
             </Typography>
             <Typography
               variant="body1"
               sx={{
-                fontSize: { xs: "16px", lg: "20px" },
+                fontSize: { xs: "16px", lg: "18px" },
                 lineHeight: 1.6,
               }}
             >
-              Имеются медицинские противопоказания. Перед использованием
-              продукции обязательно проконсультируйтесь со специалистом.
+              1 ноября — рабочий день
+              <br />
+              Со 2 по 4 ноября — выходные
+              {/* <br />
+              Все запросы будут обработаны 5 ноября */}
             </Typography>
           </Box>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-              background: "rgba(255,255,255,0.15)",
-              borderRadius: "16px",
-              padding: { xs: "20px", lg: "24px" },
-              width: { xs: "100%", lg: "85%" },
-              boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
-            }}
-            component={motion.div}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: "16px", lg: "30px" },
-                fontWeight: "bold",
-                lineHeight: 1.6,
-                color: "#fff",
-              }}
-            >
-              Уведомление о продукции и ценах
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: { xs: "16px", lg: "20px" },
-                lineHeight: 1.6,
-              }}
-            >
-              Информация и цены, указанные на сайте, не являются публичной
-              офертой, определяемой положениями статьи 437 Гражданского кодекса
-              Российской Федерации. Товар на фото может отличаться от оригинала.
-              Для получения подробной информации о модели, характеристиках,
-              комплектации, стоимости, сроках и условиях поставки просьба
-              уточнять через форму обратной связи или по телефону.
-            </Typography>
-          </Box>
-          {/* <Typography
+
+          <Typography
             variant="h6"
             component={motion.h6}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
             sx={{
               fontSize: { xs: "18px", lg: "26px" },
               fontStyle: "italic",
@@ -289,10 +211,11 @@ export default function Info() {
               lineHeight: 1.4,
             }}
           >
-            Команда интернет-магазина SDMEDIK.RU поздравляет вас с майскими
-            праздниками!
+            Все запросы и заявки будут обработаны 5 ноября. Спасибо за
+            понимание! Ждем вас в наших магазинах!
           </Typography>
-          <Button
+
+          {/* <Button
             component={motion.button}
             whileHover={{
               scale: 1.12,
