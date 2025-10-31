@@ -29,6 +29,28 @@ export default function PaymantsInfo() {
         sx={{
           display: "flex",
           justifyContent: "space-between",
+          borderRadius: "10px",
+          // padding: { xs: "20px", lg: "70px" },
+          mb: "40px",
+        }}
+      >
+        <CardMedia
+          component="img"
+          image="/Remont.jpg"
+          alt="Изображение, иллюстрирующее оплату электронным сертификатом"
+          sx={{
+            width: { xs: "100%", sm: "100%", md: "100%", lg: "100%" },
+            height: { xs: "215px", sm: "400px", md: "500px", lg: "550px" },
+            objectFit: "cover",
+            borderRadius: "10px",
+          }}
+        />
+      </Box>
+      <Box
+        component="section"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
           background: `linear-gradient(280.17deg, #00B3A4 -56.17%, #66D1C6 100%)`,
           borderRadius: "10px",
           padding: { xs: "20px", lg: "70px" },
