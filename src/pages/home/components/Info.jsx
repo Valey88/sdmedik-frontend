@@ -121,7 +121,7 @@ export default function Info() {
                 lineHeight: 1.6,
               }}
             >
-              Граффик работы магазинов и Пвз:
+              График работы магазинов и Пвз:
             </Typography>
             <Typography
               variant="body1"
