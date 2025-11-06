@@ -86,6 +86,34 @@ function ChatWindow({ onClose }) {
     return date.toISOString();
   };
 
+  // Upsert utility that merges messages by id when possible, preserving original timestamp
+  const upsertMessages = (prev, incoming) => {
+    const byId = new Map();
+    const result = [...prev];
+    // map existing by id when available
+    for (let i = 0; i < result.length; i++) {
+      const m = result[i];
+      if (m.id != null) byId.set(m.id, i);
+    }
+    for (const msg of incoming) {
+      if (msg.id != null && byId.has(msg.id)) {
+        const idx = byId.get(msg.id);
+        // update in place, keep original timestamp if not provided
+        const existing = result[idx];
+        result[idx] = {
+          ...existing,
+          ...msg,
+          timestamp: msg.timestamp || existing.timestamp,
+        };
+      } else {
+        result.push(msg);
+        if (msg.id != null) byId.set(msg.id, result.length - 1);
+      }
+    }
+    // Stable sort by timestamp for non-bot/faq; bot/faq have their own timestamps and will stay near the top
+    return result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  };
+
   const sendJoinEvent = (chatId) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError("Нет соединения с сервером чата.");
@@ -180,17 +208,8 @@ function ChatWindow({ onClose }) {
         if (processedMessages.current.has(messageKey)) return;
         processedMessages.current.add(messageKey);
         console.warn("Получены невалидные JSON данные:", event.data);
-        setMessages((prev) => {
-          const botMessages = prev.filter(
-            (m) => m.type === "bot" || m.type === "faq"
-          );
-          const otherMessages = prev.filter(
-            (m) => m.type !== "bot" && m.type !== "faq"
-          );
-
-          return [
-            ...botMessages,
-            ...otherMessages,
+        setMessages((prev) =>
+          upsertMessages(prev, [
             {
               type: "manager",
               text: String(event.data),
@@ -198,8 +217,8 @@ function ChatWindow({ onClose }) {
               senderId: `manager-${Date.now()}`,
               isNew: true,
             },
-          ];
-        });
+          ])
+        );
         return;
       }
 
@@ -217,31 +236,19 @@ function ChatWindow({ onClose }) {
             id: msg.id,
           }));
 
-          setMessages((prev) => {
-            const botMessages = prev.filter(
-              (m) => m.type === "bot" || m.type === "faq"
-            );
-            return [...botMessages, ...formattedMessages];
-          });
+          setMessages((prev) => upsertMessages(prev, formattedMessages));
         } else if (messageData.event === "message-event") {
           const { message, sender_id, time_to_send, id } = messageData.data;
-          const messageKey = `${chatId}-${message}-${
-            time_to_send || new Date().toISOString()
-          }`;
+          const messageKey = id
+            ? `id:${id}`
+            : `${chatId}-${message}-${
+                time_to_send || new Date().toISOString()
+              }`;
           if (processedMessages.current.has(messageKey)) return;
           processedMessages.current.add(messageKey);
 
-          setMessages((prev) => {
-            const botMessages = prev.filter(
-              (m) => m.type === "bot" || m.type === "faq"
-            );
-            const otherMessages = prev.filter(
-              (m) => m.type !== "bot" && m.type !== "faq"
-            );
-
-            return [
-              ...botMessages,
-              ...otherMessages,
+          setMessages((prev) =>
+            upsertMessages(prev, [
               {
                 type: sender_id !== chatId ? "manager" : "user",
                 text: message || "Пустое сообщение",
@@ -250,8 +257,8 @@ function ChatWindow({ onClose }) {
                 isNew: true,
                 id,
               },
-            ];
-          });
+            ])
+          );
 
           if (sender_id !== chatId && "Notification" in window) {
             Notification.requestPermission().then((permission) => {
@@ -270,6 +277,24 @@ function ChatWindow({ onClose }) {
               prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
             );
           }, 1000);
+        } else if (messageData.event === "message-updated") {
+          const { id, message: newText } = messageData.data || {};
+          if (id == null) return;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === id ? { ...m, text: newText, edited: true } : m
+            )
+          );
+        } else if (messageData.event === "message-deleted") {
+          const { id } = messageData.data || {};
+          if (id == null) return;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === id
+                ? { ...m, text: "Сообщение удалено", deleted: true }
+                : m
+            )
+          );
         } else if (messageData.event === "error") {
           console.error("Ошибка от сервера:", messageData.data);
           setError(`Ошибка: ${messageData.data}`);
@@ -277,16 +302,7 @@ function ChatWindow({ onClose }) {
             `Ошибка: ${messageData.data}`
           );
           if (errorMessage) {
-            setMessages((prev) => {
-              const botMessages = prev.filter(
-                (m) => m.type === "bot" || m.type === "faq"
-              );
-              const otherMessages = prev.filter(
-                (m) => m.type !== "bot" && m.type !== "faq"
-              );
-
-              return [...botMessages, ...otherMessages, errorMessage];
-            });
+            setMessages((prev) => upsertMessages(prev, [errorMessage]));
           }
         } else {
           console.warn("Неизвестное событие:", messageData);
@@ -318,9 +334,9 @@ function ChatWindow({ onClose }) {
     return () => ws.current?.close();
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // useEffect(() => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [messages]);
 
   const handleSend = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
@@ -390,11 +406,16 @@ function ChatWindow({ onClose }) {
   };
 
   const renderMessages = () => {
-    const elements = [];
+    const botFaqList = messages.filter(
+      (m) => m.type === "bot" || m.type === "faq"
+    );
+    const convList = messages
+      .filter((m) => m.type !== "bot" && m.type !== "faq")
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-    messages.forEach((msg, index) => {
+    const botFaqElements = botFaqList.map((msg, index) => {
       if (msg.type === "bot") {
-        elements.push(
+        return (
           <Box
             key={`bot-${msg.timestamp}-${index}`}
             sx={{
@@ -435,7 +456,7 @@ function ChatWindow({ onClose }) {
           </Box>
         );
       } else if (msg.type === "faq") {
-        elements.push(
+        return (
           <Box
             key={`faq-${msg.timestamp}-${index}`}
             sx={{
@@ -463,110 +484,125 @@ function ChatWindow({ onClose }) {
             ))}
           </Box>
         );
-      } else {
-        const prevMsg = messages[index - 1];
-        const nextMsg = messages[index + 1];
-
-        const timeDiff = prevMsg
-          ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
-          : Infinity;
-        const isFirst =
-          !prevMsg ||
-          prevMsg.senderId !== msg.senderId ||
-          timeDiff > MESSAGE_GAP;
-        const isLast =
-          !nextMsg ||
-          nextMsg.senderId !== msg.senderId ||
-          new Date(nextMsg.timestamp) - new Date(msg.timestamp) > MESSAGE_GAP;
-
-        const isUser = msg.senderId === chatId;
-        const alignment = isUser ? "flex-end" : "flex-start";
-
-        elements.push(
-          <Box
-            key={`msg-row-${msg.timestamp}-${index}`}
-            sx={{
-              display: "flex",
-              justifyContent: alignment,
-              alignItems: "flex-end",
-              mb: isLast ? 2 : 0.5,
-              px: 1,
-            }}
-          >
-            {!isUser && isFirst && (
-              <Avatar
-                sx={{
-                  bgcolor: "#00B3A4",
-                  mr: 1,
-                  width: 32,
-                  height: 32,
-                  flexShrink: 0,
-                }}
-              >
-                <SupportAgentIcon fontSize="small" />
-              </Avatar>
-            )}
-            {!isUser && !isFirst && <Box sx={{ width: 40, flexShrink: 0 }} />}
-            <Box
-              sx={{
-                bgcolor: isUser ? "#00B3A4" : "#ffffff",
-                color: isUser ? "#fff" : "#000",
-                p: 1.5,
-                maxWidth: "100%",
-                borderRadius: "10px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: "0.85rem",
-                  lineHeight: 1.4,
-                  wordBreak: "break-word",
-                }}
-              >
-                {msg.text}
-              </Typography>
-              {isLast && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    mt: 0.5,
-                    color: isUser ? "#e0e0e0" : "#666",
-                    textAlign: isUser ? "right" : "left",
-                    fontSize: "0.65rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isUser ? "flex-end" : "flex-start",
-                  }}
-                >
-                  {new Date(msg.timestamp).toLocaleString(undefined, {
-                    timeStyle: "short",
-                  })}
-                </Typography>
-              )}
-            </Box>
-            {isUser && isLast && (
-              <Avatar
-                sx={{
-                  bgcolor: "#00B3A4",
-                  ml: 1,
-                  width: 32,
-                  height: 32,
-                  flexShrink: 0,
-                }}
-              >
-                <PersonIcon fontSize="small" />
-              </Avatar>
-            )}
-          </Box>
-        );
       }
+      return null;
     });
 
-    return elements;
+    const convElements = convList.map((msg, index) => {
+      const prevMsg = convList[index - 1];
+      const nextMsg = convList[index + 1];
+
+      const timeDiff = prevMsg
+        ? new Date(msg.timestamp) - new Date(prevMsg.timestamp)
+        : Infinity;
+      const isFirst =
+        !prevMsg || prevMsg.senderId !== msg.senderId || timeDiff > MESSAGE_GAP;
+      const isLast =
+        !nextMsg ||
+        nextMsg.senderId !== msg.senderId ||
+        new Date(nextMsg.timestamp) - new Date(msg.timestamp) > MESSAGE_GAP;
+
+      const isUser = msg.senderId === chatId;
+      const alignment = isUser ? "flex-end" : "flex-start";
+
+      return (
+        <Box
+          key={`msg-row-${msg.id ?? msg.timestamp}-${index}`}
+          sx={{
+            display: "flex",
+            justifyContent: alignment,
+            alignItems: "flex-end",
+            mb: isLast ? 2 : 0.5,
+            px: 1,
+          }}
+        >
+          {!isUser && isFirst && (
+            <Avatar
+              sx={{
+                bgcolor: "#00B3A4",
+                mr: 1,
+                width: 32,
+                height: 32,
+                flexShrink: 0,
+              }}
+            >
+              <SupportAgentIcon fontSize="small" />
+            </Avatar>
+          )}
+          {!isUser && !isFirst && <Box sx={{ width: 40, flexShrink: 0 }} />}
+          <Box
+            sx={{
+              bgcolor: isUser ? "#00B3A4" : "#ffffff",
+              color: isUser ? "#fff" : "#000",
+              p: 1.5,
+              maxWidth: "100%",
+              borderRadius: "10px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "0.85rem",
+                lineHeight: 1.4,
+                wordBreak: "break-word",
+              }}
+            >
+              {msg.text}
+            </Typography>
+            {isLast && (
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 0.5,
+                  color: isUser ? "#e0e0e0" : "#666",
+                  textAlign: isUser ? "right" : "left",
+                  fontSize: "0.65rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: isUser ? "flex-end" : "flex-start",
+                }}
+              >
+                {new Date(msg.timestamp).toLocaleString(undefined, {
+                  timeStyle: "short",
+                })}
+              </Typography>
+            )}
+          </Box>
+          {isUser && isLast && (
+            <Avatar
+              sx={{
+                bgcolor: "#00B3A4",
+                ml: 1,
+                width: 32,
+                height: 32,
+                flexShrink: 0,
+              }}
+            >
+              <PersonIcon fontSize="small" />
+            </Avatar>
+          )}
+        </Box>
+      );
+    });
+
+    return (
+      <>
+        {botFaqElements}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100%",
+            justifyContent: "flex-end",
+          }}
+        >
+          {convElements}
+        </Box>
+      </>
+    );
   };
 
   return (
