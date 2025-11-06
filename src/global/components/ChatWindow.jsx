@@ -334,9 +334,9 @@ function ChatWindow({ onClose }) {
     return () => ws.current?.close();
   }, [isAuthenticated]);
 
-  // useEffect(() => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  // }, [messages]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
