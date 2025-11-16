@@ -48,7 +48,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 export default function AdminBlogTable() {
-  const { blog, fetchBlog, deleteBlogPost } = useBlogStore();
+  const { blog, fetchBlog, deletePost } = useBlogStore();
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("heading");
 
@@ -61,6 +61,11 @@ export default function AdminBlogTable() {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+  };
+
+  const deletePostById = async (id) => {
+    await deletePost(id);
+    fetchBlog();
   };
 
   // Сортировка данных
@@ -142,7 +147,7 @@ export default function AdminBlogTable() {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => deleteBlogPost(post.id)}
+                      onClick={() => deletePostById(post.id)}
                     >
                       <Delete fontSize="small" />
                     </IconButton>

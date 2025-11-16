@@ -36,6 +36,22 @@ const useBlogStore = create((set) => ({
       toast.error("Ошибка при обновлении поста: " + error.message);
     }
   },
+  deletePost: async (id) => {
+    try {
+      const response = await api.delete(
+        `/blog/${id}`,
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast.success("Пост успешно удален!");
+    } catch (error) {
+      console.error("Error delete post:", error);
+      toast.error("Ошибка при удалении поста: " + error.message);
+    }
+  },
 }));
 
 export default useBlogStore;
