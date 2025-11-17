@@ -7,43 +7,33 @@ import React, {
 } from "react";
 import {
   Container,
-  Box,
-  TextField,
+  Typography,
   Button,
+  TextField,
+  Box,
   CircularProgress,
   Modal,
   Input,
-  IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
 } from "@mui/material";
 import { useParams, Link } from "react-router-dom";
-import ReactQuill from "react-quill";
-import Quill from "quill";
-import "react-quill/dist/quill.snow.css"; // Стили для редактора
+import { Helmet } from "react-helmet";
+import ReactQuill, { Quill } from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import sanitizeHtml from "sanitize-html";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"; // Стили для уведомлений
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import api from "../../../configs/axiosConfig"; // Убедитесь, что путь правильный
-import useBlogStore from "../../../store/blogStore"; // Убедитесь, что путь правильный
+import "react-toastify/dist/ReactToastify.css";
+import api from "../../../configs/axiosConfig"; // Убедитесь, что путь верный
+import useBlogStore from "../../../store/blogStore"; // Убедитесь, что путь верный
 
-// --- Вспомогательные функции ---
+// --- ОБЩИЕ КОМПОНЕНТЫ И ФУНКЦИИ (идентичны файлу создания поста) ---
 
+// 1. Вспомогательные функции
 const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
-const isValidBorder = (border) => {
-  if (!border || border.trim() === "") return true;
-  const borderRegex = /^\d+px\s+(solid|dashed|dotted)\s+#?[0-9A-Fa-f]{6}$/i;
-  return borderRegex.test(border);
-};
 const decodeHtml = (html) => {
   if (!html) return "";
   const txt = document.createElement("textarea");
   txt.innerHTML = html;
-  return txt.value.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  return txt.value;
 };
 const sanitizeContent = (html) => {
   if (!html) return "";
@@ -75,8 +65,7 @@ const sanitizeContent = (html) => {
   });
 };
 
-// --- Кастомный Blot для изображений ---
-
+// 2. Кастомный обработчик изображений для Quill
 const BlockEmbed = Quill.import("blots/block/embed");
 class CustomImageBlot extends BlockEmbed {
   static create(value) {
@@ -87,11 +76,8 @@ class CustomImageBlot extends BlockEmbed {
     );
     const img = document.createElement("img");
     img.setAttribute("src", value.src);
-    img.setAttribute("alt", value.alt || "");
+    img.setAttribute("alt", value.alt || "Изображение");
     if (value.width) img.style.width = `${parseFloat(value.width)}px`;
-    if (value.height) img.style.height = `${parseFloat(value.height)}px`;
-    img.style.border = value.border || "none";
-    img.style.objectFit = "contain";
     wrapper.appendChild(img);
     return wrapper;
   }
@@ -100,9 +86,7 @@ class CustomImageBlot extends BlockEmbed {
     return {
       src: img.getAttribute("src"),
       alt: img.getAttribute("alt"),
-      width: img.style.width.replace("px", "") || null,
-      height: img.style.height.replace("px", "") || null,
-      border: img.style.border || null,
+      width: img.style.width ? img.style.width.replace("px", "") : null,
       align: node.classList.contains("custom-image-left")
         ? "left"
         : node.classList.contains("custom-image-right")
@@ -113,49 +97,38 @@ class CustomImageBlot extends BlockEmbed {
 }
 CustomImageBlot.blotName = "customImage";
 CustomImageBlot.tagName = "div";
-CustomImageBlot.className = "custom-image";
 Quill.register(CustomImageBlot);
 
-// --- Компонент модального окна для загрузки изображений ---
-
-const ImageUploadModal = ({ open, onClose, quillRef }) => {
+// 3. Модальное окно для загрузки изображений (с исправлениями)
+const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [width, setWidth] = useState("");
-  const [height, setHeight] = useState("");
-  const [align, setAlign] = useState("center");
-  const [border, setBorder] = useState("");
+  const [width, setWidth] = useState("370");
 
-  const resetState = () => {
+  const handleClose = () => {
     setFile(null);
     setImageUrl("");
     setIsUploading(false);
-    setWidth("");
-    setHeight("");
-    setAlign("center");
-    setBorder("");
-  };
-
-  const handleClose = () => {
-    resetState();
+    setWidth("370");
     onClose();
   };
 
   const handleUpload = async () => {
     if (!file) {
-      toast.error("Сначала выберите файл для загрузки");
+      toast.error("Сначала выберите файл");
       return;
     }
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
+      // ИСПРАВЛЕНИЕ 1: Добавляем правильный заголовок для отправки файла
       const response = await api.post("/blog/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setImageUrl(response.data.data);
-      toast.success("Изображение успешно загружено!");
+      toast.success("Изображение успешно загружено");
     } catch (error) {
       toast.error(
         "Ошибка загрузки: " + (error.response?.data?.message || error.message)
@@ -167,24 +140,20 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
 
   const handleInsert = () => {
     if (!imageUrl) {
-      toast.error("Сначала загрузите изображение или вставьте URL");
-      return;
-    }
-    if (!isValidBorder(border)) {
-      toast.error("Неверный формат обводки. Пример: 2px solid #000000");
+      toast.error("Сначала загрузите изображение");
       return;
     }
     const quill = quillRef.current.getEditor();
-    const range = quill.getSelection(true); // true для фокуса на редакторе
+    const range = quill.getSelection(true);
     quill.insertEmbed(range.index, "customImage", {
       src: imageUrl,
-      alt: "Изображение",
+      alt: "Изображение поста",
       width: width || null,
-      height: height || null,
-      border: border || null,
-      align,
+      align: "center",
     });
-    quill.setSelection(range.index + 1); // Перемещаем курсор после вставленного изображения
+    // ИСПРАВЛЕНИЕ 2: Принудительно обновляем состояние React после вставки
+    setValue(quill.root.innerHTML);
+    quill.setSelection(range.index + 1);
     handleClose();
   };
 
@@ -218,7 +187,6 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
           onClick={handleUpload}
           disabled={isUploading || !file}
           fullWidth
-          sx={{ mb: 2 }}
         >
           {isUploading ? (
             <CircularProgress size={24} />
@@ -227,47 +195,22 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
           )}
         </Button>
         <TextField
-          label="Или вставьте URL изображения"
+          label="Или вставьте URL"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
           fullWidth
-          sx={{ mb: 2 }}
+          sx={{ my: 2 }}
         />
-        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-          <TextField
-            label="Ширина (px)"
-            value={width}
-            onChange={(e) => setWidth(e.target.value)}
-            type="number"
-          />
-          <TextField
-            label="Высота (px)"
-            value={height}
-            onChange={(e) => setHeight(e.target.value)}
-            type="number"
-          />
-        </Box>
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Выравнивание</InputLabel>
-          <Select
-            value={align}
-            onChange={(e) => setAlign(e.target.value)}
-            label="Выравнивание"
-          >
-            <MenuItem value="left">Слева</MenuItem>
-            <MenuItem value="center">По центру</MenuItem>
-            <MenuItem value="right">Справа</MenuItem>
-          </Select>
-        </FormControl>
         <TextField
-          label="Обводка (напр., 2px solid #000)"
-          value={border}
-          onChange={(e) => setBorder(e.target.value)}
+          label="Ширина (px)"
+          value={width}
+          onChange={(e) => setWidth(e.target.value)}
+          type="number"
           fullWidth
-          sx={{ mb: 2 }}
-          error={!isValidBorder(border)}
         />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+        <Box
+          sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 3 }}
+        >
           <Button variant="outlined" onClick={handleClose}>
             Отмена
           </Button>
@@ -284,15 +227,17 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
   );
 };
 
-// --- Переиспользуемый компонент редактора ---
-
-const EditableHtmlField = ({ value, setValue, toolbarId, minHeight = 400 }) => {
+// 4. Переиспользуемый компонент-редактор
+const EditableHtmlField = ({
+  value,
+  setValue,
+  toolbarId,
+  minHeight = 400,
+  isPreview = false,
+}) => {
   const quillRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const imageHandler = useCallback(() => {
-    setIsModalOpen(true);
-  }, []);
+  const imageHandler = useCallback(() => setIsModalOpen(true), []);
 
   const modules = useMemo(
     () => ({
@@ -300,6 +245,7 @@ const EditableHtmlField = ({ value, setValue, toolbarId, minHeight = 400 }) => {
         container: `#${toolbarId}`,
         handlers: { image: imageHandler },
       },
+      // ИСПРАВЛЕНИЕ 3: Очистка стилей при вставке текста
       clipboard: {
         matchVisual: false,
         matchers: [
@@ -308,7 +254,7 @@ const EditableHtmlField = ({ value, setValue, toolbarId, minHeight = 400 }) => {
             (node, delta) => {
               delta.ops = delta.ops.map((op) => ({
                 ...op,
-                attributes: undefined, // Удаляем ВСЕ атрибуты при вставке для чистоты
+                attributes: undefined,
               }));
               return delta;
             },
@@ -319,87 +265,75 @@ const EditableHtmlField = ({ value, setValue, toolbarId, minHeight = 400 }) => {
     [toolbarId, imageHandler]
   );
 
+  const toolbarOptions = isPreview ? (
+    <span className="ql-formats">
+      <button className="ql-image" />
+    </span>
+  ) : (
+    <>
+      <span className="ql-formats">
+        <select className="ql-header" defaultValue="">
+          <option value="1" />
+          <option value="2" />
+          <option value="3" />
+          <option value="" />
+        </select>
+      </span>
+      <span className="ql-formats">
+        <button className="ql-bold" />
+        <button className="ql-italic" />
+        <button className="ql-underline" />
+      </span>
+      <span className="ql-formats">
+        <button className="ql-list" value="ordered" />
+        <button className="ql-list" value="bullet" />
+      </span>
+      <span className="ql-formats">
+        <button className="ql-link" />
+        <button className="ql-image" />
+      </span>
+      <span className="ql-formats">
+        <button className="ql-clean" />
+      </span>
+    </>
+  );
+
   return (
-    <Box sx={{ border: "1px solid #ccc", borderRadius: 1 }}>
+    <Box sx={{ border: "1px solid #ccc", borderRadius: 1, overflow: "hidden" }}>
       <Box
         id={toolbarId}
         sx={{
           position: "sticky",
           top: 0,
-          zIndex: 1000,
+          zIndex: 10,
           backgroundColor: "#f5f5f5",
           borderBottom: "1px solid #ccc",
           p: "4px",
         }}
       >
-        <span className="ql-formats">
-          <select className="ql-header" defaultValue="">
-            <option value="1" />
-            <option value="2" />
-            <option value="3" />
-            <option value="" />
-          </select>
-        </span>
-        <span className="ql-formats">
-          <button className="ql-bold" />
-          <button className="ql-italic" />
-          <button className="ql-underline" />
-        </span>
-        <span className="ql-formats">
-          <button className="ql-list" value="ordered" />
-          <button className="ql-list" value="bullet" />
-          <button className="ql-indent" value="-1" />
-          <button className="ql-indent" value="+1" />
-        </span>
-        <span className="ql-formats">
-          <button className="ql-link" />
-          <button className="ql-image" />
-        </span>
-        <span className="ql-formats">
-          <select className="ql-color" />
-          <select className="ql-background" />
-        </span>
-        <span className="ql-formats">
-          <button className="ql-clean" />
-        </span>
+        {toolbarOptions}
       </Box>
       <ReactQuill
         ref={quillRef}
         value={value}
         onChange={(content, delta, source, editor) => {
-          if (source === "user") {
-            setValue(editor.getHTML());
-          }
+          if (source === "user") setValue(editor.getHTML()); // Защита от бесконечных циклов
         }}
         modules={modules}
         theme="snow"
         style={{ minHeight: `${minHeight}px`, backgroundColor: "#fff" }}
-        formats={[
-          "header",
-          "bold",
-          "italic",
-          "underline",
-          "list",
-          "bullet",
-          "indent",
-          "link",
-          "image",
-          "color",
-          "background",
-          "customImage",
-        ]}
       />
       <ImageUploadModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         quillRef={quillRef}
+        setValue={setValue}
       />
     </Box>
   );
 };
 
-// --- Основной компонент страницы ---
-
+// --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ "РЕДАКТИРОВАНИЕ ПОСТА" ---
 export default function EditPost() {
   const { id } = useParams();
   const { post, fetchBlogById, updatePost } = useBlogStore();
@@ -408,20 +342,23 @@ export default function EditPost() {
     heading: "",
     prewiew: "",
     text: "",
-    hex: "#fcf5f5",
+    hex: "#ffffff",
   });
 
   useEffect(() => {
-    fetchBlogById(id);
+    if (id) {
+      fetchBlogById(id);
+    }
   }, [id, fetchBlogById]);
 
   useEffect(() => {
+    // Этот хук заполняет форму данными из стора, когда они приходят с сервера
     if (post && post.data) {
       setPostFormat({
         heading: decodeHtml(post.data.heading || ""),
         prewiew: decodeHtml(post.data.prewiew || ""),
         text: decodeHtml(post.data.text || ""),
-        hex: post.data.hex || "#fcf5f5",
+        hex: post.data.hex || "#ffffff",
       });
     }
   }, [post]);
@@ -432,14 +369,9 @@ export default function EditPost() {
 
   const handleSubmit = async () => {
     if (!postFormat.heading || !postFormat.text) {
-      toast.error("Заголовок и содержимое поста не могут быть пустыми!");
+      toast.warn("Заголовок и текст поста не могут быть пустыми.");
       return;
     }
-    if (!isValidHex(postFormat.hex)) {
-      toast.error("Неверный формат цвета обводки. Пример: #RRGGBB");
-      return;
-    }
-
     setIsSaving(true);
     try {
       const postData = {
@@ -449,124 +381,134 @@ export default function EditPost() {
         hex: postFormat.hex,
       };
       await updatePost(id, postData);
-      // Уведомление об успехе будет обработано в `updatePost` внутри стора
+      toast.success("Пост успешно обновлен!");
     } catch (error) {
       toast.error(
-        "Не удалось сохранить пост: " +
-          (error.response?.data?.message || error.message)
+        "Ошибка обновления: " + (error.response?.data?.message || error.message)
       );
     } finally {
       setIsSaving(false);
     }
   };
 
+  // Показываем индикатор загрузки, пока данные поста не загружены
+  if (!post || !post.data) {
+    return (
+      <CircularProgress sx={{ display: "block", margin: "auto", mt: 5 }} />
+    );
+  }
+
   return (
-    <Box sx={{ bgcolor: "#f9f9f9", minHeight: "100vh" }}>
+    <>
+      <Helmet>
+        <title>Редактирование: {postFormat.heading || "поста"}</title>
+      </Helmet>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box
           sx={{
-            mb: 3,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 2,
-          }}
-        >
-          <Typography variant="h4" component="h1">
-            Редактирование поста
-          </Typography>
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="outlined" component={Link} to="/admin">
-              К админ-панели
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSubmit}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Сохранить"
-              )}
-            </Button>
-          </Box>
-        </Box>
-
-        <Box
-          sx={{
-            border: `3px solid ${postFormat.hex}`,
             p: { xs: 2, md: 3 },
+            bgcolor: "background.paper",
             borderRadius: 2,
             boxShadow: 3,
-            bgcolor: "background.paper",
           }}
         >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 4,
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
+            <Typography variant="h4" component="h1">
+              Редактирование поста
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button component={Link} to="/admin" variant="outlined">
+                К админ-панели
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Сохранить"
+                )}
+              </Button>
+            </Box>
+          </Box>
+
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              Заголовок поста
+              1. Превью
+            </Typography>
+            <EditableHtmlField
+              value={postFormat.prewiew}
+              setValue={(value) => handleChange("prewiew", value)}
+              toolbarId="toolbar-preview-edit" // Уникальный ID
+              minHeight={200}
+              isPreview={true}
+            />
+          </Box>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+              2. Заголовок
             </Typography>
             <TextField
               fullWidth
               variant="outlined"
               value={postFormat.heading}
               onChange={(e) => handleChange("heading", e.target.value)}
-              placeholder="Введите главный заголовок"
             />
           </Box>
-
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              Превью (изображение для списка постов)
-            </Typography>
-            <EditableHtmlField
-              value={postFormat.prewiew}
-              setValue={(value) => handleChange("prewiew", value)}
-              toolbarId="toolbar-preview"
-              minHeight={200}
-            />
-          </Box>
-
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              Основное содержимое
+              3. Основное содержимое
             </Typography>
             <EditableHtmlField
               value={postFormat.text}
               setValue={(value) => handleChange("text", value)}
-              toolbarId="toolbar-main-content"
+              toolbarId="toolbar-main-edit" // Уникальный ID
               minHeight={500}
             />
           </Box>
-
-          <Box>
+          <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              Цвет обводки карточки
+              4. Цвет окантовки
             </Typography>
-            <TextField
-              type="color"
-              value={postFormat.hex}
-              onChange={(e) => handleChange("hex", e.target.value)}
-              variant="outlined"
-              sx={{ width: 150, p: 0 }}
-            />
-            <TextField
-              variant="outlined"
-              value={postFormat.hex}
-              onChange={(e) => handleChange("hex", e.target.value)}
-              sx={{ ml: 2, verticalAlign: "middle" }}
-              error={!isValidHex(postFormat.hex)}
-            />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <input
+                type="color"
+                value={postFormat.hex}
+                onChange={(e) => handleChange("hex", e.target.value)}
+                style={{
+                  width: 56,
+                  height: 56,
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              />
+              <TextField
+                variant="outlined"
+                value={postFormat.hex}
+                onChange={(e) => handleChange("hex", e.target.value)}
+                error={!isValidHex(postFormat.hex)}
+                helperText={
+                  !isValidHex(postFormat.hex) ? "Неверный формат" : ""
+                }
+              />
+            </Box>
           </Box>
         </Box>
       </Container>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={5000}
-        hideProgressBar={false}
-      />
-    </Box>
+      <ToastContainer position="bottom-right" autoClose={5000} />
+    </>
   );
 }

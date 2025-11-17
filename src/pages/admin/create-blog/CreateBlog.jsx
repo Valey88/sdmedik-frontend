@@ -26,13 +26,12 @@ import "react-toastify/dist/ReactToastify.css";
 import api from "../../../configs/axiosConfig"; // Убедитесь, что путь к вашему axios инстансу верный
 import useUserStore from "../../../store/userStore"; // Убедитесь, что путь к вашему стору верный
 
-// --- 1. Вспомогательные функции ---
+// --- ОБЩИЕ КОМПОНЕНТЫ И ФУНКЦИИ ---
 
+// 1. Вспомогательные функции
 const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
-
 const sanitizeContent = (html) => {
   if (!html) return "";
-  // Настройки для очистки HTML, разрешающие нужные теги и атрибуты
   return sanitizeHtml(html, {
     allowedTags: [
       "p",
@@ -54,20 +53,18 @@ const sanitizeContent = (html) => {
       "pre",
     ],
     allowedAttributes: {
-      "*": ["style", "class"], // Разрешаем style и class для гибкости
+      "*": ["style", "class"],
       a: ["href", "target", "rel"],
       img: ["src", "alt"],
     },
   });
 };
 
-// --- 2. Кастомный обработчик изображений для Quill ---
-
+// 2. Кастомный обработчик изображений для Quill
 const BlockEmbed = Quill.import("blots/block/embed");
 class CustomImageBlot extends BlockEmbed {
   static create(value) {
     const wrapper = document.createElement("div");
-    // Добавляем классы для стилизации выравнивания
     wrapper.classList.add(
       "custom-image",
       `custom-image-${value.align || "center"}`
@@ -79,7 +76,6 @@ class CustomImageBlot extends BlockEmbed {
     wrapper.appendChild(img);
     return wrapper;
   }
-
   static value(node) {
     const img = node.querySelector("img");
     return {
@@ -96,26 +92,20 @@ class CustomImageBlot extends BlockEmbed {
 }
 CustomImageBlot.blotName = "customImage";
 CustomImageBlot.tagName = "div";
-CustomImageBlot.className = "custom-image";
 Quill.register(CustomImageBlot);
 
-// --- 3. Модальное окно для загрузки изображений ---
-
-const ImageUploadModal = ({ open, onClose, quillRef }) => {
+// 3. Модальное окно для загрузки изображений (с исправлениями)
+const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [width, setWidth] = useState("370"); // Ширина по умолчанию для превью
+  const [width, setWidth] = useState("370");
 
-  const resetState = () => {
+  const handleClose = () => {
     setFile(null);
     setImageUrl("");
     setIsUploading(false);
     setWidth("370");
-  };
-
-  const handleClose = () => {
-    resetState();
     onClose();
   };
 
@@ -128,11 +118,9 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      // Убедитесь, что ваш API эндпоинт для загрузки - /blog/upload
+      // ИСПРАВЛЕНИЕ 1: Добавляем правильный заголовок для отправки файла
       const response = await api.post("/blog/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setImageUrl(response.data.data);
       toast.success("Изображение успешно загружено");
@@ -147,18 +135,23 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
 
   const handleInsert = () => {
     if (!imageUrl) {
-      toast.error("Сначала загрузите изображение или вставьте URL");
+      toast.error("Сначала загрузите изображение");
       return;
     }
     const quill = quillRef.current.getEditor();
-    const range = quill.getSelection(true); // Получаем текущую позицию курсора
+    const range = quill.getSelection(true);
+
     quill.insertEmbed(range.index, "customImage", {
       src: imageUrl,
       alt: "Изображение поста",
       width: width || null,
-      align: "center", // Превью всегда по центру
+      align: "center",
     });
-    quill.setSelection(range.index + 1); // Сдвигаем курсор после картинки
+
+    // ИСПРАВЛЕНИЕ 2: Принудительно обновляем состояние React после вставки
+    setValue(quill.root.innerHTML);
+
+    quill.setSelection(range.index + 1);
     handleClose();
   };
 
@@ -192,7 +185,6 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
           onClick={handleUpload}
           disabled={isUploading || !file}
           fullWidth
-          sx={{ mb: 2 }}
         >
           {isUploading ? (
             <CircularProgress size={24} />
@@ -201,11 +193,11 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
           )}
         </Button>
         <TextField
-          label="Или вставьте готовый URL"
+          label="Или вставьте URL"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
           fullWidth
-          sx={{ mb: 2 }}
+          sx={{ my: 2 }}
         />
         <TextField
           label="Ширина (px)"
@@ -213,10 +205,9 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
           onChange={(e) => setWidth(e.target.value)}
           type="number"
           fullWidth
-          sx={{ mb: 2 }}
         />
         <Box
-          sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}
+          sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 3 }}
         >
           <Button variant="outlined" onClick={handleClose}>
             Отмена
@@ -234,8 +225,7 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
   );
 };
 
-// --- 4. Переиспользуемый компонент-редактор с решением проблемы вставки ---
-
+// 4. Переиспользуемый компонент-редактор
 const EditableHtmlField = ({
   value,
   setValue,
@@ -245,7 +235,6 @@ const EditableHtmlField = ({
 }) => {
   const quillRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const imageHandler = useCallback(() => setIsModalOpen(true), []);
 
   const modules = useMemo(
@@ -254,16 +243,13 @@ const EditableHtmlField = ({
         container: `#${toolbarId}`,
         handlers: { image: imageHandler },
       },
-      // КЛЮЧЕВОЕ РЕШЕНИЕ ПРОБЛЕМЫ С ОТСТУПАМИ
+      // ИСПРАВЛЕНИЕ 3: Очистка стилей при вставке текста
       clipboard: {
-        matchVisual: false, // Отключаем стандартный механизм Quill
+        matchVisual: false,
         matchers: [
           [
             "*",
             (node, delta) => {
-              // Для каждой части вставляемого контента (op)
-              // мы принудительно удаляем все атрибуты.
-              // Это заставляет текст принять стили редактора, а не приносить свои.
               delta.ops = delta.ops.map((op) => ({
                 ...op,
                 attributes: undefined,
@@ -277,7 +263,6 @@ const EditableHtmlField = ({
     [toolbarId, imageHandler]
   );
 
-  // Разные панели инструментов для превью и основного текста
   const toolbarOptions = isPreview ? (
     <span className="ql-formats">
       <button className="ql-image" />
@@ -330,11 +315,7 @@ const EditableHtmlField = ({
         ref={quillRef}
         value={value}
         onChange={(content, delta, source, editor) => {
-          // Обновляем состояние React, только если это сделал пользователь,
-          // чтобы избежать бесконечных циклов.
-          if (source === "user") {
-            setValue(editor.getHTML());
-          }
+          if (source === "user") setValue(editor.getHTML()); // Защита от бесконечных циклов
         }}
         modules={modules}
         theme="snow"
@@ -344,26 +325,24 @@ const EditableHtmlField = ({
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         quillRef={quillRef}
+        setValue={setValue}
       />
     </Box>
   );
 };
 
-// --- 5. Основной компонент страницы "Создание поста" ---
-
+// --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ "СОЗДАНИЕ ПОСТА" ---
 export default function BlogAdminPanel() {
   const [newPost, setNewPost] = useState({
     prewiew: "",
     heading: "",
     text: "",
-    hex: "#00B3A4", // Цвет по умолчанию
+    hex: "#00B3A4",
   });
   const [isSaving, setIsSaving] = useState(false);
-
   const { user, isAuthenticated, getUserInfo } = useUserStore();
   const navigate = useNavigate();
 
-  // Проверка прав доступа при загрузке компонента
   useEffect(() => {
     const checkAuth = async () => {
       if (!isAuthenticated) {
@@ -380,35 +359,30 @@ export default function BlogAdminPanel() {
     checkAuth();
   }, [isAuthenticated, user, getUserInfo, navigate]);
 
-  // Универсальный обработчик изменений полей
   const handleChange = useCallback((field, value) => {
     setNewPost((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleCreatePost = async () => {
     if (!newPost.heading || !newPost.text || !newPost.prewiew) {
-      toast.warn(
-        "Пожалуйста, заполните все поля: превью, заголовок и описание."
-      );
+      toast.warn("Заполните все поля: превью, заголовок и описание.");
       return;
     }
     if (!isValidHex(newPost.hex)) {
-      toast.error("Неверный формат цвета. Правильный формат: #RRGGBB");
+      toast.error("Неверный формат цвета. Пример: #RRGGBB");
       return;
     }
-
     setIsSaving(true);
     try {
       const postData = {
         prewiew: sanitizeContent(newPost.prewiew),
-        heading: sanitizeContent(newPost.heading), // Заголовок тоже можно очистить
+        heading: sanitizeContent(newPost.heading),
         text: sanitizeContent(newPost.text),
         hex: newPost.hex,
       };
       await api.post("/blog", postData);
       toast.success("Новый пост успешно создан!");
-      // Сбрасываем форму
-      setNewPost({ prewiew: "", heading: "", text: "", hex: "#00B3A4" });
+      setNewPost({ prewiew: "", heading: "", text: "", hex: "#00B3A4" }); // Сброс формы
     } catch (error) {
       toast.error(
         "Ошибка при создании поста: " +
@@ -447,7 +421,7 @@ export default function BlogAdminPanel() {
             <EditableHtmlField
               value={newPost.prewiew}
               setValue={(value) => handleChange("prewiew", value)}
-              toolbarId="toolbar-preview"
+              toolbarId="toolbar-preview-create" // Уникальный ID для тулбара
               minHeight={200}
               isPreview={true}
             />
@@ -471,13 +445,13 @@ export default function BlogAdminPanel() {
               3. Основное содержимое
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Напишите основной текст статьи. Вы можете вставлять текст из
-              других источников — форматирование будет очищено автоматически.
+              Напишите основной текст статьи. Форматирование при вставке будет
+              очищено.
             </Typography>
             <EditableHtmlField
               value={newPost.text}
               setValue={(value) => handleChange("text", value)}
-              toolbarId="toolbar-main-content"
+              toolbarId="toolbar-main-create" // Уникальный ID для тулбара
               minHeight={500}
             />
           </Box>
