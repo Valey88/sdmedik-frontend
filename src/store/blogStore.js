@@ -17,13 +17,15 @@ const useBlogStore = create((set) => ({
     }
   },
   fetchBlogById: async (id) => {
+    set({ loading: true, error: null, post: null }); // Сбрасываем post при начале загрузки
     try {
-      const response = await api.get(`/blog/${id}`, {
-        withCredentials: true,
-      });
-      set({ post: response.data });
+      const response = await api.get(`/blog/${id}`);
+      set({ post: response.data, loading: false });
     } catch (error) {
-      console.error("Error fetching post:", error);
+      const errorMessage =
+        error.response?.data?.message || "Не удалось загрузить пост";
+      set({ error: errorMessage, loading: false });
+      toast.error(errorMessage);
     }
   },
   updatePost: async (id, postData) => {
