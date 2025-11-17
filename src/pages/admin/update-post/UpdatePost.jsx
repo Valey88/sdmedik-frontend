@@ -529,7 +529,6 @@ export default function EditPost() {
             <EditableHtmlField
               value={postFormat.text}
               setValue={(value) => handleChange("text", value)}
-              minHeight={500}
             />
           </Box>
 

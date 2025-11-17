@@ -40,3 +40,8 @@ a {
   text-decoration: none;
   font-size: 16px;
 }
+
+.ql-container {
+  overflow-y: scroll;
+  max-height: 600px;
+}
