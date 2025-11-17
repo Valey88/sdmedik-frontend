@@ -48,10 +48,23 @@ const extractTextFromHtml = (html) => {
 // Функция для санитизации HTML-контента
 const sanitizeContent = (html) => {
   return sanitizeHtml(html, {
-    allowedTags: ["p", "strong", "em", "ul", "ol", "li", "img", "br", "div"],
+    // 1. РАЗРЕШАЕМ ССЫЛКИ
+    allowedTags: [
+      "p",
+      "strong",
+      "em",
+      "ul",
+      "ol",
+      "li",
+      "img",
+      "br",
+      "div",
+      "a", // <-- ДОБАВЛЕНО: Разрешаем тег для ссылок
+    ],
     allowedAttributes: {
       img: ["src", "alt", "style"],
       div: ["class", "style"],
+      a: ["href", "target", "rel"], // <-- ДОБАВЛЕНО: Разрешаем атрибуты для ссылок
     },
     transformTags: {
       img: (tagName, attribs) => {
@@ -128,26 +141,7 @@ export default function Post() {
             overflow: "hidden",
           }}
         >
-          <CardMedia
-            component="img"
-            height="100%"
-            image={extractImageUrl(post && post.data && post?.data.prewiew)}
-            alt={extractTextFromHtml(post && post.data && post?.data.heading)}
-            sx={{
-              objectFit: "contain",
-              width: "100%",
-              maxHeight: 500,
-            }}
-          />
           <CardContent>
-            <Typography
-              variant="h4"
-              component="h1"
-              gutterBottom
-              sx={{ fontWeight: "bold", color: "text.primary" }}
-            >
-              {extractTextFromHtml(post && post.data && post?.data.heading)}
-            </Typography>
             <Box
               sx={{
                 mt: 2,
@@ -171,6 +165,14 @@ export default function Post() {
                   display: "block",
                   mx: "auto",
                   mb: 1,
+                },
+                // 2. СТИЛИЗУЕМ ССЫЛКИ
+                "& a": {
+                  color: "#00B3A4", // Цвет ссылки, можно выбрать любой
+                  textDecoration: "underline",
+                  "&:hover": {
+                    textDecoration: "none",
+                  },
                 },
               }}
               dangerouslySetInnerHTML={{
