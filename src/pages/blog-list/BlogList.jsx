@@ -133,7 +133,7 @@ export default function BlogList() {
                     image={extractImageUrl(post.prewiew)}
                     alt={extractTextFromHtml(post.heading)}
                   />
-                  <CardContent>
+                  <CardContent sx={{ maxWidth: "370px" }}>
                     <Typography variant="h6">
                       {extractTextFromHtml(post.heading)}
                     </Typography>

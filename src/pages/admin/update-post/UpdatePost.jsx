@@ -25,7 +25,7 @@ import "react-toastify/dist/ReactToastify.css";
 import api from "../../../configs/axiosConfig"; // Убедитесь, что путь верный
 import useBlogStore from "../../../store/blogStore"; // Убедитесь, что путь верный
 
-// --- ОБЩИЕ КОМПОНЕНТЫ И ФУНКЦИИ (идентичны файлу создания поста) ---
+// --- ОБЩИЕ КОМПОНЕНТЫ И ФУНКЦИИ ---
 
 // 1. Вспомогательные функции
 const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
@@ -99,7 +99,7 @@ CustomImageBlot.blotName = "customImage";
 CustomImageBlot.tagName = "div";
 Quill.register(CustomImageBlot);
 
-// 3. Модальное окно для загрузки изображений (с исправлениями)
+// 3. Модальное окно для загрузки изображений
 const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
@@ -123,7 +123,6 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      // ИСПРАВЛЕНИЕ 1: Добавляем правильный заголовок для отправки файла
       const response = await api.post("/blog/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -151,7 +150,6 @@ const ImageUploadModal = ({ open, onClose, quillRef, setValue }) => {
       width: width || null,
       align: "center",
     });
-    // ИСПРАВЛЕНИЕ 2: Принудительно обновляем состояние React после вставки
     setValue(quill.root.innerHTML);
     quill.setSelection(range.index + 1);
     handleClose();
@@ -245,7 +243,6 @@ const EditableHtmlField = ({
         container: `#${toolbarId}`,
         handlers: { image: imageHandler },
       },
-      // ИСПРАВЛЕНИЕ 3: Очистка стилей при вставке текста
       clipboard: {
         matchVisual: false,
         matchers: [
@@ -317,7 +314,7 @@ const EditableHtmlField = ({
         ref={quillRef}
         value={value}
         onChange={(content, delta, source, editor) => {
-          if (source === "user") setValue(editor.getHTML()); // Защита от бесконечных циклов
+          if (source === "user") setValue(editor.getHTML());
         }}
         modules={modules}
         theme="snow"
@@ -336,8 +333,10 @@ const EditableHtmlField = ({
 // --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ "РЕДАКТИРОВАНИЕ ПОСТА" ---
 export default function EditPost() {
   const { id } = useParams();
-  const { post, fetchBlogById, updatePost } = useBlogStore();
-  const [isSaving, setIsSaving] = useState(false);
+
+  // ИЗМЕНЕНИЕ 1: Используем `loading` из стора, убираем локальный `isSaving`
+  const { post, fetchBlogById, updatePost, loading } = useBlogStore();
+
   const [postFormat, setPostFormat] = useState({
     heading: "",
     prewiew: "",
@@ -352,7 +351,6 @@ export default function EditPost() {
   }, [id, fetchBlogById]);
 
   useEffect(() => {
-    // Этот хук заполняет форму данными из стора, когда они приходят с сервера
     if (post && post.data) {
       setPostFormat({
         heading: decodeHtml(post.data.heading || ""),
@@ -372,7 +370,8 @@ export default function EditPost() {
       toast.warn("Заголовок и текст поста не могут быть пустыми.");
       return;
     }
-    setIsSaving(true);
+
+    // ИЗМЕНЕНИЕ 2: Логика сохранения упрощена, т.к. стор управляет загрузкой
     try {
       const postData = {
         heading: sanitizeContent(postFormat.heading),
@@ -383,16 +382,12 @@ export default function EditPost() {
       await updatePost(id, postData);
       toast.success("Пост успешно обновлен!");
     } catch (error) {
-      toast.error(
-        "Ошибка обновления: " + (error.response?.data?.message || error.message)
-      );
-    } finally {
-      setIsSaving(false);
+      toast.error("Ошибка при обновлении: " + error.message);
     }
   };
 
-  // Показываем индикатор загрузки, пока данные поста не загружены
-  if (!post || !post.data) {
+  // ИЗМЕНЕНИЕ 3: Индикатор загрузки для всей страницы при первоначальной загрузке
+  if (loading && !post) {
     return (
       <CircularProgress sx={{ display: "block", margin: "auto", mt: 5 }} />
     );
@@ -426,16 +421,22 @@ export default function EditPost() {
               Редактирование поста
             </Typography>
             <Box sx={{ display: "flex", gap: 2 }}>
-              <Button component={Link} to="/admin" variant="outlined">
+              <Button
+                component={Link}
+                to="/admin"
+                variant="outlined"
+                disabled={loading}
+              >
                 К админ-панели
               </Button>
+              {/* ИЗМЕНЕНИЕ 4: Кнопка "Сохранить" теперь зависит от `loading` из стора */}
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                disabled={isSaving}
+                disabled={loading}
               >
-                {isSaving ? (
+                {loading ? (
                   <CircularProgress size={24} color="inherit" />
                 ) : (
                   "Сохранить"
@@ -451,7 +452,7 @@ export default function EditPost() {
             <EditableHtmlField
               value={postFormat.prewiew}
               setValue={(value) => handleChange("prewiew", value)}
-              toolbarId="toolbar-preview-edit" // Уникальный ID
+              toolbarId="toolbar-preview-edit"
               minHeight={200}
               isPreview={true}
             />
@@ -474,7 +475,7 @@ export default function EditPost() {
             <EditableHtmlField
               value={postFormat.text}
               setValue={(value) => handleChange("text", value)}
-              toolbarId="toolbar-main-edit" // Уникальный ID
+              toolbarId="toolbar-main-edit"
               minHeight={500}
             />
           </Box>

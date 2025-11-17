@@ -5,6 +5,8 @@ import { create } from "zustand";
 const useBlogStore = create((set) => ({
   blog: [],
   post: {},
+  loading: false,
+  error: null,
 
   fetchBlog: async () => {
     try {
@@ -24,16 +26,20 @@ const useBlogStore = create((set) => ({
       console.error("Error fetching post:", error);
     }
   },
-  updatePost: async (id, formData) => {
+  updatePost: async (id, postData) => {
+    set({ loading: true, error: null }); // <-- 3. Включаем лоудер
     try {
-      const response = await api.put(`/blog/${id}`, formData, {
-        withCredentials: true,
-      });
-      set({ post: response.data });
-      toast.success("Пост успешно обновлен!");
+      await api.put(`/blog/${id}`, postData);
+      // После успешного обновления, мы перезапрашиваем данные,
+      // чтобы получить самую свежую версию с сервера.
+      // Это самый надежный паттерн.
+      await get().fetchBlogById(id); // <-- 4. Перезапрашиваем данные, fetchBlogById сам выключит лоудер
     } catch (error) {
-      console.error("Error updating post:", error);
-      toast.error("Ошибка при обновлении поста: " + error.message);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update post";
+      set({ error: errorMessage, loading: false }); // <-- 5. Выключаем лоудер в случае ошибки
+      // Пробрасываем ошибку, чтобы компонент мог ее поймать, если нужно
+      throw new Error(errorMessage);
     }
   },
   deletePost: async (id) => {
