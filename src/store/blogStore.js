@@ -29,18 +29,21 @@ const useBlogStore = create((set) => ({
     }
   },
   updatePost: async (id, postData) => {
-    set({ loading: true, error: null }); // <-- 3. Включаем лоудер
+    set({ loading: true, error: null });
     try {
+      // 1. Отправляем PUT-запрос и ждем его завершения.
       await api.put(`/blog/${id}`, postData);
-      // После успешного обновления, мы перезапрашиваем данные,
-      // чтобы получить самую свежую версию с сервера.
-      // Это самый надежный паттерн.
-      await get().fetchBlogById(id); // <-- 4. Перезапрашиваем данные, fetchBlogById сам выключит лоудер
+
+      // 2. УБИРАЕМ ВЫЗОВ fetchBlogById ОТСЮДА.
+      // 3. Просто выключаем лоудер. Операция обновления успешно завершена.
+      set({ loading: false });
     } catch (error) {
+      // Этот блок сработает, только если сам PUT-запрос не удался.
       const errorMessage =
         error.response?.data?.message || "Failed to update post";
-      set({ error: errorMessage, loading: false }); // <-- 5. Выключаем лоудер в случае ошибки
-      // Пробрасываем ошибку, чтобы компонент мог ее поймать, если нужно
+      set({ error: errorMessage, loading: false });
+
+      // Пробрасываем ошибку для компонента.
       throw new Error(errorMessage);
     }
   },
