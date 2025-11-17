@@ -353,9 +353,9 @@ export default function EditPost() {
   useEffect(() => {
     if (post && post.data) {
       setPostFormat({
-        heading: decodeHtml(post.data.heading || ""),
-        prewiew: decodeHtml(post.data.prewiew || ""),
-        text: decodeHtml(post.data.text || ""),
+        heading: post.data.heading || "",
+        prewiew: post.data.prewiew || "",
+        text: post.data.text || "",
         hex: post.data.hex || "#ffffff",
       });
     }
