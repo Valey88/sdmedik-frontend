@@ -129,7 +129,11 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
       const formData = new FormData();
       formData.append("file", file);
       // Убедитесь, что ваш API эндпоинт для загрузки - /blog/upload
-      const response = await api.post("/blog/upload", formData);
+      const response = await api.post("/blog/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       setImageUrl(response.data.data);
       toast.success("Изображение успешно загружено");
     } catch (error) {
