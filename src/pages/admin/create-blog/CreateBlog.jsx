@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Container,
   Typography,
@@ -15,74 +9,84 @@ import {
   Modal,
   Paper,
   IconButton,
+  ToggleButton,
+  ToggleButtonGroup,
+  Divider,
+  GlobalStyles,
+  Select,
+  MenuItem,
+  FormControl,
 } from "@mui/material";
+import {
+  FormatBold,
+  FormatItalic,
+  FormatUnderlined,
+  FormatStrikethrough,
+  FormatAlignLeft,
+  FormatAlignCenter,
+  FormatAlignRight,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  FormatQuote,
+  FormatListBulleted,
+  FormatListNumbered,
+  Title,
+  FormatColorText,
+  FormatClear,
+  ArrowDropDown,
+} from "@mui/icons-material";
 import SaveIcon from "@mui/icons-material/Save";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Helmet } from "react-helmet";
-import ReactQuill, { Quill } from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import {
+  useEditor,
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+} from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { TextAlign } from "@tiptap/extension-text-align";
+import { Image as TiptapImage } from "@tiptap/extension-image";
+import { Link as TiptapLink } from "@tiptap/extension-link";
+import { Color } from "@tiptap/extension-color";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Mark } from "@tiptap/core";
 import sanitizeHtml from "sanitize-html";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDropzone } from "react-dropzone";
+import { Rnd } from "react-rnd";
 
 import api from "../../../configs/axiosConfig";
 import useUserStore from "../../../store/userStore";
 
-
 // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
-// Расширяем sanitize-html для поддержки стилей, которые добавляет модуль ресайза
 const sanitizeContent = (html) => {
   if (!html) return "";
   return sanitizeHtml(html, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "div"]),
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+      "img",
+      "div",
+      "span",
+    ]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       "*": ["style", "class"],
       img: ["src", "alt", "width", "height"],
     },
-    allowedStyles: {
-      "*": {
-        // Разрешаем все базовые стили, которые могут быть у текста
-        color: [/^#(0x)?[0-9a-f]+$/i, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/],
-        "background-color": [
-          /^#(0x)?[0-9a-f]+$/i,
-          /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/,
-        ],
-        "text-align": [/^left$/, /^right$/, /^center$/, /^justify$/],
-        // Свойства для изображений
-        float: [/^left$/, /^right$/],
-        margin: [/^\d+(?:px|em|%)$/],
-        "margin-left": [/^\d+(?:px|em|%)$/],
-        "margin-right": [/^\d+(?:px|em|%)$/],
-        "margin-top": [/^\d+(?:px|em|%)$/],
-        "margin-bottom": [/^\d+(?:px|em|%)$/],
-        display: [/^block$/, /^inline-block$/],
-        width: [/^\d+(?:px|em|%)$/],
-        height: [/^\d+(?:px|em|%)$/],
-      },
-    },
   });
 };
 
-// --- УЛУЧШЕННЫЕ КОМПОНЕНТЫ ---
-
-/**
- * Улучшение №4: Компонент для загрузки превью.
- * Заменяет полноценный редактор на простую и понятную drag-and-drop зону.
- * Хранит в состоянии только URL изображения, а не HTML.
- */
+// --- КОМПОНЕНТЫ ЗАГРУЗКИ ---
 const PreviewImageUploader = ({ value, onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
-
   const onDrop = useCallback(
     async (acceptedFiles) => {
       const file = acceptedFiles[0];
       if (!file) return;
-
       const formData = new FormData();
       formData.append("file", file);
       setIsUploading(true);
@@ -90,7 +94,7 @@ const PreviewImageUploader = ({ value, onChange }) => {
         const response = await api.post("/blog/upload", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        onChange(response.data.data); // Возвращаем только URL
+        onChange(response.data.data);
         toast.success("Превью успешно загружено");
       } catch (error) {
         toast.error(
@@ -103,17 +107,14 @@ const PreviewImageUploader = ({ value, onChange }) => {
     },
     [onChange]
   );
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/*": [".jpeg", ".png", ".gif", ".webp"] },
     multiple: false,
   });
-
   const handleRemoveImage = () => {
-    onChange(""); // Очищаем URL
+    onChange("");
   };
-
   return (
     <Box>
       {value ? (
@@ -161,13 +162,16 @@ const PreviewImageUploader = ({ value, onChange }) => {
             <CircularProgress />
           ) : (
             <>
-              <UploadFileIcon sx={{ fontSize: 48, color: "grey.600", mb: 1 }} />
+              {" "}
+              <UploadFileIcon
+                sx={{ fontSize: 48, color: "grey.600", mb: 1 }}
+              />{" "}
               <Typography>
                 Перетащите изображение сюда или кликните для выбора
-              </Typography>
+              </Typography>{" "}
               <Typography variant="caption" color="text.secondary">
                 Рекомендуемая ширина: 370px
-              </Typography>
+              </Typography>{" "}
             </>
           )}
         </Box>
@@ -176,24 +180,14 @@ const PreviewImageUploader = ({ value, onChange }) => {
   );
 };
 
-/**
- * Улучшение №1, 2, 3: Полностью переработанное модальное окно.
- * Использует react-dropzone, показывает превью и автоматизирует загрузку.
- */
-const ImageUploadModal = ({ open, onClose, quillRef }) => {
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+const ImageUploadModal = ({ open, onClose, onInsert }) => {
   const [imageUrl, setImageUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-
+  const [preview, setPreview] = useState(null);
   const onDrop = useCallback(async (acceptedFiles) => {
     const selectedFile = acceptedFiles[0];
     if (!selectedFile) return;
-
-    setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
-
-    // Автоматическая загрузка
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -207,35 +201,27 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
       toast.error(
         "Ошибка загрузки: " + (error.response?.data?.message || error.message)
       );
-      setPreview(null); // Сбрасываем превью в случае ошибки
+      setPreview(null);
     } finally {
       setIsUploading(false);
     }
   }, []);
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/*": [".jpeg", ".png", ".gif", ".webp"] },
     multiple: false,
   });
-
   const handleClose = () => {
-    setFile(null);
     setPreview(null);
     setImageUrl("");
     setIsUploading(false);
     onClose();
   };
-
   const handleInsert = () => {
     if (!imageUrl) return;
-    const quill = quillRef.current.getEditor();
-    const range = quill.getSelection(true);
-    quill.insertEmbed(range.index, "image", imageUrl);
-    quill.setSelection(range.index + 1);
+    onInsert(imageUrl);
     handleClose();
   };
-
   return (
     <Modal open={open} onClose={handleClose}>
       <Box
@@ -254,7 +240,6 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
         <Typography variant="h6" gutterBottom>
           Вставка изображения
         </Typography>
-
         {!preview && (
           <Box
             {...getRootProps()}
@@ -273,7 +258,6 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
             <Typography>Перетащите файл сюда или кликните</Typography>
           </Box>
         )}
-
         {preview && (
           <Box sx={{ my: 2, textAlign: "center" }}>
             <img
@@ -287,13 +271,11 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
             />
           </Box>
         )}
-
         {isUploading && (
           <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
             <CircularProgress />
           </Box>
         )}
-
         <TextField
           label="Или вставьте URL"
           value={imageUrl}
@@ -302,7 +284,6 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
           sx={{ my: 2 }}
           disabled={isUploading}
         />
-
         <Box
           sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 3 }}
         >
@@ -322,84 +303,495 @@ const ImageUploadModal = ({ open, onClose, quillRef }) => {
   );
 };
 
-/**
- * Улучшение №6, 7: Расширенный редактор текста.
- * Добавлена новая панель инструментов и модуль для ресайза изображений.
- */
-const EditableHtmlField = ({ value, setValue, minHeight = 400 }) => {
-  const quillRef = useRef(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const imageHandler = useCallback(() => setIsModalOpen(true), []);
+// --- РАСШИРЕНИЯ И КОМПОНЕНТЫ ДЛЯ TIPTAP ---
+// ИСПРАВЛЕННОЕ РАСШИРЕНИЕ FONT SIZE
+const FontSize = Mark.create({
+  name: "fontSize", // Имя нашего марка
 
-  const modules = useMemo(
-    () => ({
-      toolbar: {
-        container: [
-          [{ header: [1, 2, 3, 4, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ color: [] }, { background: [] }],
-          [{ list: "ordered" }, { list: "bullet" }],
-          [{ align: [] }],
-          ["link", "image", "blockquote", "code-block"],
-          ["clean"],
-        ],
-        handlers: { image: imageHandler },
-      },
-      imageResize: {
-        parchment: Quill.import("parchment"),
-        // Добавляем 'Toolbar' для активации кнопок выравнивания
-        modules: ["Resize", "DisplaySize", "Toolbar"],
-        // Настраиваем саму панель
-        toolbar: {
-          alignments: ["left", "center", "right"],
-          // Можно кастомизировать иконки, но пока оставим по умолчанию
-          icons: {},
+  addOptions() {
+    return {
+      types: ["textStyle"],
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) =>
+              element.style.fontSize.replace(/['"]+/g, ""),
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
         },
       },
-      clipboard: { matchVisual: false },
-    }),
-    [imageHandler]
-  );
+    ];
+  },
+
+  addCommands() {
+    return {
+      setFontSize:
+        (fontSize) =>
+        ({ chain }) =>
+          chain().setMark("textStyle", { fontSize }).run(),
+      unsetFontSize:
+        () =>
+        ({ chain }) =>
+          chain()
+            .setMark("textStyle", { fontSize: null })
+            .removeEmptyTextStyle()
+            .run(),
+    };
+  },
+});
+const ResizableImageComponent = (props) => {
+  const { updateAttributes } = props;
+  const { width, height, float } = props.node.attrs;
+
+  const handleAlign = (align) => {
+    updateAttributes({ float: align });
+  };
 
   return (
+    <NodeViewWrapper
+      style={{
+        float: float === "center" ? "none" : float,
+        margin: float === "center" ? "1em auto" : "1em",
+        display: "block",
+      }}
+    >
+      <Rnd
+        size={{ width, height }}
+        style={{
+          position: "relative",
+          border: props.selected ? "2px solid #00B3A4" : "none",
+        }}
+        onResizeStop={(e, direction, ref, delta, position) => {
+          updateAttributes({
+            width: ref.style.width,
+            height: ref.style.height,
+          });
+        }}
+        lockAspectRatio
+      >
+        <img {...props.node.attrs} style={{ width: "100%", height: "100%" }} />
+      </Rnd>
+      {props.selected && (
+        <Box
+          contentEditable={false}
+          sx={{
+            position: "absolute",
+            top: 5,
+            right: 5,
+            zIndex: 1,
+            background: "rgba(255,255,255,0.8)",
+            borderRadius: 1,
+            p: 0.5,
+          }}
+        >
+          <ToggleButtonGroup size="small" exclusive value={float}>
+            <ToggleButton value="left" onClick={() => handleAlign("left")}>
+              <FormatAlignLeft />
+            </ToggleButton>
+            <ToggleButton value="center" onClick={() => handleAlign("center")}>
+              <FormatAlignCenter />
+            </ToggleButton>
+            <ToggleButton value="right" onClick={() => handleAlign("right")}>
+              <FormatAlignRight />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+      )}
+    </NodeViewWrapper>
+  );
+};
+
+const ResizableImageExtension = TiptapImage.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: { default: "auto" },
+      height: { default: "auto" },
+      float: { default: "center" },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImageComponent);
+  },
+});
+
+const TiptapToolbar = ({ editor, onImageUpload }) => {
+  const [linkUrl, setLinkUrl] = useState("");
+  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
+
+  const openLinkEditor = useCallback(() => {
+    const prevUrl = editor.getAttributes("link").href;
+    setLinkUrl(prevUrl || "");
+    setIsLinkEditorOpen(true);
+  }, [editor]);
+
+  const saveLink = useCallback(() => {
+    if (linkUrl) {
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange("link")
+        .setLink({ href: linkUrl })
+        .run();
+    } else {
+      editor.chain().focus().unsetLink().run();
+    }
+    setIsLinkEditorOpen(false);
+  }, [editor, linkUrl]);
+
+  if (!editor) return null;
+
+  // Текущий размер шрифта
+  const currentFontSize = editor.getAttributes("textStyle").fontSize;
+
+  return (
+    <Paper
+      elevation={2}
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        p: 1,
+        mb: "1px",
+        gap: 1,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+      }}
+    >
+      {/* 1. Жирный / Курсив и т.д. */}
+      <ToggleButtonGroup size="small">
+        <ToggleButton
+          value="bold"
+          selected={editor.isActive("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          title="Жирный"
+        >
+          <FormatBold />
+        </ToggleButton>
+        <ToggleButton
+          value="italic"
+          selected={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          title="Курсив"
+        >
+          <FormatItalic />
+        </ToggleButton>
+        <ToggleButton
+          value="underline"
+          selected={editor.isActive("underline")}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          title="Подчеркнутый"
+        >
+          <FormatUnderlined />
+        </ToggleButton>
+        <ToggleButton
+          value="strike"
+          selected={editor.isActive("strike")}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          title="Зачеркнутый"
+        >
+          <FormatStrikethrough />
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* 2. Заголовки (H1-H3) */}
+      <ToggleButtonGroup size="small" exclusive>
+        {/* <ToggleButton
+          value="h1"
+          selected={editor.isActive("heading", { level: 1 })}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+        >
+          <Title />
+        </ToggleButton> */}
+        <ToggleButton
+          value="h2"
+          selected={editor.isActive("heading", { level: 2 })}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+        >
+          <Typography variant="button" sx={{ fontWeight: "bold" }}>
+            H2
+          </Typography>
+        </ToggleButton>
+        <ToggleButton
+          value="h3"
+          selected={editor.isActive("heading", { level: 3 })}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
+        >
+          <Typography variant="button" sx={{ fontWeight: "bold" }}>
+            H3
+          </Typography>
+        </ToggleButton>
+        <ToggleButton
+          value="h4"
+          selected={editor.isActive("heading", { level: 4 })}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 4 }).run()
+          }
+        >
+          <Typography variant="button" sx={{ fontWeight: "bold" }}>
+            H4
+          </Typography>
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* 3. УПРАВЛЕНИЕ РАЗМЕРОМ ТЕКСТА (P) */}
+      <ToggleButtonGroup size="small" exclusive>
+        {/* Обычный текст (Сброс размера и превращение в параграф) */}
+        <ToggleButton
+          value="p-normal"
+          selected={editor.isActive("paragraph") && !currentFontSize}
+          onClick={() => {
+            editor.chain().focus().setParagraph().run(); // Превращаем в P
+            editor.chain().focus().unsetFontSize().run(); // Убираем размер (делаем стандартным)
+          }}
+          title="Обычный текст (P)"
+        >
+          <Typography variant="body2">Normal</Typography>
+        </ToggleButton>
+
+        {/* Крупный текст (18px) */}
+        <ToggleButton
+          value="18px"
+          selected={currentFontSize === "18px"}
+          onClick={() => {
+            editor.chain().focus().setParagraph().run();
+            editor.chain().focus().setFontSize("18px").run();
+          }}
+          title="Крупный текст"
+        >
+          <Typography variant="body1" sx={{ fontSize: "1.1rem" }}>
+            Large
+          </Typography>
+        </ToggleButton>
+
+        {/* Очень крупный текст (22px) */}
+        <ToggleButton
+          value="22px"
+          selected={currentFontSize === "22px"}
+          onClick={() => {
+            editor.chain().focus().setParagraph().run();
+            editor.chain().focus().setFontSize("22px").run();
+          }}
+          title="Очень крупный"
+        >
+          <Typography variant="h6" sx={{ fontSize: "1.2rem" }}>
+            XL
+          </Typography>
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* Точный выбор размера (Выпадающий список) */}
+      <FormControl size="small" sx={{ minWidth: 80 }}>
+        <Select
+          value={currentFontSize || "default"}
+          onChange={(e) => {
+            if (e.target.value === "default") {
+              editor.chain().focus().unsetFontSize().run();
+            } else {
+              editor.chain().focus().setFontSize(e.target.value).run();
+            }
+          }}
+          displayEmpty
+          IconComponent={ArrowDropDown}
+          sx={{ height: 40 }}
+        >
+          <MenuItem value="default">Auto</MenuItem>
+          <MenuItem value="14px">14px</MenuItem>
+          <MenuItem value="16px">16px</MenuItem>
+          <MenuItem value="18px">18px</MenuItem>
+          <MenuItem value="20px">20px</MenuItem>
+          <MenuItem value="24px">24px</MenuItem>
+          <MenuItem value="30px">30px</MenuItem>
+        </Select>
+      </FormControl>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* Цвет */}
+      <IconButton component="label" size="small">
+        <FormatColorText
+          sx={{ color: editor.getAttributes("textStyle").color || "grey" }}
+        />
+        <input
+          type="color"
+          onChange={(e) =>
+            editor.chain().focus().setColor(e.target.value).run()
+          }
+          style={{ visibility: "hidden", width: 0, height: 0 }}
+        />
+      </IconButton>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* Выравнивание */}
+      <ToggleButtonGroup size="small" exclusive>
+        <ToggleButton
+          value="left"
+          selected={editor.isActive({ textAlign: "left" })}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        >
+          <FormatAlignLeft />
+        </ToggleButton>
+        <ToggleButton
+          value="center"
+          selected={editor.isActive({ textAlign: "center" })}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        >
+          <FormatAlignCenter />
+        </ToggleButton>
+        <ToggleButton
+          value="right"
+          selected={editor.isActive({ textAlign: "right" })}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        >
+          <FormatAlignRight />
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* Вставка */}
+      <ToggleButton value="image" onClick={onImageUpload} size="small">
+        <ImageIcon />
+      </ToggleButton>
+
+      {isLinkEditorOpen ? (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 1 }}>
+          <TextField
+            size="small"
+            autoFocus
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="url..."
+            onKeyDown={(e) => e.key === "Enter" && saveLink()}
+            sx={{ width: 150 }}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            onClick={saveLink}
+            sx={{ minWidth: "auto", p: 1 }}
+          >
+            OK
+          </Button>
+        </Box>
+      ) : (
+        <ToggleButton
+          value="link"
+          selected={editor.isActive("link")}
+          onClick={openLinkEditor}
+          size="small"
+        >
+          <LinkIcon />
+        </ToggleButton>
+      )}
+    </Paper>
+  );
+};
+const EditableHtmlField = ({ value, onChange }) => {
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TiptapLink.configure({ openOnClick: false }),
+      ResizableImageExtension,
+      Color,
+      TextStyle,
+      FontSize,
+    ],
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: { attributes: { class: "tiptap-editor-field" } },
+  });
+  useEffect(() => {
+    if (editor && !editor.isDestroyed && value !== editor.getHTML()) {
+      editor.commands.setContent(value, false);
+    }
+  }, [value, editor]);
+  const handleInsertImage = (url) => {
+    if (url && editor) {
+      editor.chain().focus().setImage({ src: url, width: "50%" }).run();
+    }
+    setIsImageModalOpen(false);
+  };
+  return (
     <>
-      <ReactQuill
-        ref={quillRef}
-        value={value}
-        onChange={setValue}
-        modules={modules}
-        theme="snow"
-        style={{ minHeight: `${minHeight}px`, backgroundColor: "#fff" }}
+      <GlobalStyles
+        styles={{
+          ".tiptap-editor-field": {
+            maxHeight: "400px",
+            padding: "16px",
+            "&:focus": { outline: "none" },
+            "& p": { margin: "0 0 1em 0" },
+            "& img": { maxWidth: "100%", height: "auto" },
+            '& img[data-float="left"]': { float: "left", marginRight: "1em" },
+            '& img[data-float="right"]': { float: "right", marginLeft: "1em" },
+            '& img[data-float="center"]': {
+              display: "block",
+              margin: "1em auto",
+            },
+            overflowY: "scroll",
+          },
+        }}
       />
+      <Box sx={{ border: "1px solid #ccc", borderRadius: 1 }}>
+        <TiptapToolbar
+          editor={editor}
+          onImageUpload={() => setIsImageModalOpen(true)}
+        />
+        <EditorContent editor={editor} />
+      </Box>
       <ImageUploadModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        quillRef={quillRef}
+        open={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        onInsert={handleInsertImage}
       />
     </>
   );
 };
 
-// --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ "СОЗДАНИЕ ПОСТА" ---
+// --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ ---
 export default function BlogAdminPanel() {
   const [newPost, setNewPost] = useState({
-    previewUrl: "", // Изменено с prewiew на previewUrl для ясности
+    previewUrl: "",
+    prewiewText: "",
     heading: "",
     text: "",
     hex: "#00B3A4",
   });
   const [isSaving, setIsSaving] = useState(false);
-  const { user, isAuthenticated, getUserInfo } = useUserStore();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Логика проверки авторизации осталась без изменений
-  }, [isAuthenticated, user, getUserInfo, navigate]);
 
   const handleChange = useCallback((field, value) => {
     setNewPost((prev) => ({ ...prev, [field]: value }));
   }, []);
-
   const handleCreatePost = async () => {
     if (!newPost.heading || !newPost.text || !newPost.previewUrl) {
       toast.warn("Заполните все поля: превью, заголовок и описание.");
@@ -412,15 +804,21 @@ export default function BlogAdminPanel() {
     setIsSaving(true);
     try {
       const postData = {
-        // Формируем HTML для превью прямо перед отправкой
         prewiew: `<img src="${newPost.previewUrl}" alt="${newPost.heading}" style="width: 100%;" />`,
-        heading: newPost.heading, // Заголовки обычно не требуют сложной санации
+        prewiew_text: newPost.prewiewText,
+        heading: newPost.heading,
         text: sanitizeContent(newPost.text),
         hex: newPost.hex,
       };
       await api.post("/blog", postData);
       toast.success("Новый пост успешно создан!");
-      setNewPost({ previewUrl: "", heading: "", text: "", hex: "#00B3A4" });
+      setNewPost({
+        previewUrl: "",
+        prewiewText: "",
+        heading: "",
+        text: "",
+        hex: "#00B3A4",
+      });
     } catch (error) {
       toast.error(
         "Ошибка при создании поста: " +
@@ -430,12 +828,8 @@ export default function BlogAdminPanel() {
       setIsSaving(false);
     }
   };
-
   return (
     <>
-      <Helmet>
-        <title>Админ-панель: Создание поста</title>
-      </Helmet>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box
           sx={{
@@ -448,20 +842,30 @@ export default function BlogAdminPanel() {
           <Typography variant="h4" component="h1" gutterBottom>
             Создать новый пост
           </Typography>
-
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              1. Превью
+              1. Кратинка для превью
             </Typography>
             <PreviewImageUploader
               value={newPost.previewUrl}
               onChange={(value) => handleChange("previewUrl", value)}
             />
           </Box>
-
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              2. Заголовок
+              2. Текст для превью картинки
+            </Typography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Введите текст для превью картинки"
+              value={newPost.prewiewText}
+              onChange={(e) => handleChange("prewiewText", e.target.value)}
+            />
+          </Box>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+              3. Заголовок
             </Typography>
             <TextField
               fullWidth
@@ -471,21 +875,18 @@ export default function BlogAdminPanel() {
               onChange={(e) => handleChange("heading", e.target.value)}
             />
           </Box>
-
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              3. Основное содержимое
+              4. Основное содержимое
             </Typography>
             <EditableHtmlField
               value={newPost.text}
-              setValue={(value) => handleChange("text", value)}
-              minHeight={500}
+              onChange={(newText) => handleChange("text", newText)}
             />
           </Box>
-
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-              4. Цвет окантовки
+              5. Цвет окантовки
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <input
@@ -509,7 +910,6 @@ export default function BlogAdminPanel() {
               />
             </Box>
           </Box>
-
           <Button
             variant="contained"
             color="primary"

@@ -123,20 +123,95 @@ export default function BlogList() {
               <Link to={`/post/${post.id}`}>
                 <Card
                   sx={{
-                    borderRadius: "10px",
-                    border: `2px solid ${post.hex}`,
+                    position: "relative",
+                    overflow: "hidden",
+                    borderRadius: "20px",
+                    background: "rgba(255,255,255,0.55)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    boxShadow: "0 8px 25px rgba(0,0,0,0.12)",
+                    transition: "transform 0.35s ease, box-shadow 0.35s ease",
+                    cursor: "pointer",
+                    "&:hover": {
+                      transform: "translateY(-6px)",
+                      boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+                    },
                   }}
                 >
-                  <CardMedia
-                    component="img"
-                    height="300"
-                    image={extractImageUrl(post.prewiew)}
-                    alt={extractTextFromHtml(post.heading)}
-                  />
-                  <CardContent sx={{ maxWidth: "370px" }}>
-                    <Typography variant="h6">
+                  {/* Image Block */}
+                  <Box
+                    sx={{
+                      position: "relative",
+                      width: "100%",
+                      height: "260px",
+                      overflow: "hidden",
+                      borderRadius: "20px 20px 0 0",
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      image={extractImageUrl(post.prewiew)}
+                      alt={extractTextFromHtml(post.heading)}
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        transition: "transform 0.6s ease",
+                        "&:hover": {
+                          transform: "scale(1.08)",
+                        },
+                      }}
+                    />
+
+                    {/* Gradient + Title */}
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        p: 3,
+                        background:
+                          "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0))",
+                      }}
+                    >
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          color: "white",
+                          fontWeight: 700,
+                          lineHeight: 1.25,
+                          fontSize: { xs: "1.3rem", sm: "1.6rem" },
+                          textShadow: "0 2px 6px rgba(0,0,0,0.55)",
+                        }}
+                      >
+                        {post.prewiew_text}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Bottom Content */}
+                  <CardContent sx={{ p: 3, width: 370 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "1.1rem",
+                        lineHeight: 1.3,
+                        mb: 1.2,
+                      }}
+                    >
                       {extractTextFromHtml(post.heading)}
                     </Typography>
+
+                    <Box
+                      sx={{
+                        fontSize: "0.85rem",
+                        color: "#666",
+                      }}
+                    >
+                      Читать далее →
+                    </Box>
                   </CardContent>
                 </Card>
               </Link>

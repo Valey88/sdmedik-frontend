@@ -14,16 +14,14 @@ import { useParams, Link } from "react-router-dom";
 import sanitizeHtml from "sanitize-html";
 import useBlogStore from "../../store/blogStore";
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (без изменений) ---
 
-// Извлечение URL изображения из HTML-строки
 const extractImageUrl = (html) => {
-  if (!html) return ""; // Возвращаем пустую строку, чтобы избежать ошибок
+  if (!html) return "";
   const match = html.match(/<img src="([^"]+)"/);
   return match ? match[1] : "";
 };
 
-// Извлечение чистого текста из HTML-строки
 const extractTextFromHtml = (html) => {
   if (!html) return "";
   return sanitizeHtml(html, {
@@ -32,15 +30,15 @@ const extractTextFromHtml = (html) => {
   }).trim();
 };
 
-/**
- * ЧАСТЬ 4 (ПРОМПТ): Синхронизация sanitizeHtml с админ-панелью.
- * ЭТО КРИТИЧЕСКИ ВАЖНЫЙ ШАГ! Эта новая версия разрешает инлайн-стили для
- * цвета, фона, выравнивания текста и изображений, которые задаются в админке.
- */
 const sanitizeContent = (html) => {
   if (!html) return "";
   return sanitizeHtml(html, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "div"]),
+    // Убедитесь, что span тоже разрешен, так как Tiptap накладывает стили на span
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+      "img",
+      "div",
+      "span",
+    ]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       "*": ["style", "class"],
@@ -49,6 +47,10 @@ const sanitizeContent = (html) => {
     },
     allowedStyles: {
       "*": {
+        // --- ВОТ ЧТО НУЖНО ДОБАВИТЬ: ---
+        "font-size": [/^\d+(?:px|em|%|rem)$/],
+        // -------------------------------
+
         color: [/^#(0x)?[0-9a-f]+$/i, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/],
         "background-color": [
           /^#(0x)?[0-9a-f]+$/i,
@@ -69,15 +71,12 @@ const sanitizeContent = (html) => {
 
 export default function Post() {
   const { id } = useParams();
-  // ЧАСТЬ 5 (ПРОМПТ): Получаем состояния загрузки и ошибки из стора
   const { post, fetchBlogById, loading, error } = useBlogStore();
 
   useEffect(() => {
-    // Сбрасываем предыдущий пост при загрузке нового
     fetchBlogById(id);
   }, [id, fetchBlogById]);
 
-  // --- Данные для рендеринга и SEO ---
   const postData = post?.data;
   const headingText = postData
     ? extractTextFromHtml(postData.heading)
@@ -87,9 +86,6 @@ export default function Post() {
     ? extractTextFromHtml(postData.text).substring(0, 160) + "..."
     : "Читайте статью в блоге СД-МЕД.";
 
-  /**
-   * ЧАСТЬ 5 (ПРОМПТ): Реализация состояний загрузки и ошибок
-   */
   if (loading && !postData) {
     return (
       <Container
@@ -119,14 +115,11 @@ export default function Post() {
   }
 
   if (!postData) {
-    return null; // Ничего не рендерим, если данных нет
+    return null;
   }
 
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
-      {/**
-       * ЧАСТЬ 4 (ПРОМПТ): Улучшенное SEO с Open Graph тегами
-       */}
       <Helmet>
         <title>{headingText} - Блог - СД-МЕД</title>
         <meta name="description" content={descriptionSnippet} />
@@ -146,66 +139,121 @@ export default function Post() {
           Назад ко всем статьям
         </Button>
 
-        {/**
-         * ЧАСТЬ 1 (ПРОМПТ): Архитектура и Визуальная Иерархия - "Шапка" статьи
-         */}
-        {/* <Typography
-          variant="h3"
-          component="h1"
-          sx={{ fontWeight: "700", mb: 1, lineHeight: 1.2 }}
-        >
-          {headingText}
-        </Typography> */}
-
-        {/* <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-          Опубликовано:{" "}
-          {new Date(postData.createdAt || Date.now()).toLocaleDateString(
-            "ru-RU"
-          )}
-        </Typography> */}
-
-        {/* {previewImageUrl && (
+        {/* --- НАЧАЛО ИЗМЕНЕНИЙ --- */}
+        {/* Контейнер для изображения и заголовка */}
+        {previewImageUrl ? (
           <Box
-            component="img"
-            src={previewImageUrl}
-            alt={headingText}
             sx={{
-              width: "100%",
-              height: "auto",
-              borderRadius: 2, // 16px
-              mb: 4,
-              display: "block",
-              border: `1px solid #eee`,
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: "28px",
+              mb: 5,
+              boxShadow: "0 20px 40px rgba(0,0,0,0.14)",
+              background: "rgba(255,255,255,0.55)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+              transition: "transform 0.35s ease",
+              "&:hover": {
+                transform: "translateY(-4px)",
+                boxShadow: "0 26px 55px rgba(0,0,0,0.22)",
+              },
             }}
-          />
-        )} */}
+          >
+            <Box
+              component="img"
+              src={previewImageUrl}
+              alt={headingText}
+              sx={{
+                width: "100%",
+                height: "500px",
+                objectFit: "cover",
+                display: "block",
+                borderRadius: "28px",
+                filter: "brightness(0.92)",
+                transition: "transform 0.75s ease",
+                "&:hover": {
+                  transform: "scale(1.05)",
+                },
+              }}
+            />
 
-        {/**
-         * ЧАСТЬ 1 (ПРОМПТ): "Тело" статьи в отдельной карточке
-         */}
+            {/* ПРОЗРАЧНАЯ ПАНЕЛЬ С ЗАГОЛОВКОМ */}
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: { xs: "22px", sm: "34px" },
+                background:
+                  "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0))",
+              }}
+            >
+              <Typography
+                variant="h2"
+                component="h1"
+                sx={{
+                  color: "white",
+                  fontWeight: 800,
+                  lineHeight: 1.15,
+                  fontSize: { xs: "2rem", sm: "3rem" },
+                  textShadow: "0 3px 14px rgba(0,0,0,0.45)",
+                }}
+              >
+                {headingText}
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Typography
+            variant="h3"
+            component="h1"
+            sx={{
+              fontWeight: 800,
+              mb: 4,
+              fontSize: { xs: "2rem", sm: "3rem" },
+            }}
+          >
+            {headingText}
+          </Typography>
+        )}
+
+        {/* --- КОНЕЦ ИЗМЕНЕНИЙ --- */}
+
+        {/* Тело статьи в карточке (без изменений) */}
         <Card
           sx={{
-            borderTop: `4px solid ${postData.hex || "#00B3A4"}`,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-            overflow: "visible", // Позволяет контенту управлять своей шириной
+            borderRadius: "26px",
+            p: 0,
+            overflow: "hidden",
+            background: "rgba(255,255,255,0.65)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            boxShadow: "0 15px 40px rgba(0,0,0,0.12)",
+            border: `1px solid rgba(255,255,255,0.4)`,
           }}
         >
-          <CardContent sx={{ px: { xs: 2, sm: 4 }, py: { xs: 3, sm: 4 } }}>
+          <CardContent
+            sx={{
+              px: { xs: 2.5, sm: 2 },
+              py: { xs: 3, sm: 3 },
+              fontSize: "1.1rem",
+            }}
+          >
             <Box
-              /**
-               * ЧАСТЬ 2 и 3 (ПРОМПТ): Глубокая стилизация и мобильная адаптация
-               */
               sx={{
-                // Базовая типографика
-                fontSize: { xs: "1rem", sm: "1.1rem" }, // Адаптивный размер шрифта
-                "& p": { lineHeight: 1.7, margin: "0 0 1.5em 0" },
+                fontSize: "1.1rem",
+                lineHeight: 1.75,
+                color: "#1a1a1a",
+
+                "& p": { lineHeight: 1.5, margin: "0 0 0px 0" }, // Рекомендую вернуть небольшой отступ
                 "& h1, & h2, & h3, & h4": {
-                  marginTop: "2em",
-                  marginBottom: "0.8em",
+                  marginTop: "0em",
+                  marginBottom: "0.7em",
                   lineHeight: 1.3,
                   fontWeight: "600",
                 },
-                "& ul, & ol": { paddingLeft: "2em", margin: "0 0 1.5em 0" },
+                "& ul, & ol": { paddingLeft: "2em", margin: "0 0 0.5em 0" },
                 "& li": { marginBottom: "0.5em", lineHeight: 1.7 },
                 "& a": {
                   color: "#00B3A4",
@@ -220,31 +268,23 @@ export default function Post() {
                   color: "text.secondary",
                   margin: "1.5em 0",
                 },
-                // Стили для изображений внутри текста
                 "& img": {
                   maxWidth: "100%",
                   height: "auto",
                   borderRadius: "8px",
-                  display: "block", // Убирает лишний отступ под картинкой
-                  margin: "1.5em auto", // Центрирует по умолчанию
+                  display: "block",
+                  margin: "1.5em auto",
                 },
-                // Поддержка выравнивания из админки
                 '& img[style*="float: left"]': {
-                  marginRight: { xs: 0, sm: "1.5em" },
-                  marginBottom: "0.5em",
                   margin: { xs: "1.5em auto", sm: "0 1.5em 0.5em 0" },
                 },
                 '& img[style*="float: right"]': {
-                  marginLeft: { xs: 0, sm: "1.5em" },
-                  marginBottom: "0.5em",
                   margin: { xs: "1.5em auto", sm: "0 0 0.5em 1.5em" },
                 },
-
-                // Мобильная адаптация обтекания
                 "@media (max-width: 600px)": {
                   '& img[style*="float"]': {
                     float: "none !important",
-                    margin: "1.5em auto !important", // Центрируем с отступами
+                    margin: "1.5em auto !important",
                   },
                 },
               }}
