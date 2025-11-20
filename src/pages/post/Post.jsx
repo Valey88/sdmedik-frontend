@@ -246,9 +246,13 @@ export default function Post() {
                 lineHeight: 1.75,
                 color: "#1a1a1a",
 
-                "& p": { lineHeight: 1.5, margin: "0 0 0px 0" }, // Рекомендую вернуть небольшой отступ
+                "& p": {
+                  lineHeight: 1.5,
+                  margin: "0 0 1em 0",
+                  minHeight: "1.5em",
+                }, // Рекомендую вернуть небольшой отступ
                 "& h1, & h2, & h3, & h4": {
-                  marginTop: "0em",
+                  marginTop: "1em",
                   marginBottom: "0.7em",
                   lineHeight: 1.3,
                   fontWeight: "600",
