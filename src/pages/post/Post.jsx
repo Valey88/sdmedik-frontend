@@ -64,6 +64,7 @@ const sanitizeContent = (html) => {
         display: [/^block$/, /^inline-block$/],
         width: [/^\d+(?:px|em|%)$/],
         height: [/^\d+(?:px|em|%)$/],
+        "white-space": [/^pre-wrap$/, /^nowrap$/, /^pre$/],
       },
     },
   });
@@ -250,6 +251,7 @@ export default function Post() {
                   lineHeight: 1.5,
                   margin: "0 0 1em 0",
                   minHeight: "1.5em",
+                  whiteSpace: "pre-wrap",
                 }, // Рекомендую вернуть небольшой отступ
                 "& h1, & h2, & h3, & h4": {
                   marginTop: "1em",

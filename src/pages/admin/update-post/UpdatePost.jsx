@@ -58,6 +58,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDropzone } from "react-dropzone";
 import { Rnd } from "react-rnd";
+import { Extension } from "@tiptap/core";
 
 import api from "../../../configs/axiosConfig";
 import useBlogStore from "../../../store/blogStore";
@@ -106,6 +107,19 @@ const sanitizeContent = (html) => {
     },
   });
 };
+
+const SimpleTabExtension = Extension.create({
+  name: "simpleTab",
+
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        // Вставляем 4 пробела и говорим редактору, что событие обработано (true)
+        return this.editor.commands.insertContent("\u00A0\u00A0\u00A0\u00A0");
+      },
+    };
+  },
+});
 
 // --- КОМПОНЕНТЫ ЗАГРУЗКИ (Идентичны созданию) ---
 const PreviewImageUploader = ({ value, onChange }) => {
@@ -734,6 +748,7 @@ const EditableHtmlField = ({ value, onChange }) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
+      SimpleTabExtension,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TiptapLink.configure({ openOnClick: false }),
       ResizableImageExtension,
@@ -766,6 +781,7 @@ const EditableHtmlField = ({ value, onChange }) => {
             maxHeight: "400px",
             padding: "16px",
             "&:focus": { outline: "none" },
+            whiteSpace: "pre-wrap",
             "& p": { margin: "0 0 1em 0" },
             "& ul, & ol": {
               paddingLeft: "1.5rem",

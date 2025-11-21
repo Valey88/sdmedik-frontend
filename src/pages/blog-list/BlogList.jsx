@@ -117,10 +117,20 @@ export default function BlogList() {
           />
         </Box>
         {/* Посты блога */}
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {filteredPosts.map((post) => (
-            <Grid item xs={12} md={6} key={post.id}>
-              <Link to={`/post/${post.id}`}>
+            <Grid
+              item
+              xs={12}
+              md={4}
+              lg={4}
+              key={post.id}
+              sx={{ display: "flex" }}
+            >
+              <Link
+                to={`/post/${post.id}`}
+                style={{ display: "flex", width: "100%" }}
+              >
                 <Card
                   sx={{
                     position: "relative",
@@ -136,6 +146,7 @@ export default function BlogList() {
                       transform: "translateY(-6px)",
                       boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
                     },
+                    width: 341,
                   }}
                 >
                   {/* Image Block */}
@@ -143,7 +154,7 @@ export default function BlogList() {
                     sx={{
                       position: "relative",
                       width: "100%",
-                      height: "260px",
+                      height: "300px",
                       overflow: "hidden",
                       borderRadius: "20px 20px 0 0",
                     }}
@@ -191,7 +202,19 @@ export default function BlogList() {
                   </Box>
 
                   {/* Bottom Content */}
-                  <CardContent sx={{ p: 3, width: 370 }}>
+                  <CardContent
+                    sx={{
+                      p: 3,
+                      // --- ИСПРАВЛЕНИЕ 2: Исправляем ширину текста ---
+                      width: "100%", // БЫЛО: width: 370 (это ломало верстку)
+                      boxSizing: "border-box", // Чтобы padding не увеличивал ширину
+                      flexGrow: 1, // Занимает всё оставшееся место
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      // ---------------------------------------------
+                    }}
+                  >
                     <Typography
                       variant="h6"
                       sx={{
@@ -199,6 +222,7 @@ export default function BlogList() {
                         fontSize: "1.1rem",
                         lineHeight: 1.3,
                         mb: 1.2,
+                        flexWrap: "wrap",
                       }}
                     >
                       {extractTextFromHtml(post.heading)}

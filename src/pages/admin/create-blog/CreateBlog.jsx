@@ -61,6 +61,7 @@ import { Rnd } from "react-rnd";
 
 import api from "../../../configs/axiosConfig";
 import useUserStore from "../../../store/userStore";
+import { Extension } from "@tiptap/core";
 
 // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 const isValidHex = (hex) => /^#[0-9A-Fa-f]{6}$/i.test(hex);
@@ -79,6 +80,19 @@ const sanitizeContent = (html) => {
     },
   });
 };
+
+const SimpleTabExtension = Extension.create({
+  name: "simpleTab",
+
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        // Вставляем 4 пробела и говорим редактору, что событие обработано (true)
+        return this.editor.commands.insertContent("\u00A0\u00A0\u00A0\u00A0");
+      },
+    };
+  },
+});
 
 // --- КОМПОНЕНТЫ ЗАГРУЗКИ ---
 const PreviewImageUploader = ({ value, onChange }) => {
@@ -738,6 +752,7 @@ const EditableHtmlField = ({ value, onChange }) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
+      SimpleTabExtension,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TiptapLink.configure({ openOnClick: false }),
       ResizableImageExtension,
@@ -770,6 +785,7 @@ const EditableHtmlField = ({ value, onChange }) => {
             maxHeight: "400px",
             padding: "16px",
             "&:focus": { outline: "none" },
+            whiteSpace: "pre-wrap",
             "& p": { margin: "0 0 1em 0" },
             "& ul, & ol": {
               paddingLeft: "1.5rem",
