@@ -103,6 +103,7 @@ const sanitizeContent = (html) => {
         display: [/^block$/, /^inline-block$/],
         width: [/^\d+(?:px|em|%)$/],
         height: [/^\d+(?:px|em|%)$/],
+        "white-space": [/^pre-wrap$/, /^nowrap$/, /^pre$/],
       },
     },
   });
