@@ -670,6 +670,26 @@ const TiptapToolbar = ({ editor, onImageUpload }) => {
       </ToggleButtonGroup>
 
       <Divider orientation="vertical" flexItem />
+      <ToggleButtonGroup size="small" exclusive>
+        <ToggleButton
+          value="bulletList"
+          selected={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          title="Маркированный список"
+        >
+          <FormatListBulleted />
+        </ToggleButton>
+        <ToggleButton
+          value="orderedList"
+          selected={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          title="Нумерованный список"
+        >
+          <FormatListNumbered />
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      <Divider orientation="vertical" flexItem />
 
       <ToggleButton value="image" onClick={onImageUpload} size="small">
         <ImageIcon />
@@ -747,6 +767,13 @@ const EditableHtmlField = ({ value, onChange }) => {
             padding: "16px",
             "&:focus": { outline: "none" },
             "& p": { margin: "0 0 1em 0" },
+            "& ul, & ol": {
+              paddingLeft: "1.5rem",
+              margin: "0 0 1em 0",
+            },
+            "& li": {
+              marginBottom: "0.5em",
+            },
             "& img": { maxWidth: "100%", height: "auto" },
             '& img[data-float="left"]': { float: "left", marginRight: "1em" },
             '& img[data-float="right"]': { float: "right", marginLeft: "1em" },
@@ -853,9 +880,6 @@ export default function EditPost() {
 
   return (
     <>
-      <Helmet>
-        <title>Редактирование: {postFormat.heading || "поста"}</title>
-      </Helmet>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box
           sx={{
