@@ -30,6 +30,7 @@ import {
   Clear as ClearIcon,
   PushPin,
   Article,
+  Star,
 } from "@mui/icons-material";
 import { styled, alpha } from "@mui/material/styles";
 import useBlogStore from "@/store/blogStore";
@@ -303,20 +304,43 @@ export default function AdminBlogTable() {
 
                         {/* Колонка: Статус/Тип */}
                         <StyledTableCell align="center">
-                          {/* В результатах поиска поле pin_type может отсутствовать, поэтому проверяем */}
                           {post.pin_type ? (
                             <Chip
+                              // Выбор иконки: Скрепка для pinned, Звезда для main, ничего для остальных
                               icon={
-                                isPinned ? (
+                                post.pin_type === "pinned" ? (
                                   <PushPin fontSize="small" />
+                                ) : post.pin_type === "main" ? (
+                                  <Star fontSize="small" />
                                 ) : undefined
                               }
-                              label={isPinned ? "Закреплен" : "Обычный"}
-                              color={isPinned ? "success" : "default"}
+                              // Текст лейбла
+                              label={
+                                post.pin_type === "pinned"
+                                  ? "Закреплен"
+                                  : post.pin_type === "main"
+                                  ? "Главный"
+                                  : "Обычный"
+                              }
+                              // Цвет: success (зеленый), info (синий/голубой), default (серый)
+                              color={
+                                post.pin_type === "pinned"
+                                  ? "success"
+                                  : post.pin_type === "main"
+                                  ? "info"
+                                  : "default"
+                              }
+                              // Стиль: заливка для важных, обводка для обычных
+                              variant={
+                                post.pin_type === "pinned" ||
+                                post.pin_type === "main"
+                                  ? "filled"
+                                  : "outlined"
+                              }
                               size="small"
-                              variant={isPinned ? "filled" : "outlined"}
                             />
                           ) : (
+                            // Если pin_type нет (например, при поиске, если сервер его не отдает)
                             <Chip
                               label="Блог"
                               size="small"
