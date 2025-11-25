@@ -56,7 +56,7 @@ const PostCard = ({ post }) => {
           cursor: "pointer",
           "&:hover": {
             transform: "translateY(-6px)",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+            boxShadow: `0 12px 40px ${post.hex}`,
           },
           width: 341,
         }}
