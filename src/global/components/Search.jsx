@@ -9,10 +9,9 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { debounce } from "lodash";
-import useSearchStore from "../../store/serchStore";
+import useSearchStore from "@/store/searchStore"; // Проверьте правильность пути
 
-// Константа для задержки дебаунсинга
-const DEBOUNCE_DELAY = 250;
+const DEBOUNCE_DELAY = 300;
 
 const Search = () => {
   const {
@@ -20,7 +19,7 @@ const Search = () => {
     searchSuggestions,
     setSearchQuery,
     setSearchSuggestions,
-    searchProducts,
+    search, // Используем обновленную функцию
   } = useSearchStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -29,13 +28,12 @@ const Search = () => {
   const inputRef = useRef(null);
   const searchBoxRef = useRef(null);
 
-  // Обработка ввода в поле поиска
   const handleSearchInput = (query) => {
     setSearchQuery(query ?? "");
     if (query.trim().length) {
       setIsLoading(true);
       setError(null);
-      debouncedSearchProducts(query);
+      debouncedSearch(query);
       setIsSuggestionsVisible(true);
     } else {
       setSearchSuggestions([]);
@@ -43,15 +41,16 @@ const Search = () => {
     }
   };
 
-  // Дебаунсированная функция для поиска
-  const debouncedSearchProducts = useRef(
+  // Дебаунс поиска товаров
+  const debouncedSearch = useRef(
     debounce(async (query) => {
       try {
-        const suggestions = await searchProducts(query);
+        // ЯВНО передаем тип 'product'
+        const suggestions = await search(query, "product");
         setSearchSuggestions(suggestions ?? []);
       } catch (error) {
         console.error("Ошибка при получении подсказок:", error);
-        setError("Произошла ошибка при поиске. Пожалуйста, попробуйте снова.");
+        setError("Ошибка поиска.");
         setSearchSuggestions([]);
       } finally {
         setIsLoading(false);
@@ -59,13 +58,12 @@ const Search = () => {
     }, DEBOUNCE_DELAY)
   ).current;
 
-  // Обработка клика по подсказке
   const handleSuggestionClick = (suggestion) => {
+    // Редирект на товар
     window.location.href = `/product/certificate/${suggestion.id}`;
     setIsSuggestionsVisible(false);
   };
 
-  // Скрытие подсказок при клике вне компонента
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -78,15 +76,9 @@ const Search = () => {
     document.addEventListener("click", handleClickOutside);
     return () => {
       document.removeEventListener("click", handleClickOutside);
+      debouncedSearch.cancel();
     };
-  }, []);
-
-  // Отмена дебаунсинга при размонтировании
-  useEffect(() => {
-    return () => {
-      debouncedSearchProducts.cancel();
-    };
-  }, [debouncedSearchProducts]);
+  }, [debouncedSearch]);
 
   return (
     <Box
@@ -99,111 +91,78 @@ const Search = () => {
         position: "relative",
       }}
     >
-      {/* Поле ввода */}
       <InputBase
         ref={inputRef}
-        type="text"
         placeholder="Поиск по товарам"
         value={searchQuery}
+        onChange={(e) => handleSearchInput(e.target.value)}
+        onFocus={() => setIsSuggestionsVisible(true)}
         sx={{
           height: "53px",
           width: { xs: "100%", md: "70%" },
           border: "2px solid #87EBEB",
           borderRight: "none",
-          paddingLeft: "20px",
+          pl: "20px",
           fontSize: "16px",
-          outline: "none",
-          backgroundColor: "#FAFAFA",
+          bgcolor: "#FAFAFA",
         }}
-        onChange={(e) => handleSearchInput(e.target.value)}
-        onFocus={() => setIsSuggestionsVisible(true)}
       />
-
-      {/* Кнопка поиска */}
       <Button
         variant="contained"
         sx={{
           height: "53px",
-          borderTopLeftRadius: "0",
-          borderBottomLeftRadius: "0",
-          borderTopRightRadius: "10px",
-          borderBottomRightRadius: "10px",
-          backgroundColor: "#00B3A4",
-          "&:hover": { backgroundColor: "#009688" },
+          borderRadius: "0 10px 10px 0",
+          bgcolor: "#00B3A4",
+          "&:hover": { bgcolor: "#009688" },
         }}
       >
         <SearchIcon fontSize="large" />
       </Button>
 
-      {/* Выпадающий список с подсказками */}
+      {/* Выпадающий список */}
       {isSuggestionsVisible && searchQuery && (
         <Box
           sx={{
             position: "absolute",
             top: "60px",
             left: 0,
-            width: "100%",
-            backgroundColor: "white",
+            right: 0,
+            bgcolor: "white",
             border: "1px solid #e0e0e0",
             borderRadius: "8px",
-            boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.1)",
+            boxShadow: 3,
             zIndex: 1000,
             maxHeight: "300px",
             overflowY: "auto",
-            transition: "opacity 0.3s ease, transform 0.3s ease",
-            opacity: isSuggestionsVisible ? 1 : 0,
-            transform: isSuggestionsVisible
-              ? "translateY(0)"
-              : "translateY(-10px)",
           }}
         >
           {isLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                padding: "15px",
-              }}
-            >
-              <CircularProgress color="success" size={24} />
+            <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+              <CircularProgress size={24} />
             </Box>
           ) : error ? (
-            <Typography sx={{ padding: "15px 20px", color: "error.main" }}>
-              {error}
-            </Typography>
+            <Typography sx={{ p: 2, color: "error.main" }}>{error}</Typography>
           ) : searchSuggestions.length > 0 ? (
-            searchSuggestions.map((suggestion, index) => (
+            searchSuggestions.map((item) => (
               <MenuItem
-                key={index}
-                onClick={() => handleSuggestionClick(suggestion)}
-                sx={{
-                  padding: "12px 20px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  "&:hover": { backgroundColor: "#f5f5f5" },
-                }}
+                key={item.id}
+                onClick={() => handleSuggestionClick(item)}
+                sx={{ p: 1.5, borderBottom: "1px solid #f0f0f0" }}
               >
                 <Box>
                   <Typography
                     variant="body1"
-                    sx={{ fontWeight: 500, color: "black" }}
+                    sx={{ color: "black" }}
+                    fontWeight={500}
                   >
-                    {suggestion.name}
+                    {item.name}
                   </Typography>
-                  {suggestion.description && (
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "text.secondary" }}
-                    >
-                      {suggestion.description}
-                    </Typography>
-                  )}
+                  {/* Если есть цена или другое поле, можно добавить сюда */}
                 </Box>
               </MenuItem>
             ))
           ) : (
-            <Typography sx={{ padding: "15px 20px", color: "text.secondary" }}>
+            <Typography sx={{ p: 2, color: "text.secondary" }}>
               Ничего не найдено
             </Typography>
           )}

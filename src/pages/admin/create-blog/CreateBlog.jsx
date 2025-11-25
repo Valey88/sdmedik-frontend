@@ -829,6 +829,7 @@ export default function BlogAdminPanel() {
     heading: "",
     text: "",
     hex: "#00B3A4",
+    pin_type: "normal",
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -852,6 +853,7 @@ export default function BlogAdminPanel() {
         heading: newPost.heading,
         text: sanitizeContent(newPost.text),
         hex: newPost.hex,
+        pin_type: postFormat.pin_type,
       };
       await api.post("/blog", postData);
       toast.success("Новый пост успешно создан!");
@@ -952,6 +954,22 @@ export default function BlogAdminPanel() {
                 helperText={!isValidHex(newPost.hex) ? "Неверный формат" : ""}
               />
             </Box>
+          </Box>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+              6. Тип публикации
+            </Typography>
+            <FormControl fullWidth>
+              <Select
+                value={postFormat.pin_type}
+                onChange={(e) => handleChange("pin_type", e.target.value)}
+                displayEmpty
+              >
+                <MenuItem value="normal">Normal (Обычный)</MenuItem>
+                <MenuItem value="pinned">Pinned (Закрепленный)</MenuItem>
+                <MenuItem value="main">Main (Главный)</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
           <Button
             variant="contained"

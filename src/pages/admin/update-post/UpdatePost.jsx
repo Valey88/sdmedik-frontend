@@ -829,6 +829,7 @@ export default function EditPost() {
     prewiewText: "",
     text: "",
     hex: "#ffffff",
+    pin_type: "normal",
   });
 
   useEffect(() => {
@@ -847,6 +848,7 @@ export default function EditPost() {
         prewiewText: post.data.prewiew_text || "",
         text: post.data.text || "",
         hex: post.data.hex || "#ffffff",
+        pin_type: post.data.pin_type || "normal",
       });
     }
   }, [post]);
@@ -870,6 +872,7 @@ export default function EditPost() {
         heading: postFormat.heading,
         text: sanitizeContent(postFormat.text), // Санитизация с поддержкой font-size
         hex: postFormat.hex,
+        pin_type: postFormat.pin_type,
       };
 
       await updatePost(id, postData);
@@ -1015,6 +1018,22 @@ export default function EditPost() {
                 }
               />
             </Box>
+          </Box>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+              6. Тип публикации
+            </Typography>
+            <FormControl fullWidth>
+              <Select
+                value={postFormat.pin_type}
+                onChange={(e) => handleChange("pin_type", e.target.value)}
+                displayEmpty
+              >
+                <MenuItem value="normal">Normal (Обычный)</MenuItem>
+                <MenuItem value="pinned">Pinned (Закрепленный)</MenuItem>
+                <MenuItem value="main">Main (Главный)</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
         </Box>
       </Container>

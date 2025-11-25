@@ -8,10 +8,10 @@ const useSearchStore = create((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSearchSuggestions: (suggestions) =>
     set({ searchSuggestions: suggestions }),
-  searchProducts: async (query) => {
+  search: async (query, types) => {
     try {
       const response = await axios.get(`${url}/search`, {
-        params: { query },
+        params: { query, types },
       });
       return response.data.data; // Предполагаем, что данные возвращаются в формате { data: [...] }
     } catch (error) {
