@@ -30,35 +30,27 @@ import "swiper/css/effect-fade";
 
 // --- Умный компонент видео ---
 const VideoSlide = ({ url, isActive }) => {
-  const swiper = useSwiper(); // Получаем управление слайдером
+  const swiper = useSwiper();
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(true);
 
-  // Логика переключения слайдов по окончанию видео
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !swiper) return;
 
     if (isActive) {
-      // 1. Если слайд активен - останавливаем глобальный таймер слайдера
       swiper.autoplay.stop();
-
-      // 2. Запускаем видео
       video.currentTime = 0;
-      video
-        .play()
-        .catch((e) => console.log("Автоплей видео заблокирован браузером", e));
+      video.play().catch((e) => console.log("Autoplay blocked", e));
     } else {
-      // Если слайд ушел - ставим на паузу
       video.pause();
     }
   }, [isActive, swiper]);
 
-  // Когда видео заканчивается
   const handleVideoEnded = () => {
     if (swiper) {
-      swiper.slideNext(); // Листаем дальше
-      swiper.autoplay.start(); // Включаем таймер для следующего слайда (если там картинка)
+      swiper.slideNext();
+      swiper.autoplay.start();
     }
   };
 
@@ -68,14 +60,21 @@ const VideoSlide = ({ url, isActive }) => {
   };
 
   return (
-    <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
       <Box
         component="video"
         ref={videoRef}
         src={url}
         muted={isMuted}
         playsInline
-        onEnded={handleVideoEnded} // Самое важное событие
+        onEnded={handleVideoEnded}
         sx={{
           width: "100%",
           height: "100%",
@@ -83,8 +82,6 @@ const VideoSlide = ({ url, isActive }) => {
           display: "block",
         }}
       />
-
-      {/* Кнопка звука */}
       <IconButton
         onClick={toggleMute}
         sx={{
@@ -111,72 +108,76 @@ export default function MainSlider({ slides }) {
 
   if (!slides || slides.length === 0) return null;
 
-  // Стили UI (стрелки, точки)
-  const swiperStyles = {
-    width: "100%",
-    height: "100%",
-    "& .swiper-pagination-bullet": {
-      background: "white",
-      opacity: 0.6,
-      width: "10px",
-      height: "10px",
-      transition: "all 0.3s",
-    },
-    "& .swiper-pagination-bullet-active": {
-      background: "#00B3A4",
-      opacity: 1,
-      width: "25px", // Делаем активную точку вытянутой
-      borderRadius: "5px",
-    },
-    "& .swiper-button-next, & .swiper-button-prev": {
-      color: "white",
-      width: "44px",
-      height: "44px",
-      backgroundColor: "rgba(255,255,255,0.1)",
-      borderRadius: "50%",
-      backdropFilter: "blur(4px)",
-      border: "1px solid rgba(255,255,255,0.2)",
-      transition: "all 0.3s ease",
-      "&:hover": {
-        backgroundColor: "#00B3A4",
-        border: "1px solid #00B3A4",
-      },
-      "&::after": {
-        fontSize: "20px",
-        fontWeight: "bold",
-      },
-    },
-    "& .swiper-button-next": {
-      display: { xs: "none", md: "flex" },
-      right: "20px",
-    },
-    "& .swiper-button-prev": {
-      display: { xs: "none", md: "flex" },
-      left: "20px",
-    },
-  };
-
   return (
     <Box
       sx={{
         width: "100%",
-        // Адаптивная высота (для видео лучше побольше на десктопе)
         height: { xs: "250px", sm: "400px", md: "500px", lg: "550px" },
         borderRadius: "12px",
         overflow: "hidden",
         position: "relative",
         boxShadow: "0px 10px 30px rgba(0,0,0,0.15)",
-        ...swiperStyles,
+
+        // === СТИЛИ SWIPER И АНИМАЦИИ ===
+        "& .swiper-pagination-bullet": {
+          background: "white",
+          opacity: 0.6,
+          width: "10px",
+          height: "10px",
+          transition: "all 0.3s",
+        },
+        "& .swiper-pagination-bullet-active": {
+          background: "#00B3A4",
+          opacity: 1,
+          width: "25px",
+          borderRadius: "5px",
+        },
+        "& .swiper-button-next, & .swiper-button-prev": {
+          color: "white",
+          width: "44px",
+          height: "44px",
+          backgroundColor: "rgba(255,255,255,0.1)",
+          borderRadius: "50%",
+          backdropFilter: "blur(4px)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            backgroundColor: "#00B3A4",
+            border: "1px solid #00B3A4",
+          },
+          "&::after": { fontSize: "20px", fontWeight: "bold" },
+        },
+        "& .swiper-button-next": {
+          display: { xs: "none", md: "flex" },
+          right: "20px",
+        },
+        "& .swiper-button-prev": {
+          display: { xs: "none", md: "flex" },
+          left: "20px",
+        },
+
+        // === ГЛАВНОЕ ИСПРАВЛЕНИЕ АНИМАЦИИ (KEN BURNS EFFECT) ===
+        "& .slide-image": {
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: "scale(1.0)", // Исходное состояние
+          transition: "transform 8s ease-out", // Очень плавное увеличение за 8 секунд
+          willChange: "transform", // Оптимизация для браузера (убирает лаги)
+        },
+        // Когда слайд активен (класс добавляет сам Swiper)
+        "& .swiper-slide-active .slide-image": {
+          transform: "scale(1.1)", // Увеличиваем до 110%
+        },
       }}
     >
       <Swiper
         modules={[Navigation, Pagination, Autoplay, A11y, EffectFade]}
         spaceBetween={0}
         slidesPerView={1}
-        effect="fade" // Плавное затухание (fade) выглядит лучше для смешанного контента
+        effect="fade"
         navigation
         pagination={{ clickable: true }}
-        // Базовый автоплей для КАРТИНОК (5 секунд). Видео будет его останавливать.
         autoplay={{ delay: 5000, disableOnInteraction: false }}
         loop={true}
         style={{ width: "100%", height: "100%" }}
@@ -184,28 +185,27 @@ export default function MainSlider({ slides }) {
         {slides.map((slide, index) => (
           <SwiperSlide key={index}>
             {({ isActive }) => (
-              <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-                {/* 1. КОНТЕНТ (ВИДЕО или КАРТИНКА) */}
+              <Box
+                sx={{
+                  position: "relative",
+                  width: "100%",
+                  height: "100%",
+                  overflow: "hidden",
+                }}
+              >
+                {/* МЕДИА */}
                 {slide.type === "video" ? (
-                  // Передаем isActive, чтобы видео знало, когда играть
                   <VideoSlide url={slide.url} isActive={isActive} />
                 ) : (
                   <CardMedia
                     component="img"
                     image={slide.url}
                     alt={slide.alt || "Slide"}
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      // Небольшой эффект зума при появлении для динамики
-                      transform: isActive ? "scale(1)" : "scale(1.1)",
-                      transition: "transform 4s ease",
-                    }}
+                    className="slide-image" // ВАЖНО: Класс для CSS анимации
                   />
                 )}
 
-                {/* 2. ГРАДИЕНТ (для читаемости текста) */}
+                {/* ГРАДИЕНТ */}
                 {(slide.title || slide.buttonText) && (
                   <Box
                     sx={{
@@ -218,7 +218,7 @@ export default function MainSlider({ slides }) {
                   />
                 )}
 
-                {/* 3. ТЕКСТ И КНОПКИ */}
+                {/* ТЕКСТ */}
                 {(slide.title || slide.subtitle || slide.buttonText) && (
                   <Box
                     sx={{
@@ -238,7 +238,7 @@ export default function MainSlider({ slides }) {
                         transform: isActive
                           ? "translateY(0)"
                           : "translateY(30px)",
-                        transition: "all 0.8s ease-out 0.2s", // Анимация появления
+                        transition: "all 0.8s ease-out 0.2s",
                       }}
                     >
                       {slide.title && (
