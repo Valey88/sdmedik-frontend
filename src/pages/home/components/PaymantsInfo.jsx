@@ -1,16 +1,53 @@
-import { Box, Button, CardMedia, Typography } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, Button, CardMedia, Typography, Skeleton } from "@mui/material";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet";
-import React from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../../configs/axiosConfig"; // Убедитесь, что путь верный
+import MainSlider from "@/global/components/MainSlider"; // Импортируем созданный слайдер
 
 export default function PaymantsInfo() {
   const navigate = useNavigate();
+  const [sliderData, setSliderData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Получаем данные для страницы (предположим, что это главная страница '/')
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Запрашиваем данные для главной страницы (или той, где находится блок)
+        const response = await api.get("/page/main");
+        const elements = response.data?.data?.elements || [];
+
+        // Ищем элемент с ID 'main-slider'
+        const sliderElement = elements.find(
+          (el) => el.element_id === "main-slider"
+        );
+
+        if (sliderElement && sliderElement.value) {
+          try {
+            // Парсим JSON строку в массив объектов
+            const parsedSlides = JSON.parse(sliderElement.value);
+            setSliderData(parsedSlides);
+          } catch (e) {
+            console.error("Ошибка парсинга данных слайдера", e);
+          }
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки данных страницы", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <motion.div
-      initial={{ y: -1000 }} // Начальная позиция (сверху)
-      animate={{ y: 0 }} // Конечная позиция (по центру)
-      transition={{ duration: 1.2 }} // Длительность анимации
+      initial={{ y: -1000 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 1.2 }}
     >
       <Helmet>
         <title>Оплата электронным сертификатом</title>
@@ -24,28 +61,44 @@ export default function PaymantsInfo() {
         />
         <meta name="robots" content="index, follow" />
       </Helmet>
+
+      {/* Блок слайдера вместо статичной картинки */}
       <Box
         component="section"
         sx={{
           display: "flex",
           justifyContent: "space-between",
           borderRadius: "10px",
-          // padding: { xs: "20px", lg: "70px" },
           mb: "40px",
+          minHeight: { xs: "215px", lg: "550px" },
         }}
       >
-        <CardMedia
-          component="img"
-          image="/Remont.jpg"
-          alt="Изображение, иллюстрирующее оплату электронным сертификатом"
-          sx={{
-            width: { xs: "100%", sm: "100%", md: "100%", lg: "100%" },
-            height: { xs: "215px", sm: "400px", md: "500px", lg: "550px" },
-            objectFit: "cover",
-            borderRadius: "10px",
-          }}
-        />
+        {loading ? (
+          <Skeleton
+            variant="rectangular"
+            width="100%"
+            height="100%"
+            sx={{ borderRadius: "10px" }}
+          />
+        ) : sliderData.length > 0 ? (
+          <MainSlider slides={sliderData} />
+        ) : (
+          // Фоллбэк, если слайдов нет (старая картинка)
+          <CardMedia
+            component="img"
+            image="/Remont.jpg"
+            alt="Ремонт"
+            sx={{
+              width: "100%",
+              height: { xs: "215px", sm: "400px", md: "500px", lg: "550px" },
+              objectFit: "cover",
+              borderRadius: "10px",
+            }}
+          />
+        )}
       </Box>
+
+      {/* Второй блок (остался без изменений, кроме логики навигации) */}
       <Box
         component="section"
         sx={{
@@ -59,14 +112,10 @@ export default function PaymantsInfo() {
         <Box
           sx={{
             display: "flex",
-            flexDirection: {
-              xs: "column",
-              sm: "unset",
-              md: "unset",
-              lg: "unset",
-            },
+            flexDirection: { xs: "column", md: "unset" },
             justifyContent: { xs: "unset", md: "space-between" },
             gridGap: { xs: "40px", md: 60, lg: 0 },
+            width: "100%",
           }}
         >
           <Box
@@ -110,7 +159,7 @@ export default function PaymantsInfo() {
             <CardMedia
               component="img"
               image="/Group31.png"
-              alt="Изображение, иллюстрирующее оплату электронным сертификатом"
+              alt="Изображение"
               sx={{
                 width: { xs: "100%", sm: "50%", md: "80%", lg: "100%" },
                 height: { xs: "300px", sm: "300px", md: "350px", lg: "400px" },
