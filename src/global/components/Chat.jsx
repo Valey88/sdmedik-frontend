@@ -29,21 +29,14 @@ function Chat() {
         {/* Блок с иконками мессенджеров */}
         <Box sx={{ display: "flex", gap: 1, paddingRight: 0.5 }}>
           {/* Telegram */}
-          <Tooltip title="Написать в Telegram" placement="left">
+          <Tooltip title="Написать в Макс" placement="left">
             <IconButton
               component="a"
-              href={`https://t.me/+${phoneNumber}`}
+              href={`https://web.max.ru/+${phoneNumber}`} // Замена ссылки на мессенджер Макс
               target="_blank"
               rel="noopener noreferrer"
-              sx={{
-                backgroundColor: "#0088cc",
-                color: "white",
-                "&:hover": { backgroundColor: "#007dbb" },
-                width: 45,
-                height: 45,
-              }}
             >
-              <TelegramIcon />
+              <img style={{ width: 35, height: 35 }} src="/Max.png" alt="" />
             </IconButton>
           </Tooltip>
 
