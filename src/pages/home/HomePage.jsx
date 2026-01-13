@@ -12,9 +12,7 @@ export default function HomePage() {
         <Box sx={{ mt: "40px" }}>
           <PaymantsInfo />
         </Box>
-        <Box sx={{ mt: "40px" }}>
-          <Info />
-        </Box>
+        <Box sx={{ mt: "40px" }}>{/* <Info />*/}</Box>
         <Box sx={{ mt: "40px" }}>{/* <TopList /> */}</Box>
         {/* <Box sx={{ mt: "40px" }}>
           <PromotionalSlider />
