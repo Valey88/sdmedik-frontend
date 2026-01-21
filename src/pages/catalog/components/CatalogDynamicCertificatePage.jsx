@@ -115,7 +115,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
           {e.nameplate && e.nameplate.trim() !== "" && (
             <Box
               sx={{
-                backgroundColor: "#2e9efaff",
+                backgroundColor: "red",
                 color: "#FFFFFF",
                 padding: "4px 12px",
                 borderRadius: "8px",
@@ -242,7 +242,7 @@ export default function CatalogDynamicCertificatePage() {
       const product_id = id;
       await addProductThisBascket(product_id, 1);
     },
-    [addProductThisBascket]
+    [addProductThisBascket],
   );
 
   return (
