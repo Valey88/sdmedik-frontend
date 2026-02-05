@@ -104,7 +104,7 @@ export default function Info() {
                 color: "#fff",
               }}
             >
-              28 и 29 января
+              28 февраля
             </Typography>
 
             <Typography
@@ -114,11 +114,9 @@ export default function Info() {
                 mb: 1,
               }}
             >
-              Выставочный зал и ПВЗ <br />
+              Выставочный зал и ПВЗ, по адресу <br />
               <strong>
-                г. Оренбург, Шевченко 20 В; г. Орск, проспект Мира. 15 Д;
-                <br></br>г. Уфа, ул. Степана Кувыкина; 41, г. Екатеринбург,
-                пр-т. Ленина 79 Б
+                г. Оренбург, ул. Шевченко 20В
               </strong>
             </Typography>
 
@@ -139,7 +137,7 @@ export default function Info() {
                   letterSpacing: "0.5px",
                 }}
               >
-                Закрыты на учёт
+                Будет закрыт по техническим причинам
               </Typography>
             </Box>
           </Box>
@@ -159,7 +157,7 @@ export default function Info() {
                 mb: 3,
               }}
             >
-              Интернет-магазин работает в штатном режиме.
+              С 1 марта работает в штатном режиме.
             </Typography>
 
             <Divider sx={{ borderColor: "rgba(255,255,255,0.3)", mb: 3 }} />
@@ -172,8 +170,7 @@ export default function Info() {
                 opacity: 0.9,
               }}
             >
-              Извините за доставленные неудобства. <br />
-              Спасибо за понимание!
+              Спасибо за понимание
             </Typography>
           </Box>
         </Box>
