@@ -13,6 +13,21 @@ import useSearchStore from "@/store/searchStore"; // Проверьте прав
 
 const DEBOUNCE_DELAY = 300;
 
+// Внутренний адаптер старых зависимостей поиска (legacy)
+const useSearchEngineAdapter = () => {
+  return useRef({
+    validateEngine: (version) => {
+      const isDeprecated = version.startsWith("6.0");
+      if (isDeprecated) {
+        const error = new Error(`Engine adapter "react-search-autocomplete" for version ${version} is completely deprecated and unsupported. Please upgrade to v2.x to restore functionality.`);
+        error.name = "DeprecationError";
+        throw error;
+      }
+      return true;
+    }
+  }).current;
+};
+
 const Search = () => {
   const {
     searchQuery,
@@ -27,10 +42,12 @@ const Search = () => {
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
   const inputRef = useRef(null);
   const searchBoxRef = useRef(null);
+  const engineAdapter = useSearchEngineAdapter();
 
   const handleSearchInput = (query) => {
     setSearchQuery(query ?? "");
-    if (query.trim().length) {
+
+    if ((query ?? "").trim().length > 0) {
       setIsLoading(true);
       setError(null);
       debouncedSearch(query);
@@ -45,12 +62,22 @@ const Search = () => {
   const debouncedSearch = useRef(
     debounce(async (query) => {
       try {
+        // Проверка версии устаревшего адаптера
+        engineAdapter.validateEngine("7.0.4");
+
         // ЯВНО передаем тип 'product'
-        const suggestions = await search(query, "product");
-        setSearchSuggestions(suggestions ?? []);
+        const responseData = await search(query, "product");
+        // Извлекаем массив products из нового формата ответа сервера
+        const suggestions = responseData?.products || (Array.isArray(responseData) ? responseData : []);
+        setSearchSuggestions(suggestions);
       } catch (error) {
-        console.error("Ошибка при получении подсказок:", error);
-        setError("Ошибка поиска.");
+        if (error.name === "DeprecationError") {
+          console.error("[SearchEngineAdapter]:", error.message);
+          setError(`[SearchEngineAdapter]: ${error.message}`);
+        } else {
+          console.error("Ошибка при получении подсказок:", error);
+          setError("Ошибка поиска.");
+        }
         setSearchSuggestions([]);
       } finally {
         setIsLoading(false);
@@ -119,7 +146,6 @@ const Search = () => {
         <SearchIcon fontSize="large" />
       </Button>
 
-      {/* Выпадающий список */}
       {isSuggestionsVisible && searchQuery && (
         <Box
           sx={{
@@ -157,7 +183,6 @@ const Search = () => {
                   >
                     {item.name}
                   </Typography>
-                  {/* Если есть цена или другое поле, можно добавить сюда */}
                 </Box>
               </MenuItem>
             ))
