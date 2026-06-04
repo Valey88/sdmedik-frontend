@@ -238,14 +238,13 @@ export default function Register() {
                   }
                   label={
                     <Typography sx={{ fontSize: { xs: "14px", md: "16px" } }}>
-                      Я согласен на обработку персональных данных в соответствии
-                      с{" "}
+                      Я даю{" "}
                       <Link
-                        href="/privacy-policy.pdf"
+                        href="/Согласие_на_обработку_персональных_данных.pdf"
                         target="_blank"
                         sx={{ color: "#2CC0B3" }}
                       >
-                        политикой конфиденциальности
+                        согласие на обработку персональных данных
                       </Link>
                     </Typography>
                   }

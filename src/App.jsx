@@ -6,6 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Chat from "./global/components/Chat";
 import ChatWindow from "./global/components/ChatWindow";
+import CookieConsent from "./global/components/CookieConsent";
 
 function App() {
   const [hasShownToast, setHasShownToast] = useState(false);
@@ -46,6 +47,7 @@ function App() {
       {isOpen && user?.data?.role !== "admin" && (
         <ChatWindow onClose={() => setIsOpen(false)} />
       )}
+      <CookieConsent />
     </Box>
   );
 }

@@ -65,6 +65,11 @@ export default function Payments() {
   const [isAnotherRecipient, setIsAnotherRecipient] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [isOfferAccepted, setIsOfferAccepted] = useState(false);
+  const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false);
+  const [isHealthDataAccepted, setIsHealthDataAccepted] = useState(false);
+  const [isMarketingAccepted, setIsMarketingAccepted] = useState(false);
+
   useEffect(() => {
     if (isAuthenticated) {
       const loadUserData = async () => {
@@ -300,11 +305,58 @@ export default function Payments() {
                     sx={{ mt: 2, mb: 2 }}
                   />
                 )}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1, mb: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isOfferAccepted}
+                        onChange={(e) => setIsOfferAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={<Typography sx={{ fontSize: "14px" }}>Я принимаю условия Публичной оферты.</Typography>}
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isPrivacyAccepted}
+                        onChange={(e) => setIsPrivacyAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={<Typography sx={{ fontSize: "14px" }}>Я даю согласие на обработку персональных данных в соответствии с Политикой конфиденциальности.</Typography>}
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isHealthDataAccepted}
+                        onChange={(e) => setIsHealthDataAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={<Typography sx={{ fontSize: "14px" }}>Я даю согласие на обработку персональных данных о состоянии здоровья и инвалидности (при оплате электронным сертификатом СФР).</Typography>}
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isMarketingAccepted}
+                        onChange={(e) => setIsMarketingAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={<Typography sx={{ fontSize: "14px", color: "text.secondary" }}>Я согласен на получение рекламно-информационных сообщений.</Typography>}
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                </Box>
 
                 <Button
                   type="submit"
                   variant="contained"
-                  sx={{ background: "#2CC0B3", mt: 2 }}
+                  disabled={!isOfferAccepted || !isPrivacyAccepted || !isHealthDataAccepted || loading}
+                  sx={{ background: "#2CC0B3", mt: 2, "&.Mui-disabled": { background: "#ccc", color: "#fff" } }}
                 >
                   {loading ? (
                     <CircularProgress sx={{ color: "#fff" }} size={24} />
