@@ -8,6 +8,7 @@ import {
   Checkbox,
   FormControlLabel,
   CircularProgress,
+  Link,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -314,7 +315,14 @@ export default function Payments() {
                         sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
                       />
                     }
-                    label={<Typography sx={{ fontSize: "14px" }}>Я принимаю условия Публичной оферты.</Typography>}
+                    label={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Я принимаю условия{" "}
+                        <Link href="/Публичная_оферта_обновлённая_по_рекомендациям_ТПП_2026.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                          Публичной оферты
+                        </Link>.
+                      </Typography>
+                    }
                     sx={{ alignItems: "flex-start", m: 0 }}
                   />
                   <FormControlLabel
@@ -325,7 +333,14 @@ export default function Payments() {
                         sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
                       />
                     }
-                    label={<Typography sx={{ fontSize: "14px" }}>Я даю согласие на обработку персональных данных в соответствии с Политикой конфиденциальности.</Typography>}
+                    label={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Я даю согласие на обработку персональных данных в соответствии с{" "}
+                        <Link href="/Политика конфиденциальности.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                          Политикой конфиденциальности
+                        </Link>.
+                      </Typography>
+                    }
                     sx={{ alignItems: "flex-start", m: 0 }}
                   />
                   <FormControlLabel
@@ -336,7 +351,15 @@ export default function Payments() {
                         sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
                       />
                     }
-                    label={<Typography sx={{ fontSize: "14px" }}>Я даю согласие на обработку персональных данных о состоянии здоровья и инвалидности (при оплате электронным сертификатом СФР).</Typography>}
+                    label={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Я даю{" "}
+                        <Link href="/Согласие_на_обработку_персональных_данных.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                          согласие на обработку персональных данных о состоянии здоровья и инвалидности
+                        </Link>{" "}
+                        (при оплате электронным сертификатом СФР).
+                      </Typography>
+                    }
                     sx={{ alignItems: "flex-start", m: 0 }}
                   />
                   <FormControlLabel
