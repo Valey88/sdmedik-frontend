@@ -71,6 +71,15 @@ export default function Payments() {
   const [isHealthDataAccepted, setIsHealthDataAccepted] = useState(false);
   const [isMarketingAccepted, setIsMarketingAccepted] = useState(false);
 
+  const [showConsentError, setShowConsentError] = useState(false);
+  const isConsentsValid = isOfferAccepted && isPrivacyAccepted && isHealthDataAccepted;
+
+  useEffect(() => {
+    if (isConsentsValid) {
+      setShowConsentError(false);
+    }
+  }, [isConsentsValid]);
+
   useEffect(() => {
     if (isAuthenticated) {
       const loadUserData = async () => {
@@ -107,23 +116,13 @@ export default function Payments() {
   ]);
 
   const handlePay = async (data) => {
+    if (!isConsentsValid) {
+      setShowConsentError(true);
+      return;
+    }
     setLoading(true);
     try {
-      await payOrder({
-        email:
-          isAuthenticated && !isAnotherRecipient
-            ? user?.data?.email || email
-            : data.email,
-        fio:
-          isAuthenticated && !isAnotherRecipient
-            ? user?.data?.fio || fio
-            : data.fio,
-        phone_number:
-          isAuthenticated && !isAnotherRecipient
-            ? user?.data?.phone_number || phone_number
-            : data.phone_number,
-        delivery_address: data.delivery_address,
-      });
+      await payOrder(isPrivacyAccepted, isHealthDataAccepted);
     } catch (error) {
       setError(error.message);
       console.error("Payment error:", error);
@@ -312,13 +311,13 @@ export default function Payments() {
                       <Checkbox
                         checked={isOfferAccepted}
                         onChange={(e) => setIsOfferAccepted(e.target.checked)}
-                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                        sx={{ color: showConsentError && !isOfferAccepted ? "error.main" : "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: "14px" }}>
+                      <Typography sx={{ fontSize: "14px", color: showConsentError && !isOfferAccepted ? "error.main" : "inherit" }}>
                         Я принимаю условия{" "}
-                        <Link href="/Публичная_оферта_обновлённая_по_рекомендациям_ТПП_2026.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                        <Link href="/Публичная_оферта_обновлённая_по_рекомендациям_ТПП_2026.pdf" target="_blank" sx={{ color: showConsentError && !isOfferAccepted ? "error.main" : "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
                           Публичной оферты
                         </Link>.
                       </Typography>
@@ -330,13 +329,13 @@ export default function Payments() {
                       <Checkbox
                         checked={isPrivacyAccepted}
                         onChange={(e) => setIsPrivacyAccepted(e.target.checked)}
-                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                        sx={{ color: showConsentError && !isPrivacyAccepted ? "error.main" : "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: "14px" }}>
+                      <Typography sx={{ fontSize: "14px", color: showConsentError && !isPrivacyAccepted ? "error.main" : "inherit" }}>
                         Я даю согласие на обработку персональных данных в соответствии с{" "}
-                        <Link href="/Политика конфиденциальности.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                        <Link href="/Политика конфиденциальности.pdf" target="_blank" sx={{ color: showConsentError && !isPrivacyAccepted ? "error.main" : "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
                           Политикой конфиденциальности
                         </Link>.
                       </Typography>
@@ -348,13 +347,13 @@ export default function Payments() {
                       <Checkbox
                         checked={isHealthDataAccepted}
                         onChange={(e) => setIsHealthDataAccepted(e.target.checked)}
-                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                        sx={{ color: showConsentError && !isHealthDataAccepted ? "error.main" : "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: "14px" }}>
+                      <Typography sx={{ fontSize: "14px", color: showConsentError && !isHealthDataAccepted ? "error.main" : "inherit" }}>
                         Я даю{" "}
-                        <Link href="/Согласие_на_обработку_персональных_данных.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                        <Link href="/Согласие_на_обработку_персональных_данных.pdf" target="_blank" sx={{ color: showConsentError && !isHealthDataAccepted ? "error.main" : "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
                           согласие на обработку персональных данных о состоянии здоровья и инвалидности
                         </Link>{" "}
                         (при оплате электронным сертификатом СФР).
@@ -373,13 +372,32 @@ export default function Payments() {
                     label={<Typography sx={{ fontSize: "14px", color: "text.secondary" }}>Я согласен на получение рекламно-информационных сообщений.</Typography>}
                     sx={{ alignItems: "flex-start", m: 0 }}
                   />
+                  {showConsentError && !isConsentsValid && (
+                    <Typography sx={{ color: "error.main", fontSize: "14px", mt: 1 }}>
+                      Для оформления заказа необходимо подтвердить согласие с обязательными условиями, отметив их галочкой.
+                    </Typography>
+                  )}
                 </Box>
 
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={!isOfferAccepted || !isPrivacyAccepted || !isHealthDataAccepted || loading}
-                  sx={{ background: "#2CC0B3", mt: 2, "&.Mui-disabled": { background: "#ccc", color: "#fff" } }}
+                  disabled={loading}
+                  onClick={() => {
+                    if (!isConsentsValid) {
+                      setShowConsentError(true);
+                    }
+                  }}
+                  sx={{ 
+                    background: isConsentsValid ? "#2CC0B3" : "#ccc", 
+                    color: isConsentsValid ? "#fff" : "rgba(0, 0, 0, 0.26)",
+                    boxShadow: isConsentsValid ? undefined : "none",
+                    mt: 2, 
+                    "&:hover": { 
+                      background: isConsentsValid ? "#24a397" : "#ccc" 
+                    },
+                    "&.Mui-disabled": { background: "#ccc", color: "#fff" } 
+                  }}
                 >
                   {loading ? (
                     <CircularProgress sx={{ color: "#fff" }} size={24} />

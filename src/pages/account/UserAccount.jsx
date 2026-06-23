@@ -28,9 +28,10 @@ import {
 import useUserStore from "../../store/userStore";
 import useOrderStore from "../../store/orderStore";
 import { useLocation } from "react-router-dom";
+import { Link as MuiLink } from "@mui/material";
 
 export default function UserAccount() {
-  const { getUserInfo, user, logout } = useUserStore();
+  const { getUserInfo, user, logout, revokeConsent } = useUserStore();
   const { fetchUserOrders, userOrders } = useOrderStore();
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -265,7 +266,36 @@ export default function UserAccount() {
                 <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
                   Настройки
                 </Typography>
-                <Typography>Здесь будут настройки аккаунта.</Typography>
+
+                <Card sx={{ borderRadius: 2, boxShadow: 3, mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                      Отзыв согласия на обработку персональных данных
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Вы можете отозвать согласие на обработку персональных данных. После отзыва ваши данные
+                      будут анонимизированы или удалены в течение 30 дней в соответствии с разделом 6.2
+                      документа о согласии. Обратите внимание: отзыв согласия может ограничить доступ к
+                      некоторым функциям сайта.
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={revokeConsent}
+                        sx={{ borderColor: "#f44336", color: "#f44336", "&:hover": { backgroundColor: "#fff5f5" } }}
+                      >
+                        Отозвать согласие
+                      </Button>
+                      <MuiLink
+                        href="mailto:privacy@sdmedik.ru"
+                        sx={{ display: "flex", alignItems: "center", color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                      >
+                        Написать на privacy@sdmedik.ru
+                      </MuiLink>
+                    </Box>
+                  </CardContent>
+                </Card>
               </Box>
             )}
           </Box>

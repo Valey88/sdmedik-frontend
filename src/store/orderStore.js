@@ -18,7 +18,7 @@ const useOrderStore = create((set, get) => ({
   orders: {},
   userOrders: [],
 
-  payOrder: async () => {
+  payOrder: async (pdConsent = false, healthDataConsent = false) => {
     const { email, fio, phone_number, delivery_address } =
       useOrderStore.getState();
 
@@ -30,6 +30,8 @@ const useOrderStore = create((set, get) => ({
           fio,
           phone_number,
           address: delivery_address,
+          pd_consent: pdConsent,
+          health_data_consent: healthDataConsent,
         },
         {
           withCredentials: true,
@@ -48,7 +50,7 @@ const useOrderStore = create((set, get) => ({
       console.error("Error Registrations:", error);
     }
   },
-  payOrderById: async (id) => {
+  payOrderById: async (id, pdConsent = false, healthDataConsent = false) => {
     const { email, fio, phone_number, delivery_address } =
       useOrderStore.getState();
 
@@ -60,6 +62,8 @@ const useOrderStore = create((set, get) => ({
           fio,
           phone_number,
           address: delivery_address,
+          pd_consent: pdConsent,
+          health_data_consent: healthDataConsent,
         },
         {
           withCredentials: true,

@@ -12,12 +12,15 @@ import RegionSelector from "../../global/components/RegionSelector";
 import CharacteristicSelector from "../../global/components/CharacteristicSelector";
 import PriceAndCartActions from "../../global/components/PriceAndCartActions";
 import ProductTabs from "../../global/components/ProductTabs";
+import { getFunctional, setFunctional } from "../../utils/functionalStorage";
+
+const USER_CITY_KEY = "user_city";
 
 export default function ProductDynamicCertificatePage() {
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [images, setImages] = useState([]);
   const [quantity, setQuantity] = useState(1);
-  const [newRegion, setNewRegion] = useState(null);
+  const [newRegion, setNewRegion] = useState(() => getFunctional(USER_CITY_KEY));
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedHeight, setSelectedHeight] = useState("");
@@ -27,6 +30,11 @@ export default function ProductDynamicCertificatePage() {
   const { id } = useParams();
   const { fetchProductById, products } = useProductStore();
   const { addProductThisBascket, fetchUserBasket } = useBascketStore();
+
+  // F-6: persist user_city only with functional cookie consent
+  useEffect(() => {
+    setFunctional(USER_CITY_KEY, newRegion);
+  }, [newRegion]);
 
   // Проверка типа каталога
   const isCatalog1 = products.data?.catalogs === 1;

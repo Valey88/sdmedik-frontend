@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Chat from "./global/components/Chat";
 import ChatWindow from "./global/components/ChatWindow";
 import CookieConsent from "./global/components/CookieConsent";
+import YandexMetrika from "./global/components/YandexMetrika";
 
 function App() {
   const [hasShownToast, setHasShownToast] = useState(false);
@@ -48,6 +49,7 @@ function App() {
         <ChatWindow onClose={() => setIsOpen(false)} />
       )}
       <CookieConsent />
+      <YandexMetrika />
     </Box>
   );
 }

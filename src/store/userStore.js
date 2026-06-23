@@ -66,7 +66,7 @@ const useUserStore = create((set, get) => ({
     } catch (error) {
       toast.error(
         "Ошибка отправки запроса на сброс пароля: " +
-          (error.response?.data?.message || error.message)
+          (error.response?.data?.message || error.message),
       );
       console.error("Error Registrations:", error);
     }
@@ -84,7 +84,7 @@ const useUserStore = create((set, get) => ({
         },
         {
           withCredentials: true,
-        }
+        },
       );
       if (response.data.status === "success") {
         toast.info("Пороль успешно изменен");
@@ -92,19 +92,19 @@ const useUserStore = create((set, get) => ({
     } catch (error) {
       toast.error(
         "Ошибка отправки запроса на сброс пароля: " +
-          (error.response?.data?.message || error.message)
+          (error.response?.data?.message || error.message),
       );
       console.error("Error Registrations:", error);
     }
   },
 
-  registerFunc: async () => {
+  registerFunc: async (pdConsent, healthDataConsent) => {
     const { email, fio, phone_number, password } = get();
     try {
       const response = await api.post(
         `/auth/register`,
-        { email, fio, phone_number, password },
-        { withCredentials: true }
+        { email, fio, phone_number, password, pd_consent: pdConsent, health_data_consent: healthDataConsent },
+        { withCredentials: true },
       );
       if (response.data.status === "success") {
         set({ showConfirmation: true });
@@ -113,7 +113,7 @@ const useUserStore = create((set, get) => ({
     } catch (error) {
       toast.error(
         "Ошибка регистрации: " +
-          (error.response?.data?.message || error.message)
+          (error.response?.data?.message || error.message),
       );
       console.error("Error Registrations:", error);
     }
@@ -125,7 +125,7 @@ const useUserStore = create((set, get) => ({
       const response = await api.post(
         `/auth/login`,
         { email, password },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (response.data.status === "success") {
         get().checkAuthStatus();
@@ -135,7 +135,7 @@ const useUserStore = create((set, get) => ({
     } catch (error) {
       toast.error(
         "Ошибка авторизации: " +
-          (error.response?.data?.message || error.message)
+          (error.response?.data?.message || error.message),
       );
       console.error("Error Auth:", error);
     }
@@ -147,7 +147,7 @@ const useUserStore = create((set, get) => ({
       const response = await api.post(
         `/auth/verify-code`,
         { email, code },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (response.data.status === "success") {
         navigate("/auth");
@@ -205,6 +205,20 @@ const useUserStore = create((set, get) => ({
     } catch (error) {
       set({ isLoggingOut: false });
       console.error("Ошибка при выходе:", error);
+    }
+  },
+
+  revokeConsent: async () => {
+    try {
+      const response = await api.delete(`/user/consent`, { withCredentials: true });
+      if (response.data.status === "success") {
+        toast.success("Согласие на обработку персональных данных отозвано.");
+      }
+    } catch (error) {
+      toast.error(
+        "Ошибка отзыва согласия: " +
+          (error.response?.data?.message || error.message),
+      );
     }
   },
 

@@ -70,7 +70,9 @@ export default function Register() {
   });
 
   const [error, setError] = useState(null);
+  const [checkboxError, setCheckboxError] = useState(false);
   const [isConsentGiven, setIsConsentGiven] = useState(false);
+  const [isHealthConsentGiven, setIsHealthConsentGiven] = useState(false);
   const navigate = useNavigate();
 
   // Синхронизация полей со store
@@ -85,7 +87,20 @@ export default function Register() {
   }, [watch, setEmail, setPhone_number, setFio, setPassword]);
 
   const handleRegister = async () => {
-    await registerFunc();
+    if (!isConsentGiven || !isHealthConsentGiven) {
+      setCheckboxError(true);
+      return;
+    }
+    setCheckboxError(false);
+    await registerFunc(isConsentGiven, isHealthConsentGiven);
+  };
+
+  const handleError = () => {
+    if (!isConsentGiven || !isHealthConsentGiven) {
+      setCheckboxError(true);
+    } else {
+      setCheckboxError(false);
+    }
   };
 
   const handleConfirmationClose = () => {
@@ -126,7 +141,7 @@ export default function Register() {
             <Box sx={{ display: "flex", flexDirection: "column", gridGap: 30 }}>
               <Typography variant="h4">Регистрация</Typography>
               <form
-                onSubmit={handleSubmit(handleRegister)}
+                onSubmit={handleSubmit(handleRegister, handleError)}
                 style={{
                   display: "flex",
                   flexDirection: "column",
@@ -227,33 +242,69 @@ export default function Register() {
                   control={
                     <Checkbox
                       checked={isConsentGiven}
-                      onChange={(e) => setIsConsentGiven(e.target.checked)}
+                      onChange={(e) => {
+                        setIsConsentGiven(e.target.checked);
+                        if (e.target.checked && isHealthConsentGiven) setCheckboxError(false);
+                      }}
                       sx={{
-                        color: "#2CC0B3",
-                        "&.Mui-checked": {
-                          color: "#2CC0B3",
-                        },
+                        color: checkboxError && !isConsentGiven ? "error.main" : "#2CC0B3",
+                        "&.Mui-checked": { color: "#2CC0B3" },
                       }}
                     />
                   }
                   label={
-                    <Typography sx={{ fontSize: { xs: "14px", md: "16px" } }}>
+                    <Typography sx={{ fontSize: { xs: "14px", md: "16px" }, color: checkboxError && !isConsentGiven ? "error.main" : "inherit" }}>
                       Я даю{" "}
                       <Link
                         href="/Согласие_на_обработку_персональных_данных.pdf"
                         target="_blank"
-                        sx={{ color: "#2CC0B3" }}
+                        sx={{ color: checkboxError && !isConsentGiven ? "error.main" : "#2CC0B3" }}
                       >
                         согласие на обработку персональных данных
                       </Link>
                     </Typography>
                   }
                 />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={isHealthConsentGiven}
+                      onChange={(e) => {
+                        setIsHealthConsentGiven(e.target.checked);
+                        if (e.target.checked && isConsentGiven) setCheckboxError(false);
+                      }}
+                      sx={{
+                        color: checkboxError && !isHealthConsentGiven ? "error.main" : "#2CC0B3",
+                        "&.Mui-checked": { color: "#2CC0B3" },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: { xs: "14px", md: "16px" }, color: checkboxError && !isHealthConsentGiven ? "error.main" : "inherit" }}>
+                      Я даю согласие на обработку персональных данных,
+                      относящихся к состоянию здоровья и инвалидности{" "}
+                      (только при оплате электронным сертификатом СФР) в
+                      соответствии с{" "}
+                      <Link
+                        href="/Политика конфиденциальности.pdf"
+                        target="_blank"
+                        sx={{ color: checkboxError && !isHealthConsentGiven ? "error.main" : "#2CC0B3" }}
+                      >
+                        Политикой конфиденциальности
+                      </Link>
+                    </Typography>
+                  }
+                />
                 <Button
                   variant="contained"
-                  sx={{ background: "#2CC0B3" }}
+                  sx={{ 
+                    background: (!isConsentGiven || !isHealthConsentGiven) ? "#ccc" : "#2CC0B3",
+                    color: (!isConsentGiven || !isHealthConsentGiven) ? "#fff" : "white",
+                    "&:hover": {
+                      background: (!isConsentGiven || !isHealthConsentGiven) ? "#ccc" : "#26BDB8",
+                    }
+                  }}
                   type="submit"
-                  disabled={!isConsentGiven}
                 >
                   Зарегистрироваться
                 </Button>

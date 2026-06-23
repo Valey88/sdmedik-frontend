@@ -6,9 +6,9 @@ import {
   Paper,
   TextField,
   Typography,
-  Snackbar,
-  Modal,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
@@ -65,10 +65,13 @@ export default function PayOnclick() {
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isOfferAccepted, setIsOfferAccepted] = useState(false);
+  const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false);
+  const [isHealthDataAccepted, setIsHealthDataAccepted] = useState(false);
 
   const handlePay = async () => {
     setLoading(true);
-    await payOrderById(id);
+    await payOrderById(id, isPrivacyAccepted, isHealthDataAccepted);
   };
 
   const handlePhoneNumberChange = (e) => {
@@ -220,10 +223,81 @@ export default function PayOnclick() {
                   }}
                 />
 
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isOfferAccepted}
+                        onChange={(e) => setIsOfferAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Я принимаю условия{" "}
+                        <Link href="/Публичная_оферта_обновлённая_по_рекомендациям_ТПП_2026.pdf" target="_blank" sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                          Публичной оферты
+                        </Link>.
+                      </Typography>
+                    }
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isPrivacyAccepted}
+                        onChange={(e) => setIsPrivacyAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Я даю согласие на обработку персональных данных в
+                        соответствии с{" "}
+                        <Link
+                          href="/Согласие_на_обработку_персональных_данных.pdf"
+                          target="_blank"
+                          sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                        >
+                          Политикой конфиденциальности
+                        </Link>
+                        .
+                      </Typography>
+                    }
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isHealthDataAccepted}
+                        onChange={(e) => setIsHealthDataAccepted(e.target.checked)}
+                        sx={{ color: "#2CC0B3", "&.Mui-checked": { color: "#2CC0B3" }, padding: "4px 9px" }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Я даю согласие на обработку персональных данных,
+                        относящихся к состоянию здоровья и инвалидности, в
+                        соответствии с{" "}
+                        <Link
+                          href="/Согласие_на_обработку_персональных_данных.pdf"
+                          target="_blank"
+                          sx={{ color: "#2CC0B3", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                        >
+                          разделом 7 документа
+                        </Link>
+                        .
+                      </Typography>
+                    }
+                    sx={{ alignItems: "flex-start", m: 0 }}
+                  />
+                </Box>
+
                 <Button
                   type="submit"
                   variant="contained"
-                  sx={{ background: "#2CC0B3" }}
+                  disabled={!isOfferAccepted || !isPrivacyAccepted || !isHealthDataAccepted || loading}
+                  sx={{ background: "#2CC0B3", mt: 2, "&.Mui-disabled": { background: "#ccc", color: "#fff" } }}
                 >
                   {loading ? (
                     <CircularProgress sx={{ color: "#fff" }} size={24} />
