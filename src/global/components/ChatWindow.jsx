@@ -13,6 +13,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PersonIcon from "@mui/icons-material/Person";
+import TelegramIcon from "@mui/icons-material/Telegram";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Cookies from "js-cookie";
 import { supportChat } from "@/constants/constants";
 import useUserStore from "../../store/userStore";
@@ -125,7 +127,7 @@ function ChatWindow({ onClose }) {
     console.log("Отправлено событие join:", joinEvent);
   };
 
-  const addBotMessageIfNotShown = (text) => {
+  const addBotMessageIfNotShown = (text, showMessengers = false) => {
     if (!shownBotMessages.current.has(text)) {
       shownBotMessages.current.add(text);
       return {
@@ -133,6 +135,7 @@ function ChatWindow({ onClose }) {
         text: text,
         timestamp: new Date().toISOString(),
         senderId: "bot",
+        showMessengers: showMessengers,
       };
     }
     return null;
@@ -178,152 +181,172 @@ function ChatWindow({ onClose }) {
 
     // Добавляем авто-сообщение бота и FAQ только один раз при открытии
     const welcomeMessage = addBotMessageIfNotShown(
-      "Рабочий режим специалистов поддержки с 9 до 18.00, ПН по ПТ. Вы можете оставить свои контактные данные (имя, телефон), задать вопрос и наш специалист свяжется с Вами в рабочее время."
+      "👋 Здравствуйте!\nРабочий режим специалистов поддержки: ПН-ПТ, с 9:00 до 18:00.\n\nПожалуйста, оставьте свои контактные данные (имя, телефон) и задайте вопрос — наш специалист свяжется с Вами.\n\nТакже вы можете написать нам в мессенджеры:",
+      true
     );
 
     const faqMessage = addFaqIfNotShown();
 
-    const initialMessages = [];
-    if (welcomeMessage) initialMessages.push(welcomeMessage);
-    if (faqMessage) initialMessages.push(faqMessage);
-
-    if (initialMessages.length > 0) {
-      setMessages(initialMessages);
-    }
-
-    ws.current = new WebSocket(supportChat);
-
-    ws.current.onopen = () => {
-      console.log("WebSocket подключен");
-      setIsConnected(true);
-      setError("");
-      if (newChatId) {
-        sendJoinEvent(newChatId);
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      if (welcomeMessage && !newMessages.find(m => m.text === welcomeMessage.text)) {
+        newMessages.push(welcomeMessage);
       }
-    };
-
-    ws.current.onmessage = (event) => {
-      if (!isValidJSON(event.data)) {
-        const messageKey = `${event.data}-${new Date().toISOString()}`;
-        if (processedMessages.current.has(messageKey)) return;
-        processedMessages.current.add(messageKey);
-        console.warn("Получены невалидные JSON данные:", event.data);
-        setMessages((prev) =>
-          upsertMessages(prev, [
-            {
-              type: "manager",
-              text: String(event.data),
-              timestamp: new Date().toISOString(),
-              senderId: `manager-${Date.now()}`,
-              isNew: true,
-            },
-          ])
-        );
-        return;
+      if (faqMessage && !newMessages.find(m => m.type === "faq")) {
+        newMessages.push(faqMessage);
       }
+      return newMessages;
+    });
 
-      try {
-        const messageData = JSON.parse(event.data);
-        console.log("Получено сообщение от сервера:", messageData);
+    const connectWS = () => {
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
+      
+      ws.current = new WebSocket(supportChat);
 
-        if (Array.isArray(messageData)) {
-          console.log("Получена история чата:", messageData);
-          const formattedMessages = messageData.map((msg) => ({
-            type: msg.sender_id !== chatId ? "manager" : "user",
-            text: msg.message || "Пустое сообщение",
-            timestamp: normalizeTimestamp(msg.time_to_send || new Date()),
-            senderId: msg.sender_id,
-            id: msg.id,
-          }));
+      ws.current.onopen = () => {
+        console.log("WebSocket подключен");
+        setIsConnected(true);
+        setError("");
+        if (newChatId) {
+          sendJoinEvent(newChatId);
+        }
+      };
 
-          setMessages((prev) => upsertMessages(prev, formattedMessages));
-        } else if (messageData.event === "message-event") {
-          const { message, sender_id, time_to_send, id } = messageData.data;
-          const messageKey = id
-            ? `id:${id}`
-            : `${chatId}-${message}-${
-                time_to_send || new Date().toISOString()
-              }`;
+      ws.current.onmessage = (event) => {
+        if (!isValidJSON(event.data)) {
+          const messageKey = `${event.data}-${new Date().toISOString()}`;
           if (processedMessages.current.has(messageKey)) return;
           processedMessages.current.add(messageKey);
-
+          console.warn("Получены невалидные JSON данные:", event.data);
           setMessages((prev) =>
             upsertMessages(prev, [
               {
-                type: sender_id !== chatId ? "manager" : "user",
-                text: message || "Пустое сообщение",
-                timestamp: normalizeTimestamp(time_to_send || new Date()),
-                senderId: sender_id,
+                type: "manager",
+                text: String(event.data),
+                timestamp: new Date().toISOString(),
+                senderId: `manager-${Date.now()}`,
                 isNew: true,
-                id,
               },
             ])
           );
-
-          if (sender_id !== chatId && "Notification" in window) {
-            Notification.requestPermission().then((permission) => {
-              if (permission === "granted") {
-                new Notification("Новое сообщение от поддержки", {
-                  body:
-                    message.slice(0, 50) + (message.length > 50 ? "..." : ""),
-                });
-                console.log("Уведомление отправлено");
-              }
-            });
-          }
-
-          setTimeout(() => {
-            setMessages((prev) =>
-              prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
-            );
-          }, 1000);
-        } else if (messageData.event === "message-updated") {
-          const { id, message: newText } = messageData.data || {};
-          if (id == null) return;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === id ? { ...m, text: newText, edited: true } : m
-            )
-          );
-        } else if (messageData.event === "message-deleted") {
-          const { id } = messageData.data || {};
-          if (id == null) return;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === id
-                ? { ...m, text: "Сообщение удалено", deleted: true }
-                : m
-            )
-          );
-        } else if (messageData.event === "error") {
-          console.error("Ошибка от сервера:", messageData.data);
-          setError(`Ошибка: ${messageData.data}`);
-          const errorMessage = addBotMessageIfNotShown(
-            `Ошибка: ${messageData.data}`
-          );
-          if (errorMessage) {
-            setMessages((prev) => upsertMessages(prev, [errorMessage]));
-          }
-        } else {
-          console.warn("Неизвестное событие:", messageData);
+          return;
         }
-      } catch (err) {
-        console.error("Ошибка парсинга сообщения:", err, "Данные:", event.data);
-        setError("Ошибка обработки сообщения от сервера.");
+
+        try {
+          const messageData = JSON.parse(event.data);
+          console.log("Получено сообщение от сервера:", messageData);
+
+          if (Array.isArray(messageData)) {
+            console.log("Получена история чата:", messageData);
+            const formattedMessages = messageData.map((msg) => ({
+              type: msg.sender_id !== newChatId ? "manager" : "user",
+              text: msg.message || "Пустое сообщение",
+              timestamp: normalizeTimestamp(msg.time_to_send || new Date()),
+              senderId: msg.sender_id,
+              id: msg.id,
+            }));
+
+            setMessages((prev) => upsertMessages(prev, formattedMessages));
+          } else if (messageData.event === "message-event") {
+            const { message, sender_id, time_to_send, id } = messageData.data;
+            const messageKey = id
+              ? `id:${id}`
+              : `${newChatId}-${message}-${
+                  time_to_send || new Date().toISOString()
+                }`;
+            if (processedMessages.current.has(messageKey)) return;
+            processedMessages.current.add(messageKey);
+
+            setMessages((prev) =>
+              upsertMessages(prev, [
+                {
+                  type: sender_id !== newChatId ? "manager" : "user",
+                  text: message || "Пустое сообщение",
+                  timestamp: normalizeTimestamp(time_to_send || new Date()),
+                  senderId: sender_id,
+                  isNew: true,
+                  id,
+                },
+              ])
+            );
+
+            if (sender_id !== newChatId && "Notification" in window) {
+              Notification.requestPermission().then((permission) => {
+                if (permission === "granted") {
+                  new Notification("Новое сообщение от поддержки", {
+                    body:
+                      message.slice(0, 50) + (message.length > 50 ? "..." : ""),
+                  });
+                  console.log("Уведомление отправлено");
+                }
+              });
+            }
+
+            setTimeout(() => {
+              setMessages((prev) =>
+                prev.map((msg) => (msg.isNew ? { ...msg, isNew: false } : msg))
+              );
+            }, 1000);
+          } else if (messageData.event === "message-updated") {
+            const { id, message: newText } = messageData.data || {};
+            if (id == null) return;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === id ? { ...m, text: newText, edited: true } : m
+              )
+            );
+          } else if (messageData.event === "message-deleted") {
+            const { id } = messageData.data || {};
+            if (id == null) return;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === id
+                  ? { ...m, text: "Сообщение удалено", deleted: true }
+                  : m
+              )
+            );
+          } else if (messageData.event === "error") {
+            console.error("Ошибка от сервера:", messageData.data);
+            setError(`Ошибка: ${messageData.data}`);
+            const errorMessage = addBotMessageIfNotShown(
+              `Ошибка: ${messageData.data}`
+            );
+            if (errorMessage) {
+              setMessages((prev) => upsertMessages(prev, [errorMessage]));
+            }
+          } else {
+            console.warn("Неизвестное событие:", messageData);
+          }
+        } catch (err) {
+          console.error("Ошибка парсинга сообщения:", err, "Данные:", event.data);
+          setError("Ошибка обработки сообщения от сервера.");
+        }
+      };
+
+      ws.current.onerror = (event) => {
+        console.error("WebSocket ошибка:", event);
+        setIsConnected(false);
+        setError("Ошибка подключения к чату.");
+      };
+
+      ws.current.onclose = () => {
+        console.log("WebSocket закрыт");
+        setIsConnected(false);
+        setError("Соединение с чатом разорвано. Переподключение...");
+      };
+    };
+
+    connectWS();
+
+    const handleVisChange = () => {
+      if (document.visibilityState === "visible" && (!ws.current || ws.current.readyState !== WebSocket.OPEN)) {
+        connectWS();
       }
     };
-
-    ws.current.onerror = (event) => {
-      console.error("WebSocket ошибка:", event);
-      setIsConnected(false);
-      setError("Ошибка подключения к чату.");
-    };
-
-    ws.current.onclose = () => {
-      console.log("WebSocket закрыт");
-      setIsConnected(false);
-      setError("Соединение с чатом разорвано.");
-    };
+    document.addEventListener("visibilitychange", handleVisChange);
 
     if ("Notification" in window) {
       Notification.requestPermission().then((permission) => {
@@ -331,11 +354,21 @@ function ChatWindow({ onClose }) {
       });
     }
 
-    return () => ws.current?.close();
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisChange);
+      ws.current?.close();
+    };
   }, [isAuthenticated]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Прокручиваем вниз только при новых сообщениях от пользователя/менеджера
+    // (isNew: true), НЕ при добавлении bot/faq-сообщений при открытии чата
+    const hasNewRealMessage = messages.some(
+      (m) => m.isNew && m.type !== "bot" && m.type !== "faq"
+    );
+    if (hasNewRealMessage) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleSend = () => {
@@ -365,26 +398,6 @@ function ChatWindow({ onClose }) {
         data: { message: trimmedInput, chat_id: chatId },
       };
       ws.current.send(JSON.stringify(messageEvent));
-      setMessages((prev) => {
-        const botMessages = prev.filter(
-          (m) => m.type === "bot" || m.type === "faq"
-        );
-        const otherMessages = prev.filter(
-          (m) => m.type !== "bot" && m.type !== "faq"
-        );
-
-        return [
-          ...botMessages,
-          ...otherMessages,
-          {
-            type: "user",
-            text: trimmedInput,
-            timestamp: new Date().toISOString(),
-            senderId: chatId,
-            isNew: true,
-          },
-        ];
-      });
       setInput("");
     }
   };
@@ -420,32 +433,66 @@ function ChatWindow({ onClose }) {
             key={`bot-${msg.timestamp}-${index}`}
             sx={{
               textAlign: "left",
-              mb: 2,
-              bgcolor: "#e0f7fa",
-              p: 1.5,
-              borderRadius: "10px",
-              maxWidth: "80%",
+              mb: 3,
+              mt: 2,
+              background: "linear-gradient(135deg, #ffffff 0%, #f0faf9 100%)",
+              border: "1px solid #ccece9",
+              p: 2,
+              borderRadius: "16px",
+              borderBottomLeftRadius: "4px",
+              maxWidth: "90%",
               mx: "auto",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              boxShadow: "0 4px 12px rgba(0, 179, 164, 0.08)",
             }}
           >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 1 }}>
+              <Avatar sx={{ width: 28, height: 28, bgcolor: '#00B3A4' }}>
+                <SupportAgentIcon sx={{ fontSize: 18 }} />
+              </Avatar>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#00B3A4' }}>
+                Служба поддержки
+              </Typography>
+            </Box>
+
             <Typography
               variant="body2"
               sx={{
-                fontSize: "0.85rem",
-                color: "#000",
+                fontSize: "0.9rem",
+                color: "#333",
+                lineHeight: 1.5,
                 whiteSpace: "pre-line",
               }}
             >
               {msg.text}
             </Typography>
+            {msg.showMessengers && (
+              <Box sx={{ 
+                display: "flex", 
+                gap: 2.5, 
+                mt: 2, 
+                pt: 2, 
+                borderTop: "1px solid #e0f2f1", 
+                justifyContent: "center", 
+                alignItems: "center" 
+              }}>
+                <a href="https://t.me/+79030863091" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', color: '#0088cc', transition: 'transform 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <TelegramIcon sx={{ fontSize: 36, filter: 'drop-shadow(0 2px 4px rgba(0,136,204,0.3))' }} />
+                </a>
+                <a href="https://web.max.ru/+79030863091" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', transition: 'transform 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <img src="/Max.png" alt="Max" style={{ width: 32, height: 32, borderRadius: '50%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }} />
+                </a>
+                <a href="https://wa.me/79030863091" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', color: '#25D366', transition: 'transform 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                  <WhatsAppIcon sx={{ fontSize: 36, filter: 'drop-shadow(0 2px 4px rgba(37,211,102,0.3))' }} />
+                </a>
+              </Box>
+            )}
             <Typography
               variant="caption"
               sx={{
                 display: "block",
-                mt: 0.5,
-                color: "#666",
-                fontSize: "0.65rem",
+                mt: 1,
+                color: "#999",
+                fontSize: "0.7rem",
                 textAlign: "right",
               }}
             >
@@ -474,11 +521,21 @@ function ChatWindow({ onClose }) {
                 onClick={() => handleFAQClick(faq.answer)}
                 sx={{
                   m: 0.5,
-                  bgcolor: "#e0f7fa",
-                  color: "#007bff",
-                  fontSize: "0.75rem",
-                  borderRadius: "16px",
-                  "&:hover": { bgcolor: "#00B3A4", color: "#fff" },
+                  bgcolor: "#ffffff",
+                  color: "#00B3A4",
+                  border: "1px solid #00B3A4",
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  padding: "4px",
+                  borderRadius: "20px",
+                  boxShadow: "0 2px 4px rgba(0, 179, 164, 0.1)",
+                  transition: "all 0.2s ease",
+                  "&:hover": { 
+                    bgcolor: "#00B3A4", 
+                    color: "#fff",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 4px 8px rgba(0, 179, 164, 0.2)",
+                  },
                 }}
               />
             ))}
@@ -589,19 +646,17 @@ function ChatWindow({ onClose }) {
     });
 
     return (
-      <>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100%",
+          justifyContent: "flex-end",
+        }}
+      >
         {botFaqElements}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            minHeight: "100%",
-            justifyContent: "flex-end",
-          }}
-        >
-          {convElements}
-        </Box>
-      </>
+        {convElements}
+      </Box>
     );
   };
 
@@ -612,8 +667,8 @@ function ChatWindow({ onClose }) {
         position: "fixed",
         bottom: 80,
         right: 16,
-        width: { xs: "90%", sm: 360 },
-        height: { xs: "70vh", sm: 500 },
+        width: { xs: "90%", sm: 380 },
+        height: { xs: "75vh", sm: 600 },
         display: "flex",
         flexDirection: "column",
         borderRadius: "12px",

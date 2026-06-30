@@ -36,7 +36,6 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import api from "../../../../configs/axiosConfig";
 import { supportChat } from "@/constants/constants";
 import useUserStore from "../../../../store/userStore";
-import { FixedSizeList } from "react-window";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const SIDEBAR_WIDTH = 360;
@@ -63,6 +62,11 @@ export default function AdminChat() {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [anchorEl, setAnchorEl] = useState(null); // menu for message actions
+  // --- pagination state ---
+  const [chatPage, setChatPage] = useState(1);
+  const [chatTotal, setChatTotal] = useState(0);
+  const [chatLoadingMore, setChatLoadingMore] = useState(false);
+  const CHAT_LIMIT = 20;
   const ws = useRef(null);
   const messagesEndRef = useRef(null);
   const fragmentRefs = useRef({});
@@ -188,32 +192,57 @@ export default function AdminChat() {
     }
   };
 
-  const fetchChatRooms = async () => {
+  const fetchChatRooms = async (page = 1, append = false) => {
     try {
+      if (append) setChatLoadingMore(true);
       const userData = localStorage.getItem("user");
       const parsedUser = JSON.parse(userData);
       const admin_id = parsedUser?.data?.id;
       const response = await api.get("/chat", {
-        params: { user_id: admin_id },
+        params: { user_id: admin_id, page, limit: CHAT_LIMIT },
       });
-      const rooms = response.data.data || [];
-      rooms.sort((a, b) => {
-        const aTime = a.messages?.slice(-1)[0]?.time_to_send || 0;
-        const bTime = b.messages?.slice(-1)[0]?.time_to_send || 0;
-        return new Date(bTime) - new Date(aTime);
-      });
-      setChatRooms(rooms);
-      setUnreadCounts(
-        rooms.reduce(
+      // Бэкенд теперь возвращает { data, total, page, limit }
+      const responseData = response.data;
+      const rooms = responseData.data || [];
+      const total = responseData.total || 0;
+
+      // Чаты уже отсортированы по времени последнего сообщения на бэкенде
+      if (append) {
+        // Добавляем новые чаты к уже загруженным (без дублирования)
+        setChatRooms((prev) => {
+          const existingIds = new Set(prev.map((r) => r.id));
+          const newRooms = rooms.filter((r) => !existingIds.has(r.id));
+          return [...prev, ...newRooms];
+        });
+      } else {
+        setChatRooms(rooms);
+      }
+
+      setChatTotal(total);
+      setChatPage(page);
+
+      setUnreadCounts((prev) => ({
+        ...prev,
+        ...rooms.reduce(
           (acc, room) => ({
             ...acc,
-            [room.id]: room.unreadCount || room.messages?.length || 0,
+            [room.id]: room.unread_count || 0,
           }),
           {}
-        )
-      );
+        ),
+      }));
     } catch (err) {
       setError("Не удалось загрузить список чатов.");
+    } finally {
+      if (append) setChatLoadingMore(false);
+    }
+  };
+
+  // Подгрузка следующей страницы чатов
+  const loadMoreChats = () => {
+    const hasMore = chatRooms.length < chatTotal;
+    if (hasMore && !chatLoadingMore) {
+      fetchChatRooms(chatPage + 1, true);
     }
   };
 
@@ -679,17 +708,6 @@ export default function AdminChat() {
       });
     }
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && !isConnected) {
-        if (ws.current) {
-          ws.current.close();
-          ws.current = null;
-        }
-        // don't auto-open until chat chosen
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const iOSVersion = isIOS
       ? parseFloat(navigator.userAgent.match(/OS (\d+)_/)?.[1] || 0)
@@ -697,13 +715,11 @@ export default function AdminChat() {
     if (isIOS && iOSVersion < 15) {
       setError("Ваша версия iOS устарела. Обновите iOS до версии 15 или выше.");
     }
-
     return () => {
       if (ws.current) {
         ws.current.close();
         ws.current = null;
       }
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once on mount
@@ -712,37 +728,41 @@ export default function AdminChat() {
   useEffect(() => {
     if (!selectedChatId) return;
 
-    // clean old
-    if (ws.current) {
-      ws.current.close();
-      ws.current = null;
-    }
-
-    setIsLoadingHistory(true);
-    // open ws to supportChat (preserve your previous supportChat address format)
-    ws.current = new WebSocket(supportChat);
-
-    ws.current.onopen = () => {
-      setIsConnected(true);
-      setError("");
-      sendJoinEvent(selectedChatId);
+    const connectWS = () => {
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
+      setIsLoadingHistory(true);
+      ws.current = new WebSocket(supportChat);
+      ws.current.onopen = () => {
+        setIsConnected(true);
+        setError("");
+        sendJoinEvent(selectedChatId);
+      };
+      ws.current.onmessage = handleWebSocketMessage;
+      ws.current.onerror = () => {
+        setError("Не удалось подключиться к чату. Проверьте соединение.");
+        setIsConnected(false);
+        setIsLoadingHistory(false);
+      };
+      ws.current.onclose = () => {
+        setIsConnected(false);
+        setError("Соединение с чатом разорвано. Переподключение...");
+        setIsLoadingHistory(false);
+      };
     };
 
-    ws.current.onmessage = handleWebSocketMessage;
+    connectWS();
 
-    ws.current.onerror = () => {
-      setError("Не удалось подключиться к чату. Проверьте соединение.");
-      setIsConnected(false);
-      setIsLoadingHistory(false);
+    const handleVisChange = () => {
+      if (document.visibilityState === "visible" && (!ws.current || ws.current.readyState !== WebSocket.OPEN)) {
+        connectWS();
+      }
     };
-
-    ws.current.onclose = () => {
-      setIsConnected(false);
-      setError("Соединение с чатом разорвано.");
-      setIsLoadingHistory(false);
-    };
-
+    document.addEventListener("visibilitychange", handleVisChange);
     return () => {
+      document.removeEventListener("visibilitychange", handleVisChange);
       if (ws.current) {
         ws.current.close();
         ws.current = null;
@@ -847,21 +867,6 @@ export default function AdminChat() {
         },
       };
       ws.current.send(JSON.stringify(messageEvent));
-      const messageKey = `${selectedChatId}-${input.trim()}-${new Date().toISOString()}`;
-      processedMessages.current.add(messageKey);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `${Math.random().toString(36).slice(2, 9)}-local`,
-          type: "manager",
-          text: input.trim(),
-          timestamp: new Date().toISOString(),
-          sender_id: adminSenderId || "admin",
-          read_status: false,
-          read_at: null,
-          isNew: true,
-        },
-      ]);
       setInput("");
       scrollToBottom();
     }
@@ -899,8 +904,8 @@ export default function AdminChat() {
               key={`fragment-${fragment.id}`}
               ref={(el) => (fragmentRefs.current[fragment.id] = el)}
               sx={{
-                borderLeft: `4px solid ${fragment.Color}`,
-                pl: 2,
+                borderLeft: `3px solid ${fragment.Color}`,
+                pl: 1.5,
                 my: 2,
               }}
             >
@@ -978,7 +983,7 @@ export default function AdminChat() {
                         maxWidth: "70%",
                         boxShadow: msg.deleted
                           ? "none"
-                          : `0 1px 2px rgba(0,0,0,0.05), 0 0 0 2px ${fragment.Color}`,
+                          : `0 1px 2px rgba(0,0,0,0.1), 0 0 0 1px ${fragment.Color}`,
                       }}
                     >
                       <Box
@@ -1412,7 +1417,7 @@ export default function AdminChat() {
     <Container
       maxWidth={false}
       sx={{
-        minHeight: "100vh",
+        flexGrow: 1,
         bgcolor: "#FFFFFF",
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
@@ -1429,8 +1434,7 @@ export default function AdminChat() {
           borderRight: { sm: "1px solid #E8ECEF" },
           display: { xs: selectedChatId ? "none" : "flex", sm: "flex" },
           flexDirection: "column",
-          height: { xs: "100%", sm: "100vh" },
-          overflowY: "auto",
+          height: "100%",
         }}
       >
         <Box
@@ -1471,120 +1475,145 @@ export default function AdminChat() {
             }}
           />
 
-          <FixedSizeList
-            height={window.innerHeight - 120}
-            width="100%"
-            itemCount={
-              chatRooms.filter((room) => {
-                const last = room.messages?.slice(-1)[0]?.message || "";
-                return (
-                  room.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  last.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-              }).length
-            }
-            itemSize={70}
+          {/* Счётчик чатов */}
+          <Typography
+            variant="caption"
+            sx={{ color: "#708499", fontSize: "0.8rem", mt: 1, mb: 0.5, display: "block" }}
           >
-            {({ index, style }) => {
-              const filtered = chatRooms.filter((room) => {
+            Загружено: {chatRooms.length} из {chatTotal}
+          </Typography>
+
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              mt: 0.5,
+            }}
+          >
+            {chatRooms
+              .filter((room) => {
                 const last = room.messages?.slice(-1)[0]?.message || "";
                 return (
                   room.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   last.toLowerCase().includes(searchQuery.toLowerCase())
                 );
-              });
-              const room = filtered[index];
-              if (!room) return null;
-              const lastMessage = room?.messages?.slice(-1)[0];
-              return (
-                <ListItem
-                  key={room.id}
-                  button
-                  onClick={() => handleChatSelect(room.id)}
-                  style={style}
-                  sx={{
-                    bgcolor:
-                      selectedChatId === room.id ? "#E1F5FE" : "transparent",
-                    "&:hover": { bgcolor: "#E8ECEF" },
-                    py: 1,
-                    px: 2,
-                    borderBottom: "1px solid #E8ECEF",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Badge
-                      badgeContent={room.unread_count || 0}
-                      sx={{
-                        "& .MuiBadge-badge": {
-                          bgcolor: "#40C4FF",
-                          color: "#FFF",
-                          fontSize: "0.7rem",
-                          minWidth: "18px",
-                          height: "18px",
-                        },
-                      }}
-                    >
-                      <Avatar
-                        sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}
-                      >
-                        <SupportAgentIcon
-                          fontSize="small"
-                          sx={{ color: "#FFF" }}
-                        />
-                      </Avatar>
-                    </Badge>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="body2"
+              })
+              .map((room) => {
+                const lastMessage = room?.messages?.slice(-1)[0];
+                return (
+                  <ListItem
+                    key={room.id}
+                    button
+                    onClick={() => handleChatSelect(room.id)}
+                    sx={{
+                      bgcolor:
+                        selectedChatId === room.id ? "#E1F5FE" : "transparent",
+                      "&:hover": { bgcolor: "#E8ECEF" },
+                      py: 1,
+                      px: 2,
+                      borderBottom: "1px solid #E8ECEF",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Badge
+                        badgeContent={unreadCounts[room.id] || 0}
                         sx={{
-                          fontWeight: unreadCounts[room.id] ? 600 : 400,
-                          color: "#17212B",
-                          fontSize: "0.95rem",
+                          "& .MuiBadge-badge": {
+                            bgcolor: "#40C4FF",
+                            color: "#FFF",
+                            fontSize: "0.7rem",
+                            minWidth: "18px",
+                            height: "18px",
+                          },
                         }}
                       >
-                        {room.id.split("-")[0]}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box>
-                        {lastMessage ? (
-                          <Typography
-                            variant="caption"
-                            color="#708499"
-                            noWrap
-                            sx={{
-                              maxWidth: { xs: 140, sm: 180 },
-                              fontSize: "0.85rem",
-                            }}
-                          >
-                            {(
-                              lastMessage.message ||
-                              lastMessage.text ||
-                              "Сообщение отсутствует"
-                            ).slice(0, 20) +
-                              ((lastMessage.message || lastMessage.text || "")
-                                .length > 20
-                                ? "..."
-                                : "")}
-                          </Typography>
-                        ) : (
-                          <Typography variant="caption" color="#708499">
-                            Нет сообщений
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              );
-            }}
-          </FixedSizeList>
+                        <Avatar
+                          sx={{ bgcolor: "#40C4FF", width: 36, height: 36 }}
+                        >
+                          <SupportAgentIcon
+                            fontSize="small"
+                            sx={{ color: "#FFF" }}
+                          />
+                        </Avatar>
+                      </Badge>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: unreadCounts[room.id] ? 600 : 400,
+                            color: "#17212B",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          {room.id.split("-")[0]}
+                        </Typography>
+                      }
+                      secondary={
+                        <Box>
+                          {lastMessage ? (
+                            <Typography
+                              variant="caption"
+                              color="#708499"
+                              noWrap
+                              sx={{
+                                maxWidth: { xs: 140, sm: 180 },
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {(
+                                lastMessage.message ||
+                                lastMessage.text ||
+                                "Сообщение отсутствует"
+                              ).slice(0, 20) +
+                                ((lastMessage.message || lastMessage.text || "")
+                                  .length > 20
+                                  ? "..."
+                                  : "")}
+                            </Typography>
+                          ) : (
+                            <Typography variant="caption" color="#708499">
+                              Нет сообщений
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                );
+              })}
+
+            {/* Кнопка "Загрузить ещё" */}
+            {chatRooms.length < chatTotal && (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 1.5 }}>
+                <Button
+                  onClick={loadMoreChats}
+                  disabled={chatLoadingMore}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    borderColor: "#40C4FF",
+                    color: "#40C4FF",
+                    fontSize: "0.8rem",
+                    borderRadius: "8px",
+                    "&:hover": { borderColor: "#33B7F0", color: "#33B7F0" },
+                  }}
+                >
+                  {chatLoadingMore ? (
+                    <CircularProgress size={16} sx={{ color: "#40C4FF" }} />
+                  ) : (
+                    `Загрузить ещё (${chatTotal - chatRooms.length})`
+                  )}
+                </Button>
+              </Box>
+            )}
+          </Box>
         </Box>
       </Box>
+
 
       {/* Chat panel */}
       <Box
@@ -1594,7 +1623,7 @@ export default function AdminChat() {
           flexDirection: "column",
           width: { xs: "100%", sm: `calc(100% - ${SIDEBAR_WIDTH}px)` },
           bgcolor: "#FFFFFF",
-          height: "100vh",
+          height: "100%",
         }}
       >
         <Box
@@ -1604,7 +1633,6 @@ export default function AdminChat() {
             borderBottom: "1px solid #E8ECEF",
             display: "flex",
             alignItems: "center",
-            zIndex: 1200,
           }}
         >
           <Typography
@@ -1683,7 +1711,6 @@ export default function AdminChat() {
             flexGrow: 1,
             overflowY: "auto",
             position: "relative",
-            maxHeight: { xs: "calc(100vh - 180px)", sm: "calc(100vh - 140px)" },
             WebkitOverflowScrolling: "touch",
             p: 2,
             bgcolor: "#FFFFFF",

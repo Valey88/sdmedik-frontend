@@ -52,7 +52,7 @@ function ProtectedRoute({ element }) {
 
 export default function AdminDashboard() {
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
       <NavBar />
       <Routes>
         <Route path="/" element={<MainContent />}></Route>
