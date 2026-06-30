@@ -122,7 +122,14 @@ export default function AdminChat() {
   const isoTooltip = (iso) => (iso ? new Date(iso).toISOString() : "");
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      setTimeout(() => {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: "smooth"
+        });
+      }, 100);
+    }
   };
 
   // --- API wrappers for edit/delete/mark-read ---
@@ -379,11 +386,11 @@ export default function AdminChat() {
         prev.map((m) =>
           m.id === msgId
             ? {
-                ...m,
-                text: editingText,
-                edited: true,
-                updated_at: new Date().toISOString(),
-              }
+              ...m,
+              text: editingText,
+              edited: true,
+              updated_at: new Date().toISOString(),
+            }
             : m
         )
       );
@@ -406,12 +413,12 @@ export default function AdminChat() {
         prev.map((m) =>
           m.id === msg.id
             ? {
-                ...m,
-                text: "Сообщение удалено",
-                deleted: true,
-                edited: false,
-                updated_at: new Date().toISOString(),
-              }
+              ...m,
+              text: "Сообщение удалено",
+              deleted: true,
+              edited: false,
+              updated_at: new Date().toISOString(),
+            }
             : m
         )
       );
@@ -515,10 +522,10 @@ export default function AdminChat() {
         setChatRooms((prev) => {
           const updatedRooms = prev.some((room) => room.id === newChat.id)
             ? prev.map((room) =>
-                room.id === newChat.id
-                  ? { ...room, messages: newChat.messages }
-                  : room
-              )
+              room.id === newChat.id
+                ? { ...room, messages: newChat.messages }
+                : room
+            )
             : [newChat, ...prev];
           return updatedRooms.sort((a, b) => {
             const aTime = a.messages?.slice(-1)[0]?.time_to_send || 0;
@@ -578,12 +585,12 @@ export default function AdminChat() {
             const updatedRooms = prev.map((room) =>
               room.id === chat_id
                 ? {
-                    ...room,
-                    messages: [
-                      ...(room.messages || []),
-                      { message: text, sender_id, time_to_send, chat_id },
-                    ],
-                  }
+                  ...room,
+                  messages: [
+                    ...(room.messages || []),
+                    { message: text, sender_id, time_to_send, chat_id },
+                  ],
+                }
                 : room
             );
             return updatedRooms.sort((a, b) => {
@@ -615,11 +622,11 @@ export default function AdminChat() {
           prev.map((m) =>
             m.id === id
               ? {
-                  ...m,
-                  text: newText,
-                  edited: true,
-                  updated_at: new Date().toISOString(),
-                }
+                ...m,
+                text: newText,
+                edited: true,
+                updated_at: new Date().toISOString(),
+              }
               : m
           )
         );
@@ -629,11 +636,11 @@ export default function AdminChat() {
           prev.map((m) =>
             m.id === id
               ? {
-                  ...m,
-                  text: "Сообщение удалено",
-                  deleted: true,
-                  updated_at: new Date().toISOString(),
-                }
+                ...m,
+                text: "Сообщение удалено",
+                deleted: true,
+                updated_at: new Date().toISOString(),
+              }
               : m
           )
         );
@@ -715,7 +722,12 @@ export default function AdminChat() {
     if (isIOS && iOSVersion < 15) {
       setError("Ваша версия iOS устарела. Обновите iOS до версии 15 или выше.");
     }
+
+    // Отключаем главный скролл страницы браузера, чтобы чат был на весь экран без прокрутки
+    document.body.style.overflow = "hidden";
+
     return () => {
+      document.body.style.overflow = "auto";
       if (ws.current) {
         ws.current.close();
         ws.current = null;
@@ -927,7 +939,7 @@ export default function AdminChat() {
                   !nextMsg ||
                   nextMsg.sender_id !== msg.sender_id ||
                   new Date(nextMsg.timestamp) - new Date(msg.timestamp) >
-                    MESSAGE_GAP;
+                  MESSAGE_GAP;
                 const isManager = msg.type === "manager";
 
                 const isOrderMessage = msg.text.includes(
@@ -973,10 +985,10 @@ export default function AdminChat() {
                         bgcolor: msg.deleted
                           ? "#F0F0F0"
                           : isOrderMessage
-                          ? "#FFF8E1"
-                          : isManager
-                          ? "#E1F5FE"
-                          : "#F4F4F5",
+                            ? "#FFF8E1"
+                            : isManager
+                              ? "#E1F5FE"
+                              : "#F4F4F5",
                         color: "#17212B",
                         borderRadius: 2,
                         p: 1.25,
@@ -1206,10 +1218,10 @@ export default function AdminChat() {
                 bgcolor: msg.deleted
                   ? "#F0F0F0"
                   : isOrderMessage
-                  ? "#FFF8E1"
-                  : isManager
-                  ? "#E1F5FE"
-                  : "#F4F4F5",
+                    ? "#FFF8E1"
+                    : isManager
+                      ? "#E1F5FE"
+                      : "#F4F4F5",
                 color: "#17212B",
                 borderRadius: 2,
                 p: 1.25,
@@ -1418,6 +1430,7 @@ export default function AdminChat() {
       maxWidth={false}
       sx={{
         flexGrow: 1,
+        height: { xs: "calc(100vh - 64px)", sm: "calc(100vh - 180px)" },
         bgcolor: "#FFFFFF",
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
@@ -1438,7 +1451,7 @@ export default function AdminChat() {
         }}
       >
         <Box
-          sx={{ p: 2, display: "flex", flexDirection: "column", flexGrow: 1 }}
+          sx={{ p: 2, display: "flex", flexDirection: "column", flexGrow: 1, overflow: "hidden" }}
         >
           <Typography
             variant="h6"

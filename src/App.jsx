@@ -15,10 +15,11 @@ function App() {
 
   // Получаем данные пользователя из localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isAdmin = user?.data?.role_id === 1 || user?.data?.role === "admin";
 
   useEffect(() => {
     // Проверяем, что пользователь не администратор
-    if (user?.data?.role !== "admin") {
+    if (!isAdmin) {
       const timer = setTimeout(() => {
         if (!hasShownToast) {
           // Показываем уведомление
@@ -44,8 +45,8 @@ function App() {
     <Box>
       <RouterProvider router={router} />
       <ToastContainer />
-      <Chat />
-      {isOpen && user?.data?.role !== "admin" && (
+      {!isAdmin && <Chat />}
+      {isOpen && !isAdmin && (
         <ChatWindow onClose={() => setIsOpen(false)} />
       )}
       <CookieConsent />
