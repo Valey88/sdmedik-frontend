@@ -1409,8 +1409,8 @@ export default function AdminChat() {
 
   // --- useEffect: scroll when messages update ---
   useEffect(() => {
-    // scrollToBottom();
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, selectedChatId]);
 
   // --- UI render ---
   return (
@@ -1541,16 +1541,31 @@ export default function AdminChat() {
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: unreadCounts[room.id] ? 600 : 400,
-                            color: "#17212B",
-                            fontSize: "0.95rem",
-                          }}
-                        >
-                          {room.id.split("-")[0]}
-                        </Typography>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: unreadCounts[room.id] ? 600 : 400,
+                              color: "#17212B",
+                              fontSize: "0.95rem",
+                            }}
+                          >
+                            {room.id.split("-")[0]}
+                          </Typography>
+                          {lastMessage && lastMessage.time_to_send && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "#9E9E9E",
+                                fontSize: "0.75rem",
+                                whiteSpace: "nowrap",
+                                ml: 1
+                              }}
+                            >
+                              {formatTimestamp(lastMessage.time_to_send)}
+                            </Typography>
+                          )}
+                        </Box>
                       }
                       secondary={
                         <Box>
