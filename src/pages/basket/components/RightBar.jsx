@@ -29,7 +29,7 @@ export default function RightBar() {
       basketData.total_price_with_promotion > 0
         ? basketData.total_price_with_promotion
         : basketData.total_price || 0;
-    if (totalPrice < 5000 && totalPrice > 0) {
+    if (totalPrice < 10000 && totalPrice > 0) {
       setOpenDelivery(true);
     }
   }, [basketData.total_price_with_promotion, basketData.total_price]);
@@ -89,8 +89,8 @@ export default function RightBar() {
           variant="body2"
           sx={{ color: "#333", ml: 1, fontStyle: "italic" }}
         >
-          {basketData.total_price < 5000
-            ? "Доставка платная (заказ < 5000 ₽)"
+          {basketData.total_price < 10000
+            ? "Доставка платная (заказ < 10000 ₽)"
             : "Доставка бесплатная"}
         </Typography>
         <Button
@@ -154,8 +154,8 @@ export default function RightBar() {
             Условия доставки
           </Typography>
           <Typography variant="body1" sx={{ color: "#333", lineHeight: 1.6 }}>
-            Доставка платная для заказов на сумму менее 5000 ₽. Для заказов на
-            сумму 5000 ₽ и выше доставка бесплатная. Для уточнения стоимости
+            Доставка платная для заказов на сумму менее 10000 ₽. Для заказов на
+            сумму 10000 ₽ и выше доставка бесплатная. Для уточнения стоимости
             доставки, задайте вопрос в чате специалисту. Также информация
             указана в разделе «Доставка».
           </Typography>
