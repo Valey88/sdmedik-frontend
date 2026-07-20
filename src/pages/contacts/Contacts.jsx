@@ -20,10 +20,13 @@ export default function Contacts() {
       "г. Уфа, ул. Степана Кувыкина, 41, Магазин-Склад<br>+7 961 366-82-46",
     "address-4":
       "г. Екатеринбург, пр-т. Ленина 79 «Б», Центр обучения и обеспечения техническими средствами реабилитации<br>+7 903 086-34-11",
+    "address-5":
+      "г. Оренбург, Просторная 13/1<br>8 909-611-20-55, режим работы: с пн по пт с 9 до 18.00",
     "coords-1": "[51.798286, 55.111328]",
     "coords-2": "[51.230507, 58.485481]",
     "coords-3": "[54.711229, 56.000041]",
     "coords-4": "[56.841763, 60.628368]",
+    "coords-5": "[51.838324, 55.156641]",
   });
 
   const stripHtml = (html) => {
@@ -70,6 +73,10 @@ export default function Contacts() {
     {
       address: content["address-4"],
       coords: JSON.parse(content["coords-4"] || "[56.838, 60.597]"),
+    },
+    {
+      address: content["address-5"],
+      coords: JSON.parse(content["coords-5"] || "[51.838324, 55.156641]"),
     },
   ];
 
@@ -160,7 +167,7 @@ export default function Contacts() {
                   <Typography sx={{ fontSize: "20px" }}>
                     Пункты выдачи заказов:
                   </Typography>
-                  {[1, 2, 3, 4].map((index) => (
+                  {[1, 2, 3, 4, 5].map((index) => (
                     <ListItem key={index}>
                       <Typography
                         dangerouslySetInnerHTML={{
