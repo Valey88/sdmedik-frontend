@@ -21,12 +21,15 @@ export default function Contacts() {
     "address-4":
       "г. Екатеринбург, пр-т. Ленина 79 «Б», Центр обучения и обеспечения техническими средствами реабилитации<br>+7 903 086-34-11",
     "address-5":
+      "125412, Москва, Коровинское ш., 17А, метро Селигерская<br>8 (499) 488-00-83, 8 (800) 234-57-20",
+    "address-6":
       "г. Оренбург, Просторная 13/1<br>8 909-611-20-55, режим работы: с пн по пт с 9 до 18.00",
     "coords-1": "[51.798286, 55.111328]",
     "coords-2": "[51.230507, 58.485481]",
     "coords-3": "[54.711229, 56.000041]",
     "coords-4": "[56.841763, 60.628368]",
-    "coords-5": "[51.838324, 55.156641]",
+    "coords-5": "[55.864388, 37.545722]",
+    "coords-6": "[51.838324, 55.156641]",
   });
 
   const stripHtml = (html) => {
@@ -57,28 +60,28 @@ export default function Contacts() {
   }, []);
 
   // Parse coordinates for Yandex Maps
-  const addresses = [
-    {
-      address: content["address-1"],
-      coords: JSON.parse(content["coords-1"] || "[51.769, 55.096]"),
-    },
-    {
-      address: content["address-2"],
-      coords: JSON.parse(content["coords-2"] || "[51.227, 58.562]"),
-    },
-    {
-      address: content["address-3"],
-      coords: JSON.parse(content["coords-3"] || "[54.738, 55.972]"),
-    },
-    {
-      address: content["address-4"],
-      coords: JSON.parse(content["coords-4"] || "[56.838, 60.597]"),
-    },
-    {
-      address: content["address-5"],
-      coords: JSON.parse(content["coords-5"] || "[51.838324, 55.156641]"),
-    },
-  ];
+  const addresses = Object.keys(content)
+    .filter((key) => key.startsWith("address-"))
+    .map((key) => {
+      const index = key.split("-")[1];
+      const coordsKey = `coords-${index}`;
+      
+      let coords = [55.751574, 37.573856];
+      try {
+        if (content[coordsKey]) {
+          coords = JSON.parse(content[coordsKey]);
+        }
+      } catch (e) {
+        console.error("Error parsing coords for", key, e);
+      }
+      
+      return {
+        id: parseInt(index),
+        address: content[key],
+        coords,
+      };
+    })
+    .sort((a, b) => a.id - b.id);
 
   return (
     <Box sx={{ mb: 5 }}>
@@ -167,12 +170,11 @@ export default function Contacts() {
                   <Typography sx={{ fontSize: "20px" }}>
                     Пункты выдачи заказов:
                   </Typography>
-                  {[1, 2, 3, 4, 5].map((index) => (
+                  {addresses.map((item, index) => (
                     <ListItem key={index}>
                       <Typography
                         dangerouslySetInnerHTML={{
-                          __html:
-                            content[`address-${index}`] || "<p>Нет данных</p>",
+                          __html: item.address || "<p>Нет данных</p>",
                         }}
                       />
                     </ListItem>
