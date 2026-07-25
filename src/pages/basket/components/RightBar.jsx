@@ -74,14 +74,14 @@ export default function RightBar() {
           {basketData.total_price_with_promotion > 0 && (
             <Typography variant="body1" sx={{ color: "text.secondary" }}>
               Скидка:{" "}
-              {basketData.total_price - basketData.total_price_with_promotion} ₽
+              {Number(basketData.total_price - basketData.total_price_with_promotion).toFixed(2)} ₽
             </Typography>
           )}
           <Typography variant="h6" sx={{ color: "#00B3A4", mt: 1 }}>
             Итого:{" "}
-            {basketData.total_price_with_promotion > 0
+            {Number(basketData.total_price_with_promotion > 0
               ? basketData.total_price_with_promotion
-              : basketData.total_price || 0}
+              : basketData.total_price || 0).toFixed(2)}{" "}
             ₽
           </Typography>
         </Box>

@@ -145,7 +145,7 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
                     fontSize: { xs: "1rem", md: "1.2rem" },
                   }}
                 >
-                  {e.price} ₽
+                  {Number(e.price).toFixed(2)} ₽
                 </Typography>
               </Box>
             )}

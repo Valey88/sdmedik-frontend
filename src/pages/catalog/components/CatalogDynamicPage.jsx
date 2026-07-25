@@ -102,14 +102,14 @@ const ProductCard = memo(({ e, hendleAddProductThithBascket }) => {
               navigate(`/product/${e.id}`);
             }}
           >
-            {e.price} ₽
+            {Number(e.price).toFixed(2)} ₽
           </Typography>
           {/* {e.oldPrice && (
             <Typography
               variant="body2"
               sx={{ color: "text.secondary", textDecoration: "line-through" }}
             >
-              {e.oldPrice} ₽
+              {Number(e.oldPrice).toFixed(2)} ₽
             </Typography>
           )} */}
         </Box>

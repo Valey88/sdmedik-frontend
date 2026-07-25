@@ -165,7 +165,7 @@ export default function TopList() {
                             navigate(`/product/${item.id}`);
                           }}
                         >
-                          {item.price} ₽
+                          {Number(item.price).toFixed(2)} ₽
                         </Typography>
                       </Box> */}
                       <Button

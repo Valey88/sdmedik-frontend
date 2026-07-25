@@ -48,14 +48,14 @@ export default function PriceAndCartActions({
             variant="h5"
             sx={{ color: "#00B3A4", fontWeight: "bold" }}
           >
-            {product.price} ₽
+            {Number(product.price).toFixed(2)} ₽
           </Typography>
         ) : isCatalog2 && newRegion && product?.certificate_price ? (
           <Typography
             variant="h5"
             sx={{ color: "#00B3A4", fontWeight: "bold" }}
           >
-            {product.certificate_price} ₽
+            {Number(product.certificate_price).toFixed(2)} ₽
           </Typography>
         ) : (
           <>
