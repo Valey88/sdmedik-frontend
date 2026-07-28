@@ -101,7 +101,7 @@ export default function UpdateProduct() {
           value: Array.isArray(char.value)
             ? char.value.join(", ")
             : String(char.value),
-          prices: isSizeCharacteristic ? char.prices || [] : [],
+          prices: isSizeCharacteristic ? (char.prices ? (Array.isArray(char.prices) ? char.prices.join(", ") : char.prices) : "") : "",
         };
       });
       setCharacteristicValues(initialCharValues);
@@ -218,13 +218,7 @@ export default function UpdateProduct() {
       ...prevValues,
       [id]: {
         ...prevValues[id],
-        [field]:
-          field === "value"
-            ? value
-            : value
-                .split(",")
-                .map(Number)
-                .filter((v) => !isNaN(v)),
+        [field]: value,
       },
     }));
   };
@@ -300,9 +294,13 @@ export default function UpdateProduct() {
         };
 
         if (isSizeCharacteristic) {
+          const parsedPrices = typeof data.prices === "string" 
+            ? data.prices.split(",").map(v => Number(v.replace(",", ".").trim()))
+            : (Array.isArray(data.prices) ? data.prices.map(Number) : []);
+
           const prices = values.map((_, index) =>
-            data.prices && data.prices[index] !== undefined
-              ? data.prices[index]
+            parsedPrices[index] !== undefined && !isNaN(parsedPrices[index])
+              ? parsedPrices[index]
               : 0
           );
           result.prices = prices;
@@ -407,11 +405,13 @@ export default function UpdateProduct() {
                   label="Цена"
                   value={product.price}
                   onChange={(e) => {
-                    const priceValue = parseFloat(e.target.value);
-                    setProduct({
-                      ...product,
-                      price: isNaN(priceValue) ? 0 : priceValue,
-                    });
+                    let val = e.target.value.replace(",", ".");
+                    if (/^\d*\.?\d{0,2}$/.test(val)) {
+                      setProduct({
+                        ...product,
+                        price: val,
+                      });
+                    }
                   }}
                   fullWidth
                   margin="normal"
@@ -676,9 +676,7 @@ export default function UpdateProduct() {
                               <TextField
                                 label="Цены для размеров (через запятую, например: 300,200,100)"
                                 value={
-                                  characteristicValues[char.id]?.prices?.join(
-                                    ", "
-                                  ) || ""
+                                  characteristicValues[char.id]?.prices || ""
                                 }
                                 onChange={(e) =>
                                   handleValueChange(
@@ -746,7 +744,7 @@ export default function UpdateProduct() {
                       value: Array.isArray(char.value)
                         ? char.value.join(", ")
                         : String(char.value),
-                      prices: isSizeCharacteristic ? char.prices || [] : [],
+                      prices: isSizeCharacteristic ? (char.prices ? (Array.isArray(char.prices) ? char.prices.join(", ") : char.prices) : "") : "",
                     };
                   });
                   setCharacteristicValues(initialCharValues);
