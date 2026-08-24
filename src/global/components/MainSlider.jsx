@@ -108,6 +108,43 @@ export default function MainSlider({ slides }) {
 
   if (!slides || slides.length === 0) return null;
 
+  const handleSlideClick = (e, slide) => {
+    if (!slide || !slide.link) return;
+
+    // Игнорируем клик, если он был по кнопкам Swiper или переключателю звука видео
+    if (
+      e.target.closest("button") ||
+      e.target.closest(".swiper-button-next") ||
+      e.target.closest(".swiper-button-prev") ||
+      e.target.closest(".swiper-pagination-bullet")
+    ) {
+      return;
+    }
+
+    const trimmed = String(slide.link).trim();
+    if (!trimmed) return;
+
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("//")
+    ) {
+      try {
+        const url = new URL(trimmed, window.location.origin);
+        if (url.origin === window.location.origin) {
+          navigate(url.pathname + url.search + url.hash);
+        } else {
+          window.open(trimmed, "_blank", "noopener,noreferrer");
+        }
+      } catch (err) {
+        window.open(trimmed, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+      navigate(path);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -186,11 +223,21 @@ export default function MainSlider({ slides }) {
           <SwiperSlide key={index}>
             {({ isActive }) => (
               <Box
+                onClick={(e) => handleSlideClick(e, slide)}
+                role={slide.link ? "link" : undefined}
+                tabIndex={slide.link ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (slide.link && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    handleSlideClick(e, slide);
+                  }
+                }}
                 sx={{
                   position: "relative",
                   width: "100%",
                   height: "100%",
                   overflow: "hidden",
+                  cursor: slide.link ? "pointer" : "default",
                 }}
               >
                 {/* МЕДИА */}
@@ -273,7 +320,10 @@ export default function MainSlider({ slides }) {
                       {slide.link && (
                         <Button
                           variant="contained"
-                          onClick={() => navigate(slide.link)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSlideClick(e, slide);
+                          }}
                           sx={{
                             background:
                               "linear-gradient(95.61deg, #A5DED1 4.71%, #00B3A4 97.25%)",

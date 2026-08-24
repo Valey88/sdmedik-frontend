@@ -22,6 +22,7 @@ import {
   Grid,
   InputAdornment,
   Tooltip,
+  Chip,
 } from "@mui/material";
 
 // Иконки
@@ -36,6 +37,10 @@ import TitleIcon from "@mui/icons-material/Title";
 import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import LinkIcon from "@mui/icons-material/Link";
 
 // Tiptap
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -64,8 +69,22 @@ const editorStyles = {
   },
 };
 
-// === КОМПОНЕНТ ОДНОГО СЛАЙДА (с логикой загрузки) ===
-const SlideItem = ({ slide, index, onChange, onRemove }) => {
+// === КОМПОНЕНТ ОДНОГО СЛАЙДА (с логикой загрузки, ссылкой и перемещением) ===
+const SlideItem = ({
+  slide,
+  index,
+  totalSlides,
+  onChange,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDragOver,
+}) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -98,29 +117,144 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
   };
 
   return (
-    <Card sx={{ mb: 2, position: "relative", overflow: "visible" }}>
-      <IconButton
-        onClick={() => onRemove(index)}
-        size="small"
+    <Card
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={(e) => onDrop(e, index)}
+      onDragEnd={onDragEnd}
+      sx={{
+        mb: 2.5,
+        position: "relative",
+        overflow: "hidden",
+        border: isDragOver ? "2px dashed #00B3A4" : "1px solid #e0e0e0",
+        backgroundColor: isDragging ? "#f0fbf9" : "#ffffff",
+        opacity: isDragging ? 0.5 : 1,
+        transition: "border 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease",
+        boxShadow: isDragging
+          ? "0 8px 24px rgba(0, 179, 164, 0.25)"
+          : "0 2px 8px rgba(0,0,0,0.06)",
+        borderRadius: 2,
+      }}
+    >
+      {/* Шапка слайда с управлением порядком и удалением */}
+      <Box
         sx={{
-          position: "absolute",
-          top: -10,
-          right: -10,
-          bgcolor: "error.main",
-          color: "white",
-          zIndex: 10,
-          "&:hover": { bgcolor: "error.dark" },
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: 2,
+          py: 1,
+          bgcolor: "#f8f9fa",
+          borderBottom: "1px solid #eee",
         }}
       >
-        <DeleteIcon fontSize="small" />
-      </IconButton>
-      <CardContent>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Tooltip title="Зажмите и перетащите мышкой для изменения порядка">
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                cursor: "grab",
+                "&:active": { cursor: "grabbing" },
+                color: "text.secondary",
+                "&:hover": { color: "primary.main" },
+              }}
+            >
+              <DragIndicatorIcon fontSize="small" />
+            </Box>
+          </Tooltip>
+          <Chip
+            label={`Слайд #${index + 1}`}
+            size="small"
+            color="primary"
+            variant="filled"
+            sx={{ fontWeight: "bold", fontSize: "0.8rem" }}
+          />
+          {slide.link && (
+            <Tooltip title={`Ссылка: ${slide.link}`}>
+              <Chip
+                icon={<LinkIcon fontSize="small" />}
+                label={slide.link}
+                size="small"
+                variant="outlined"
+                color="secondary"
+                sx={{
+                  maxWidth: 220,
+                  "& .MuiChip-label": {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
+                }}
+              />
+            </Tooltip>
+          )}
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Tooltip title="Переместить выше">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onMoveUp(index)}
+                disabled={index === 0}
+                color="primary"
+                sx={{
+                  bgcolor: index === 0 ? "transparent" : "rgba(0, 179, 164, 0.08)",
+                  "&:hover": { bgcolor: "rgba(0, 179, 164, 0.2)" },
+                }}
+              >
+                <ArrowUpwardIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Переместить ниже">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onMoveDown(index)}
+                disabled={index === totalSlides - 1}
+                color="primary"
+                sx={{
+                  bgcolor:
+                    index === totalSlides - 1
+                      ? "transparent"
+                      : "rgba(0, 179, 164, 0.08)",
+                  "&:hover": { bgcolor: "rgba(0, 179, 164, 0.2)" },
+                }}
+              >
+                <ArrowDownwardIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+          <Tooltip title="Удалить слайд">
+            <IconButton
+              onClick={() => onRemove(index)}
+              size="small"
+              color="error"
+              sx={{
+                bgcolor: "rgba(211, 47, 47, 0.08)",
+                "&:hover": { bgcolor: "rgba(211, 47, 47, 0.2)" },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+
+      <CardContent sx={{ pt: 2, pb: 2 }}>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={3}>
             <FormControl fullWidth size="small">
               <InputLabel>Тип</InputLabel>
               <Select
-                value={slide.type}
+                value={slide.type || "image"}
                 label="Тип"
                 onChange={(e) => onChange(index, "type", e.target.value)}
               >
@@ -143,7 +277,7 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
               fullWidth
               size="small"
               label="URL файла"
-              value={slide.url}
+              value={slide.url || ""}
               onChange={(e) => onChange(index, "url", e.target.value)}
               placeholder="/images/banner.jpg"
               disabled={isUploading}
@@ -168,6 +302,7 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
               }}
             />
           </Grid>
+
           {slide.type === "image" && (
             <Grid item xs={12}>
               <TextField
@@ -176,9 +311,30 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
                 label="Alt текст (описание)"
                 value={slide.alt || ""}
                 onChange={(e) => onChange(index, "alt", e.target.value)}
+                placeholder="Например: Баннер акции или описание картинки"
               />
             </Grid>
           )}
+
+          {/* ПОЛЕ ДЛЯ ССЫЛКИ НА СЛАЙДЕ */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Ссылка при клике на слайд (URL)"
+              value={slide.link || ""}
+              onChange={(e) => onChange(index, "link", e.target.value)}
+              placeholder="Например: /certificate или /catalog или https://..."
+              helperText="Куда перенаправлять пользователя при нажатии на слайд (внутренний раздел или внешняя ссылка)"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LinkIcon color="action" fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
         </Grid>
 
         {/* Превью */}
@@ -186,9 +342,9 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
           <Box
             sx={{
               mt: 2,
-              height: 100,
-              bgcolor: "#f0f0f0",
-              borderRadius: 1,
+              height: 120,
+              bgcolor: "#f7f9fa",
+              borderRadius: 1.5,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -199,15 +355,15 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
             {slide.type === "video" ? (
               <video
                 src={slide.url}
-                style={{ maxHeight: "100%" }}
+                style={{ maxHeight: "100%", maxWidth: "100%" }}
                 controls
                 muted
               />
             ) : (
               <img
                 src={slide.url}
-                alt="preview"
-                style={{ maxHeight: "100%" }}
+                alt={slide.alt || "preview"}
+                style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }}
               />
             )}
           </Box>
@@ -220,6 +376,8 @@ const SlideItem = ({ slide, index, onChange, onRemove }) => {
 // === ОБЩИЙ РЕДАКТОР СЛАЙДЕРОВ ===
 const SliderEditor = ({ value, onChange }) => {
   const [slides, setSlides] = useState([]);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   useEffect(() => {
     try {
@@ -232,7 +390,7 @@ const SliderEditor = ({ value, onChange }) => {
     } catch (e) {
       setSlides([]);
     }
-  }, []);
+  }, [value]);
 
   const updateParent = (newSlides) => {
     setSlides(newSlides);
@@ -240,7 +398,7 @@ const SliderEditor = ({ value, onChange }) => {
   };
 
   const addSlide = () => {
-    updateParent([...slides, { type: "image", url: "", alt: "" }]);
+    updateParent([...slides, { type: "image", url: "", alt: "", link: "" }]);
   };
 
   const removeSlide = (index) => {
@@ -249,15 +407,60 @@ const SliderEditor = ({ value, onChange }) => {
 
   const handleChangeSlide = (index, field, val) => {
     const newSlides = [...slides];
-    newSlides[index][field] = val;
+    newSlides[index] = { ...newSlides[index], [field]: val };
     updateParent(newSlides);
+  };
+
+  const moveSlide = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= slides.length || fromIndex === toIndex) return;
+    const updated = [...slides];
+    const [movedItem] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, movedItem);
+    updateParent(updated);
+  };
+
+  const moveSlideUp = (index) => {
+    moveSlide(index, index - 1);
+  };
+
+  const moveSlideDown = (index) => {
+    moveSlide(index, index + 1);
+  };
+
+  // Drag and Drop handlers
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      moveSlide(draggedIndex, index);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   return (
     <Box
       sx={{
         border: "1px solid #ddd",
-        p: 2,
+        p: 2.5,
         borderRadius: 2,
         bgcolor: "#fcfcfc",
       }}
@@ -271,10 +474,13 @@ const SliderEditor = ({ value, onChange }) => {
         }}
       >
         <Typography
-          variant="subtitle2"
-          sx={{ fontWeight: "bold", color: "primary.main" }}
+          variant="subtitle1"
+          sx={{ fontWeight: "bold", color: "primary.main", display: "flex", alignItems: "center", gap: 1 }}
         >
           📸 Управление слайдами
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Всего слайдов: <strong>{slides.length}</strong>
         </Typography>
       </Box>
 
@@ -283,9 +489,9 @@ const SliderEditor = ({ value, onChange }) => {
           variant="body2"
           color="textSecondary"
           align="center"
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, py: 2 }}
         >
-          Слайдов пока нет. Добавьте первый.
+          Слайдов пока нет. Добавьте первый слайд.
         </Typography>
       )}
 
@@ -293,9 +499,18 @@ const SliderEditor = ({ value, onChange }) => {
         <SlideItem
           key={i}
           index={i}
+          totalSlides={slides.length}
           slide={slide}
           onChange={handleChangeSlide}
           onRemove={removeSlide}
+          onMoveUp={moveSlideUp}
+          onMoveDown={moveSlideDown}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+          isDragging={draggedIndex === i}
+          isDragOver={dragOverIndex === i}
         />
       ))}
 
@@ -304,7 +519,12 @@ const SliderEditor = ({ value, onChange }) => {
         startIcon={<AddIcon />}
         onClick={addSlide}
         fullWidth
-        sx={{ borderStyle: "dashed" }}
+        sx={{
+          borderStyle: "dashed",
+          py: 1.2,
+          fontWeight: 600,
+          "&:hover": { borderStyle: "dashed" },
+        }}
       >
         Добавить слайд
       </Button>
