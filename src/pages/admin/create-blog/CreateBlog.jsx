@@ -853,7 +853,7 @@ export default function BlogAdminPanel() {
         heading: newPost.heading,
         text: sanitizeContent(newPost.text),
         hex: newPost.hex,
-        pin_type: postFormat.pin_type,
+        pin_type: newPost.pin_type,
       };
       await api.post("/blog", postData);
       toast.success("Новый пост успешно создан!");
@@ -863,6 +863,7 @@ export default function BlogAdminPanel() {
         heading: "",
         text: "",
         hex: "#00B3A4",
+        pin_type: "normal",
       });
     } catch (error) {
       toast.error(
@@ -961,7 +962,7 @@ export default function BlogAdminPanel() {
             </Typography>
             <FormControl fullWidth>
               <Select
-                value={postFormat.pin_type}
+                value={newPost.pin_type}
                 onChange={(e) => handleChange("pin_type", e.target.value)}
                 displayEmpty
               >

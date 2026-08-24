@@ -119,7 +119,6 @@ export default function Delivery() {
               <Typography
                 variant="h5"
                 sx={{
-                  fontWeight: "bold",
                   color: "#00B3A4",
                   mb: 2,
                   textAlign: "center",
