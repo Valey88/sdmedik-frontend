@@ -24,84 +24,56 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import { toast } from "react-toastify";
 
-// Начальные резервные данные
-const DEFAULT_INITIAL_DATA = {
-  "page-title": "Контакты - Компании СД-МЕД",
-  "meta-description": "Контактная информация нашей компании",
-  "meta-keywords": "контакты, адрес, телефон, склад, магазин",
-  "main-heading": "<h1>Контакты</h1>",
-  "contacts-phones": JSON.stringify([
-    {
-      id: "phone-1",
-      phone: "+7 (903) 086 3091",
-      label: "Единая справочная",
-    },
-    {
-      id: "phone-2",
-      phone: "+7 (353) 293 5241",
-      label: "Отдел продаж (Оренбург)",
-    },
-  ]),
-  "contacts-addresses": JSON.stringify([
-    {
-      id: "addr-1",
-      city: "г. Оренбург",
-      title: "Магазин - Склад",
-      address: "ул. Шевченко д. 20 «В»",
-      phone: "+7 3532 93-52-41",
-      schedule: "Пн-Пт: 09:00 - 18:00",
-      coords: [51.798286, 55.111328],
-    },
-    {
-      id: "addr-2",
-      city: "г. Орск",
-      title: "Магазин «Памперсы»",
-      address: "проспект Мира. 15 «Д», ТД Яшма",
-      phone: "+7 905 896-23-23",
-      schedule: "Пн-Пт: 09:00 - 18:00",
-      coords: [51.230507, 58.485481],
-    },
-    {
-      id: "addr-3",
-      city: "г. Уфа",
-      title: "Магазин - Склад",
-      address: "ул. Степана Кувыкина, 41",
-      phone: "+7 961 366-82-46",
-      schedule: "Пн-Пт: 09:00 - 18:00",
-      coords: [54.711229, 56.000041],
-    },
-    {
-      id: "addr-4",
-      city: "г. Екатеринбург",
-      title: "Центр обеспечения ТСР",
-      address: "пр-т. Ленина 79 «Б»",
-      phone: "+7 903 086-34-11",
-      schedule: "Пн-Пт: 09:00 - 18:00",
-      coords: [56.841763, 60.628368],
-    },
-    {
-      id: "addr-5",
-      city: "г. Москва",
-      title: "Пункт выдачи",
-      address: "Коровинское ш., 17А, метро Селигерская",
-      phone: "8 (499) 488-00-83, 8 (800) 234-57-20",
-      schedule: "Пн-Пт: 09:00 - 18:00",
-      coords: [55.864388, 37.545722],
-    },
-    {
-      id: "addr-6",
-      city: "г. Оренбург",
-      title: "Филиал",
-      address: "ул. Просторная 13/1",
-      phone: "8 909-611-20-55",
-      schedule: "Пн-Пт: 09:00 - 18:00",
-      coords: [51.838324, 55.156641],
-    },
-  ]),
+// Известные координаты городов на случай отсутствия coords в старой БД
+const CITY_COORDS_FALLBACK = {
+  оренбург: [51.798286, 55.111328],
+  орск: [51.230507, 58.485481],
+  уфа: [54.711229, 56.000041],
+  екатеринбург: [56.841763, 60.628368],
+  москва: [55.864388, 37.545722],
+  гудермес: [43.350694, 46.108643],
+  грозный: [43.316866, 45.698717],
+  "нижний новгород": [56.326887, 44.005986],
+};
+
+// Функция безопасного парсинга координат
+const parseCoordinates = (val, fullText = "") => {
+  if (Array.isArray(val) && val.length >= 2) {
+    const lat = parseFloat(val[0]);
+    const lng = parseFloat(val[1]);
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0) return [lat, lng];
+  }
+
+  if (typeof val === "string" && val.trim()) {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed) && parsed.length >= 2) {
+        const lat = parseFloat(parsed[0]);
+        const lng = parseFloat(parsed[1]);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0) return [lat, lng];
+      }
+    } catch (e) {}
+
+    const cleaned = val.replace(/[\[\]]/g, "").trim();
+    const parts = cleaned.split(/[\s,]+/).map(parseFloat);
+    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] !== 0) {
+      return [parts[0], parts[1]];
+    }
+  }
+
+  // Попытка сопоставить город по тексту
+  const textLower = (fullText || "").toLowerCase();
+  for (const [cityName, coords] of Object.entries(CITY_COORDS_FALLBACK)) {
+    if (textLower.includes(cityName)) {
+      return coords;
+    }
+  }
+
+  return [55.751574, 37.573856];
 };
 
 export default function Contacts() {
-  const [content, setContent] = useState(DEFAULT_INITIAL_DATA);
+  const [content, setContent] = useState({});
   const [activeAddressId, setActiveAddressId] = useState(null);
   const mapRef = useRef(null);
   const theme = useTheme();
@@ -132,7 +104,7 @@ export default function Contacts() {
           newContent[item.element_id] = item.value;
         });
 
-        setContent((prev) => ({ ...prev, ...newContent }));
+        setContent(newContent);
       } catch (error) {
         console.error("Error fetching page content:", error);
       }
@@ -187,20 +159,16 @@ export default function Contacts() {
     ];
   };
 
-  // --- Парсинг адресов ---
+  // --- Парсинг ВСЕХ адресов для списка и Яндекс.Карты ---
   const getParsedAddresses = () => {
-    // 1. Проверяем динамический JSON массив
+    // 1. Если есть динамический JSON массив `contacts-addresses`
     if (content["contacts-addresses"]) {
       try {
         const parsed = JSON.parse(content["contacts-addresses"]);
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((item, idx) => {
-            let coords = [55.751574, 37.573856];
-            if (Array.isArray(item.coords) && item.coords.length >= 2) {
-              coords = [Number(item.coords[0]) || 0, Number(item.coords[1]) || 0];
-            } else if (item.lat !== undefined && item.lng !== undefined) {
-              coords = [Number(item.lat) || 0, Number(item.lng) || 0];
-            }
+            const fullText = `${item.city || ""} ${item.address || ""}`;
+            const coords = parseCoordinates(item.coords, fullText);
             return {
               id: item.id || `addr-${idx}`,
               city: item.city || "",
@@ -217,7 +185,7 @@ export default function Contacts() {
       }
     }
 
-    // 2. Fallback: извлекаем старые ключи `address-1`, `address-2`... и `coords-1`...
+    // 2. Извлекаем ВСЕ элементы со старыми ключами `address-1`, `address-2`, ...
     const addressKeys = Object.keys(content)
       .filter((key) => key.startsWith("address-"))
       .sort((a, b) => {
@@ -230,40 +198,77 @@ export default function Contacts() {
       return addressKeys.map((key) => {
         const index = key.split("-")[1];
         const coordsKey = `coords-${index}`;
-        let coords = [55.751574, 37.573856];
-        try {
-          if (content[coordsKey]) {
-            coords = JSON.parse(content[coordsKey]);
-          }
-        } catch (e) {}
+        const rawContent = content[key] || "";
 
-        const rawHtml = content[key] || "";
-        const parts = rawHtml.split("<br>").map((s) => stripHtml(s));
-        const fullAddress = parts[0] || "";
-        const phone = parts[1] || "";
+        // Превращаем <br> в переносы строк для многострочного отображения
+        const textWithNewlines = rawContent
+          .replace(/<br\s*[\/]?>/gi, "\n")
+          .replace(/<[^>]+>/g, "")
+          .trim();
 
+        const coords = parseCoordinates(content[coordsKey], textWithNewlines);
+
+        const lines = textWithNewlines.split("\n").map((s) => s.trim());
+        const firstLine = lines[0] || "";
         let city = "";
-        let addr = fullAddress;
-        if (fullAddress.includes(",")) {
-          const split = fullAddress.split(",");
-          city = split[0]?.trim() || "";
-          addr = split.slice(1).join(",").trim();
+        if (firstLine.includes(",")) {
+          city = firstLine.split(",")[0]?.trim() || "";
+        } else if (firstLine.startsWith("г.") || firstLine.startsWith("125412")) {
+          city = firstLine.split(" ")[1] || firstLine;
         }
 
         return {
           id: key,
           city: city,
           title: "",
-          address: addr || fullAddress,
-          phone: phone,
-          schedule: fullAddress.includes("режим") ? "с пн по пт с 9 до 18.00" : "",
+          address: textWithNewlines || rawContent,
+          phone: "",
+          schedule: "",
           coords,
-          rawHtml,
+          rawHtml: rawContent,
         };
       });
     }
 
-    return [];
+    // 3. Fallback начальные данные если база пуста
+    return [
+      {
+        id: "addr-1",
+        city: "г. Оренбург",
+        address: "ул. Шевченко д. 20 «В» Магазин - Склад\n+7 3532 93-52-41\nРежим работы: с пн по пт с 9 до 18:00",
+        coords: [51.798286, 55.111328],
+      },
+      {
+        id: "addr-2",
+        city: "г. Орск",
+        address: "проспект Мира. 15 «Д», ТД Яшма, магазин «Памперсы»\n+7 905 896-23-23",
+        coords: [51.230507, 58.485481],
+      },
+      {
+        id: "addr-3",
+        city: "г. Уфа",
+        address: "ул. Степана Кувыкина, 41, Магазин-Склад\n+7 961 366-82-46",
+        coords: [54.711229, 56.000041],
+      },
+      {
+        id: "addr-4",
+        city: "г. Екатеринбург",
+        address: "пр-т. Ленина 79 «Б», Центр обучения и обеспечения ТСР\n+7 903 086-34-11",
+        coords: [56.841763, 60.628368],
+      },
+      {
+        id: "addr-5",
+        city: "г. Москва",
+        address: "Коровинское ш., 17А, метро Селигерская\n8 (499) 488-00-83, 8 (800) 234-57-20",
+        coords: [55.864388, 37.545722],
+      },
+      {
+        id: "addr-6",
+        city: "г. Оренбург",
+        address: "ул. Просторная 13/1\n8 909-611-20-55, режим работы: с пн по пт с 9 до 18.00",
+        coords: [51.838324, 55.156641],
+      },
+    ];
   };
 
   const phones = getParsedPhones();
@@ -272,7 +277,7 @@ export default function Contacts() {
   // Функция центрирования карты на выбранном адресе
   const handleFocusAddress = (item) => {
     setActiveAddressId(item.id);
-    if (mapRef.current && item.coords) {
+    if (mapRef.current && item.coords && item.coords.length >= 2) {
       mapRef.current.setCenter(item.coords, 16, {
         checkZoomRange: true,
         duration: 600,
@@ -282,11 +287,14 @@ export default function Contacts() {
 
   // Генерация HTML содержимого для балуна метки
   const getBalloonContent = (item) => {
+    const lines = (item.address || "").split("\n").filter(Boolean);
+    const formattedText = lines.map((l) => `<div>${l}</div>`).join("");
+
     return `
-      <div style="font-family: Arial, sans-serif; padding: 6px; max-width: 260px;">
-        ${item.city ? `<div style="font-weight: bold; color: #00B3A4; font-size: 14px; margin-bottom: 2px;">${item.city}</div>` : ""}
+      <div style="font-family: Arial, sans-serif; padding: 6px; max-width: 280px; line-height: 1.4;">
+        ${item.city ? `<div style="font-weight: bold; color: #00B3A4; font-size: 14px; margin-bottom: 4px;">${item.city}</div>` : ""}
         ${item.title ? `<div style="font-weight: 600; font-size: 13px; color: #333; margin-bottom: 4px;">${item.title}</div>` : ""}
-        <div style="font-size: 12px; color: #555; margin-bottom: 6px;">${item.address}</div>
+        <div style="font-size: 12px; color: #444; margin-bottom: 6px;">${formattedText}</div>
         ${
           item.phone
             ? `<div style="font-size: 12px; margin-bottom: 4px;">📞 <a href="tel:${item.phone.replace(/[^0-9+]/g, "")}" style="color: #00887A; text-decoration: none; font-weight: bold;">${item.phone}</a></div>`
@@ -479,7 +487,7 @@ export default function Contacts() {
                 instanceRef={(ref) => {
                   mapRef.current = ref;
                 }}
-                defaultState={{ center: [54.5, 55.0], zoom: 5 }}
+                defaultState={{ center: [54.5, 53.0], zoom: 4 }}
                 style={{ width: "100%", height: "100%" }}
                 modules={["control.ZoomControl", "control.FullscreenControl"]}
               >
@@ -489,7 +497,7 @@ export default function Contacts() {
                     geometry={item.coords}
                     properties={{
                       balloonContent: getBalloonContent(item),
-                      hintContent: `${item.city || ""} ${item.address}`,
+                      hintContent: `${item.city || ""} ${item.address}`.replace(/\n/g, " "),
                     }}
                     options={{
                       preset:
@@ -566,7 +574,6 @@ export default function Contacts() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 2,
-                /* Стили для элегантного скроллбара */
                 "&::-webkit-scrollbar": {
                   width: "6px",
                 },
@@ -662,7 +669,7 @@ export default function Contacts() {
                       </Button>
                     </Box>
 
-                    {/* Адрес */}
+                    {/* Многострочный адрес и описание */}
                     <Box
                       sx={{
                         display: "flex",
@@ -672,17 +679,22 @@ export default function Contacts() {
                       }}
                     >
                       <StorefrontIcon
-                        sx={{ fontSize: 18, color: "#00B3A4", mt: 0.2, flexShrink: 0 }}
+                        sx={{ fontSize: 18, color: "#00B3A4", mt: 0.3, flexShrink: 0 }}
                       />
                       <Typography
                         variant="body2"
-                        sx={{ color: "#2c3e50", fontWeight: 500, lineHeight: 1.4 }}
+                        sx={{
+                          color: "#2c3e50",
+                          fontWeight: 500,
+                          lineHeight: 1.5,
+                          whiteSpace: "pre-line", // Поддержка многострочности
+                        }}
                       >
                         {item.address}
                       </Typography>
                     </Box>
 
-                    {/* Телефон */}
+                    {/* Телефон (если указан отдельно) */}
                     {item.phone && (
                       <Box
                         sx={{
@@ -712,7 +724,7 @@ export default function Contacts() {
                       </Box>
                     )}
 
-                    {/* График работы */}
+                    {/* График работы (если указан отдельно) */}
                     {item.schedule && (
                       <Box
                         sx={{

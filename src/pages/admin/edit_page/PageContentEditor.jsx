@@ -44,7 +44,6 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LinkIcon from "@mui/icons-material/Link";
 import PhoneIcon from "@mui/icons-material/Phone";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ViewCarouselIcon from "@mui/icons-material/ViewCarousel";
@@ -778,7 +777,7 @@ const PhoneListEditor = ({ value, onChange }) => {
 };
 
 // =========================================================================
-// === РЕДАКТОР СПИСКА АДРЕСОВ И ТОЧЕК САМОВЫВОЗА (AddressListEditor) ===
+// === РЕДАКТОР СПИСКА АДРЕСОВ С БОЛЬШИМ МНОГОСТРОЧНЫМ ПОЛЕМ (AddressListEditor) ===
 // =========================================================================
 const AddressListEditor = ({ value, onChange }) => {
   const [addresses, setAddresses] = useState([]);
@@ -798,14 +797,22 @@ const AddressListEditor = ({ value, onChange }) => {
               } else if (item.lat !== undefined && item.lng !== undefined) {
                 coords = [Number(item.lat) || 0, Number(item.lng) || 0];
               }
+
+              // Поддержка текста адреса с переносами строк
+              let addressText = item.address || "";
+              if (!addressText && item.rawHtml) {
+                addressText = item.rawHtml.replace(/<br\s*[\/]?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+              }
+
               return {
                 id: item.id || `addr-${idx}`,
                 city: item.city || "",
                 title: item.title || "",
-                address: item.address || "",
+                address: addressText,
                 phone: item.phone || "",
                 schedule: item.schedule || "",
                 coords: coords,
+                coordsStr: `${coords[0]}, ${coords[1]}`,
               };
             })
           );
@@ -834,6 +841,7 @@ const AddressListEditor = ({ value, onChange }) => {
         phone: "",
         schedule: "",
         coords: [55.751574, 37.573856],
+        coordsStr: "55.751574, 37.573856",
       },
     ];
     updateParent(newAddresses);
@@ -849,11 +857,16 @@ const AddressListEditor = ({ value, onChange }) => {
     updateParent(newAddresses);
   };
 
-  const handleChangeCoord = (index, coordIndex, val) => {
+  // Обработка ввода координат одной строкой "Широта, Долгота"
+  const handleChangeCoordsString = (index, val) => {
     const newAddresses = [...addresses];
-    const coords = [...(newAddresses[index].coords || [55.751574, 37.573856])];
-    coords[coordIndex] = parseFloat(val) || 0;
-    newAddresses[index] = { ...newAddresses[index], coords };
+    newAddresses[index] = { ...newAddresses[index], coordsStr: val };
+
+    const cleaned = val.replace(/[\[\]]/g, "").trim();
+    const parts = cleaned.split(/[\s,]+/).map(parseFloat);
+    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      newAddresses[index].coords = [parts[0], parts[1]];
+    }
     updateParent(newAddresses);
   };
 
@@ -916,7 +929,7 @@ const AddressListEditor = ({ value, onChange }) => {
             gap: 1,
           }}
         >
-          <MapIcon /> 📍 Адреса и пункты выдачи (Яндекс.Карта)
+          <MapIcon /> 📍 Адреса филиалов и точек выдачи (Яндекс.Карта)
         </Typography>
         <Typography variant="body2" color="textSecondary">
           Всего адресов: <strong>{addresses.length}</strong>
@@ -946,14 +959,14 @@ const AddressListEditor = ({ value, onChange }) => {
             setDragOverIndex(null);
           }}
           sx={{
-            mb: 2.5,
+            mb: 3,
             border:
               dragOverIndex === index
                 ? "2px dashed #00B3A4"
                 : "1px solid #e0e0e0",
             backgroundColor: draggedIndex === index ? "#f0fbf9" : "#ffffff",
-            borderRadius: 2,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            borderRadius: 2.5,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
           }}
         >
           {/* Заголовок карточки адреса */}
@@ -998,14 +1011,6 @@ const AddressListEditor = ({ value, onChange }) => {
                   sx={{ fontWeight: 600 }}
                 />
               )}
-              {item.title && (
-                <Chip
-                  label={item.title}
-                  size="small"
-                  variant="outlined"
-                  color="default"
-                />
-              )}
             </Box>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -1046,150 +1051,69 @@ const AddressListEditor = ({ value, onChange }) => {
 
           <CardContent sx={{ p: 2.5 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
+              {/* БОЛЬШОЙ МНОГОСТРОЧНЫЙ ИНПУТ ДЛЯ АДРЕСА */}
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  size="small"
-                  label="Город / Населенный пункт"
-                  value={item.city || ""}
-                  onChange={(e) =>
-                    handleChangeField(index, "city", e.target.value)
-                  }
-                  placeholder="Например: г. Оренбург"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Название филиала / Тип"
-                  value={item.title || ""}
-                  onChange={(e) =>
-                    handleChangeField(index, "title", e.target.value)
-                  }
-                  placeholder="Например: Магазин - Склад"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Телефон филиала"
-                  value={item.phone || ""}
-                  onChange={(e) =>
-                    handleChangeField(index, "phone", e.target.value)
-                  }
-                  placeholder="+7 (3532) 93-52-41"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={7}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Улица, дом, строение, ориентир"
+                  multiline
+                  minRows={4}
+                  maxRows={10}
+                  label="Полный адрес, телефон и режим работы (многострочный текст)"
                   value={item.address || ""}
                   onChange={(e) =>
                     handleChangeField(index, "address", e.target.value)
                   }
-                  placeholder="ул. Шевченко д. 20 «В»"
+                  placeholder={`г. Оренбург, ул. Шевченко д. 20 «В» Магазин - Склад\n+7 3532 93-52-41\nРежим работы: с пн по пт с 9 до 18:00`}
+                  helperText="Вы можете писать адрес, телефоны филиала и примечания в несколько строк — они будут отображаться красиво и аккуратно."
                   required
                   InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LocationOnIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
+                    sx: { fontSize: "0.95rem", lineHeight: 1.6 },
                   }}
                 />
               </Grid>
 
-              <Grid item xs={12} sm={5}>
+              {/* ГОРОД (для бейджа) */}
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   size="small"
-                  label="Режим работы"
-                  value={item.schedule || ""}
+                  label="Город / Регион (для заголовка карточки)"
+                  value={item.city || ""}
                   onChange={(e) =>
-                    handleChangeField(index, "schedule", e.target.value)
+                    handleChangeField(index, "city", e.target.value)
                   }
-                  placeholder="с пн по пт с 9 до 18:00"
+                  placeholder="Например: г. Оренбург, г. Орск, г. Уфа"
+                />
+              </Grid>
+
+              {/* КООРДИНАТЫ ДЛЯ ЯНДЕКС.КАРТЫ */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Координаты метки на карте (Широта, Долгота)"
+                  value={
+                    item.coordsStr !== undefined
+                      ? item.coordsStr
+                      : item.coords
+                      ? `${item.coords[0]}, ${item.coords[1]}`
+                      : ""
+                  }
+                  onChange={(e) =>
+                    handleChangeCoordsString(index, e.target.value)
+                  }
+                  placeholder="Например: 51.798286, 55.111328"
+                  helperText={`Текущая точка: [${item.coords ? item.coords[0] : 0}, ${
+                    item.coords ? item.coords[1] : 0
+                  }]`}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <AccessTimeIcon fontSize="small" color="action" />
+                        <LocationOnIcon fontSize="small" color="primary" />
                       </InputAdornment>
                     ),
                   }}
                 />
-              </Grid>
-
-              {/* Координаты для карты */}
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    bgcolor: "#f9fbfb",
-                    borderRadius: 1.5,
-                    border: "1px dashed #b2dfdb",
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    sx={{ display: "block", mb: 1, fontWeight: "bold" }}
-                  >
-                    🎯 Координаты для Яндекс.Карты (Широта и Долгота):
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6} sm={4}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        inputProps={{ step: "any" }}
-                        label="Широта (Latitude)"
-                        value={item.coords ? item.coords[0] : 55.751574}
-                        onChange={(e) =>
-                          handleChangeCoord(index, 0, e.target.value)
-                        }
-                        placeholder="51.798286"
-                      />
-                    </Grid>
-                    <Grid item xs={6} sm={4}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        inputProps={{ step: "any" }}
-                        label="Долгота (Longitude)"
-                        value={item.coords ? item.coords[1] : 37.573856}
-                        onChange={(e) =>
-                          handleChangeCoord(index, 1, e.target.value)
-                        }
-                        placeholder="55.111328"
-                      />
-                    </Grid>
-                    <Grid
-                      item
-                      xs={12}
-                      sm={4}
-                      sx={{ display: "flex", alignItems: "center" }}
-                    >
-                      <Typography variant="caption" color="textSecondary">
-                        Текущие: [{item.coords ? item.coords[0] : 0},{" "}
-                        {item.coords ? item.coords[1] : 0}]
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Box>
               </Grid>
             </Grid>
           </CardContent>
@@ -1203,8 +1127,9 @@ const AddressListEditor = ({ value, onChange }) => {
         fullWidth
         sx={{
           borderStyle: "dashed",
-          py: 1.2,
+          py: 1.4,
           fontWeight: 600,
+          fontSize: "0.95rem",
           "&:hover": { borderStyle: "dashed" },
         }}
       >
@@ -1390,6 +1315,8 @@ export default function PageContentEditor() {
         const response = await api.get(`/page${pagePath}`);
         const data = Array.isArray(response.data?.data?.elements)
           ? response.data.data.elements
+          : Array.isArray(response.data?.elements)
+          ? response.data.elements
           : [];
         const pageName = pagePath.startsWith("/")
           ? pagePath.slice(1)
@@ -1445,7 +1372,6 @@ export default function PageContentEditor() {
       prev.map((item, i) => {
         if (i !== index) return item;
         let newValue = item.value;
-        // Если переключаем на слайдер/списки, а там была пустая строка или html
         if (newMode === "slider" && (!newValue || !newValue.startsWith("["))) {
           newValue = JSON.stringify([]);
         } else if (
@@ -1515,7 +1441,7 @@ export default function PageContentEditor() {
       }
     });
 
-    // Собираем адреса
+    // Собираем адреса (сохраняем текст с переносами строк)
     const addresses = [];
     const legacyIdsToDelete = [];
 
@@ -1524,28 +1450,29 @@ export default function PageContentEditor() {
         legacyIdsToDelete.push(item.element_id);
         const idx = item.element_id.replace("address-", "");
         const rawHtml = item.value || "";
-        const parts = rawHtml.split("<br>").map((s) => s.replace(/<[^>]+>/g, "").trim());
-        const fullAddress = parts[0] || "";
-        const phone = parts[1] || "";
+        const cleanText = rawHtml
+          .replace(/<br\s*[\/]?>/gi, "\n")
+          .replace(/<[^>]+>/g, "")
+          .trim();
+
+        const lines = cleanText.split("\n").map((s) => s.trim());
+        const firstLine = lines[0] || "";
 
         let city = "";
-        let addr = fullAddress;
-        let title = "";
-
-        if (fullAddress.includes(",")) {
-          const splitAddr = fullAddress.split(",");
-          city = splitAddr[0]?.trim() || "";
-          addr = splitAddr.slice(1).join(",").trim();
+        if (firstLine.includes(",")) {
+          city = firstLine.split(",")[0]?.trim() || "";
+        } else if (firstLine.startsWith("г.") || firstLine.startsWith("125412")) {
+          city = firstLine.split(" ")[1] || firstLine;
         }
 
         addresses.push({
           id: `addr-${idx}`,
           city: city,
-          title: title,
-          address: addr,
-          phone: phone,
-          schedule: fullAddress.includes("режим работы") ? "с пн по пт с 9 до 18:00" : "",
+          address: cleanText,
           coords: coordsMap[idx] || [55.751574, 37.573856],
+          coordsStr: coordsMap[idx]
+            ? `${coordsMap[idx][0]}, ${coordsMap[idx][1]}`
+            : "55.751574, 37.573856",
         });
       } else if (item.element_id.startsWith("coords-")) {
         legacyIdsToDelete.push(item.element_id);
@@ -1569,12 +1496,10 @@ export default function PageContentEditor() {
       }
     });
 
-    // Оставляем остальные элементы (page-title, main-heading, meta-*)
     const remainingElements = pageContent.filter(
       (item) => !legacyIdsToDelete.includes(item.element_id)
     );
 
-    // Добавляем новые элементы
     const newBlocks = [
       ...remainingElements,
       {
@@ -1595,7 +1520,7 @@ export default function PageContentEditor() {
 
     setDeletedElementIds((prev) => [...prev, ...legacyIdsToDelete]);
     setPageContent(newBlocks);
-    toast.info("Старые контакты преобразованы в динамические списки. Нажмите «Сохранить все», чтобы применить.");
+    toast.info("Контакты преобразованы в динамические списки с многострочными адресами. Нажмите «Сохранить все».");
   };
 
   const handleSubmit = async (e) => {
@@ -1700,8 +1625,7 @@ export default function PageContentEditor() {
                 </AlertTitle>
                 На странице найдены старые разрозненные элементы (
                 <code>address-1..6</code>, <code>phone-1..2</code>). Вы можете в
-                один клик объединить их в удобные динамические списки адресов и
-                телефонов.
+                один клик объединить их в удобные динамические списки с многострочными полями.
               </Alert>
             )}
 
@@ -1851,7 +1775,6 @@ export default function PageContentEditor() {
                 />
 
                 <Box sx={{ mt: 2 }}>
-                  {/* УСЛОВНЫЙ РЕНДЕРИНГ РЕДАКТОРА */}
                   {item.editorMode === "slider" && (
                     <SliderEditor
                       value={item.value}
