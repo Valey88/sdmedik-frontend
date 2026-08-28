@@ -64,6 +64,15 @@ const BurgerMenu = ({ toggleDrawer }) => {
         <ListItem>
           <Link
             style={{ color: "#26BDB8", marginLeft: 2 }}
+            to="/reviews"
+            onClick={toggleDrawer(false)}
+          >
+            Отзывы
+          </Link>
+        </ListItem>
+        <ListItem>
+          <Link
+            style={{ color: "#26BDB8", marginLeft: 2 }}
             to="/certificate"
             onClick={toggleDrawer(false)}
           >

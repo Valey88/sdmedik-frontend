@@ -4,6 +4,7 @@ import React from "react";
 const menuItems = [
   { text: "Доставка", href: "/delivery" },
   { text: "Реквизиты", href: "/deteils" },
+  { text: "Отзывы", href: "/reviews" },
   { text: "Возврат", href: "/returnpolicy" },
   { text: "О нас", href: "/about" },
   { text: "Контакты", href: "/contacts" },

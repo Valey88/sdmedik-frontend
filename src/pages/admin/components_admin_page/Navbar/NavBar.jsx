@@ -138,6 +138,11 @@ const NavBar = () => {
       handleClose: handleCloseBlogMenu,
       id: "blog-menu",
     },
+    {
+      label: "Отзывы",
+      href: "/admin/table_reviews",
+      isButton: false,
+    },
   ];
 
   return (

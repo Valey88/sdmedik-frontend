@@ -35,6 +35,7 @@ import NotFound from "../pages/notfound/NotFound";
 import RessetPassword from "../global/components/RessetPassword";
 import BlogList from "../pages/blog-list/BlogList";
 import Post from "../pages/post/Post";
+import ReviewsPage from "../pages/reviews/ReviewsPage";
 
 // const UsersRoute = ({ children }) => {
 //   const isLoggedIn = Cookies.get("logged_in") === "true";
@@ -106,6 +107,14 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <BlogList />
+      </LayoutWrapper>
+    ),
+  },
+  {
+    path: "/reviews",
+    element: (
+      <LayoutWrapper>
+        <ReviewsPage />
       </LayoutWrapper>
     ),
   },

@@ -19,6 +19,7 @@ import PageContentEditor from "./edit_page/PageContentEditor";
 import CreateBlog from "./create-blog/CreateBlog";
 import AdminBlogTable from "./components_admin_page/AdminBlogTable/AdminBlogTable";
 import UpdatePost from "./update-post/UpdatePost";
+import AdminReviewsTable from "./components_admin_page/AdminReviewsTable/AdminReviewsTable";
 
 function ProtectedRoute({ element }) {
   const { getUserInfo, user } = useUserStore();
@@ -87,6 +88,10 @@ export default function AdminDashboard() {
         <Route
           path="/table_blog"
           element={<ProtectedRoute element={<AdminBlogTable />} />}
+        />
+        <Route
+          path="/table_reviews"
+          element={<ProtectedRoute element={<AdminReviewsTable />} />}
         />
         <Route
           path="/update_product/:id"
