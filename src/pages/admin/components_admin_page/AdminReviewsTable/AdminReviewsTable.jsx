@@ -53,6 +53,7 @@ import useReviewStore from "../../../../store/reviewStore";
 import ShortLink from "../../../reviews/components/ShortLink";
 import ReviewMediaViewer from "../../../reviews/components/ReviewMediaViewer";
 import AdminCreateReviewModal from "./AdminCreateReviewModal";
+import AdminEditReviewModal from "./AdminEditReviewModal";
 import {
   getSourceConfig,
   MaxIcon,
@@ -163,6 +164,8 @@ export default function AdminReviewsTable() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedReviewForEdit, setSelectedReviewForEdit] = useState(null);
 
   // Lightbox state
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -194,6 +197,11 @@ export default function AdminReviewsTable() {
     if (window.confirm("Вы уверены, что хотите безвозвратно удалить этот отзыв?")) {
       await adminDeleteReview(id);
     }
+  };
+
+  const handleEdit = (rev) => {
+    setSelectedReviewForEdit(rev);
+    setEditModalOpen(true);
   };
 
   const handleOpenPhoto = (images, index = 0) => {
@@ -504,6 +512,20 @@ export default function AdminReviewsTable() {
                         {/* Actions */}
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <Tooltip title="Редактировать отзыв (текст, фото, автора)">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEdit(rev)}
+                                sx={{
+                                  bgcolor: alpha("#1976d2", 0.1),
+                                  "&:hover": { bgcolor: alpha("#1976d2", 0.2) },
+                                }}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+
                             {rev.status !== "approved" && (
                               <Tooltip title="Одобрить и опубликовать">
                                 <IconButton
@@ -589,6 +611,25 @@ export default function AdminReviewsTable() {
         onClose={() => setCreateModalOpen(false)}
         onSuccess={() => {
           fetchAdminReviews({ page: 1, limit, status: activeTab });
+        }}
+      />
+
+      {/* Admin Edit Review Modal */}
+      <AdminEditReviewModal
+        open={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedReviewForEdit(null);
+        }}
+        review={selectedReviewForEdit}
+        onSuccess={() => {
+          fetchAdminReviews({
+            page,
+            limit,
+            status: activeTab,
+            source: sourceFilter,
+            search: searchQuery,
+          });
         }}
       />
 

@@ -5,7 +5,6 @@ import {
   Typography,
   Breadcrumbs,
   Link as MuiLink,
-  Grid,
   CircularProgress,
   FormControl,
   Select,
@@ -16,10 +15,10 @@ import {
   Button,
   Paper,
   Divider,
+  Skeleton,
 } from "@mui/material";
 import {
   NavigateNext,
-  FilterList,
   PhotoCamera,
   SentimentSatisfiedAlt,
   RateReview,
@@ -42,6 +41,7 @@ export default function ReviewsPage() {
   const [sourceFilter, setSourceFilter] = useState("");
   const [sortBy, setSortBy] = useState("newest");
 
+  // 9 reviews per page (exactly 3 rows of 3)
   const limit = 9;
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function ReviewsPage() {
     setPage(1);
   };
 
-  // Гарантированная фильтрация на клиенте: если включен фильтр "С фото", отображаем только отзывы с реальными фото
+  // Client-side photo check filter for instant visual feedback
   const displayedReviews = useMemo(() => {
     if (!withPhotos) return reviews;
     return reviews.filter((r) => {
@@ -83,10 +83,10 @@ export default function ReviewsPage() {
   const totalPages = Math.ceil(total / limit) || 1;
 
   return (
-    <Box sx={{ backgroundColor: "#F8FAFC", minHeight: "100vh", pb: 8 }}>
-      {/* Breadcrumbs Banner */}
-      <Box sx={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E2E8F0", py: 3, mb: 4 }}>
-        <Container maxWidth="lg">
+    <Box sx={{ backgroundColor: "#F8FAFC", minHeight: "100vh", pb: 10 }}>
+      {/* Top Breadcrumbs & Page Header Banner */}
+      <Box sx={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E2E8F0", py: 3.5, mb: 4 }}>
+        <Container maxWidth="xl" sx={{ maxWidth: 1360, px: { xs: 2, sm: 3, md: 4 } }}>
           <Breadcrumbs
             separator={<NavigateNext fontSize="small" />}
             aria-label="breadcrumb"
@@ -106,14 +106,19 @@ export default function ReviewsPage() {
               justifyContent: "space-between",
               alignItems: "center",
               flexWrap: "wrap",
-              gap: 2,
+              gap: 2.5,
             }}
           >
             <Box>
-              <Typography variant="h4" fontWeight={800} color="#1E293B">
+              <Typography
+                variant="h4"
+                fontWeight={800}
+                color="#0F172A"
+                sx={{ fontSize: { xs: "1.75rem", sm: "2.1rem" }, letterSpacing: "-0.02em" }}
+              >
                 Отзывы покупателей
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5, fontSize: "0.95rem" }}>
                 Честные отзывы и впечатления наших клиентов о продукции и сервисе sdmedik
               </Typography>
             </Box>
@@ -125,14 +130,17 @@ export default function ReviewsPage() {
               sx={{
                 background: "linear-gradient(135deg, #26BDB8 0%, #1E9E9A 100%)",
                 borderRadius: "12px",
-                px: 3,
-                py: 1.2,
+                px: 3.5,
+                py: 1.3,
                 fontWeight: 600,
                 textTransform: "none",
                 fontSize: "0.95rem",
-                boxShadow: "0 4px 14px rgba(38, 189, 184, 0.35)",
+                boxShadow: "0 4px 16px rgba(38, 189, 184, 0.35)",
+                transition: "all 0.2s ease-in-out",
                 "&:hover": {
                   background: "linear-gradient(135deg, #1E9E9A 0%, #17837F 100%)",
+                  boxShadow: "0 6px 20px rgba(38, 189, 184, 0.45)",
+                  transform: "translateY(-1px)",
                 },
               }}
             >
@@ -142,7 +150,7 @@ export default function ReviewsPage() {
         </Container>
       </Box>
 
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ maxWidth: 1360, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Summary Rating Widget */}
         <ReviewsSummary
           stats={stats}
@@ -156,11 +164,12 @@ export default function ReviewsPage() {
         <Paper
           elevation={0}
           sx={{
-            p: 2.5,
+            p: { xs: 2, sm: 2.5 },
             borderRadius: "16px",
             border: "1px solid #E2E8F0",
             backgroundColor: "#FFFFFF",
             mb: 4,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
           }}
         >
           <Box
@@ -248,7 +257,7 @@ export default function ReviewsPage() {
                 }}
               />
 
-              {/* Независимый переключатель: Только с фото */}
+              {/* Photo Filter Switch */}
               <Chip
                 icon={
                   withPhotos ? (
@@ -309,20 +318,61 @@ export default function ReviewsPage() {
           </Box>
         </Paper>
 
-        {/* Reviews Grid */}
+        {/* Reviews Grid: Exactly 3 cards per row on desktop (>=900px), 2 on tablet, 1 on mobile */}
         {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-            <CircularProgress sx={{ color: "#26BDB8" }} size={45} />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)",
+              },
+              gap: 3,
+            }}
+          >
+            {[1, 2, 3, 4, 5, 6].map((idx) => (
+              <Paper
+                key={idx}
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: "18px",
+                  border: "1px solid #E2E8F0",
+                  height: 240,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                  <Skeleton variant="circular" width={44} height={44} />
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Skeleton variant="text" width="60%" height={24} />
+                    <Skeleton variant="text" width="40%" height={18} />
+                  </Box>
+                </Box>
+                <Skeleton variant="text" width="100%" height={20} />
+                <Skeleton variant="text" width="90%" height={20} />
+                <Skeleton variant="text" width="70%" height={20} />
+              </Paper>
+            ))}
           </Box>
         ) : displayedReviews.length > 0 ? (
           <>
-            <Grid container spacing={3}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(3, 1fr)",
+                },
+                gap: 3,
+                alignItems: "stretch",
+              }}
+            >
               {displayedReviews.map((review) => (
-                <Grid item xs={12} md={6} lg={4} key={review.id}>
-                  <ReviewCard review={review} />
-                </Grid>
+                <ReviewCard key={review.id} review={review} />
               ))}
-            </Grid>
+            </Box>
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -337,6 +387,7 @@ export default function ReviewsPage() {
                     "& .Mui-selected": {
                       backgroundColor: "#26BDB8 !important",
                       color: "#fff",
+                      fontWeight: 700,
                     },
                   }}
                 />
